@@ -1,10 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php *)",
-      "Bash(npm *)",
-      "Bash(git *)",
       "Bash(composer *)",
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(php *)",
       "mcp__laravel-boost*"
     ]
   }
