@@ -56,18 +56,4 @@ class UserFactory extends Factory
             'two_factor_confirmed_at' => now(),
         ]);
     }
-
-    /**
-     * Indicate that the user was authenticated via Plex.
-     */
-    public function withPlex(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'plex_id' => (string) fake()->unique()->randomNumber(8),
-            'plex_token' => 'fake-plex-token-'.Str::random(20),
-            'plex_username' => $attributes['name'] ?? fake()->userName(),
-            'plex_thumb' => 'https://plex.tv/users/'.fake()->uuid().'/avatar',
-            'password' => null,
-        ]);
-    }
 }
