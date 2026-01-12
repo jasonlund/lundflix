@@ -28,8 +28,14 @@ it('creates a new user on successful plex authentication', function () {
     $this->withSession(['plex_pin_id' => 12345]);
 
     Http::fake([
-        'clients.plex.tv/api/v2/pins/12345*' => Http::response([
-            'authToken' => 'test-jwt-token',
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
+            'authToken' => 'pin-claimed',
+        ]),
+        'clients.plex.tv/api/v2/auth/nonce' => Http::response([
+            'nonce' => 'test-nonce-uuid',
+        ]),
+        'clients.plex.tv/api/v2/auth/token' => Http::response([
+            'auth_token' => 'test-jwt-token',
         ]),
         'plex.tv/api/v2/user' => Http::response([
             'id' => 999,
@@ -67,8 +73,14 @@ it('logs in an existing plex user', function () {
     $this->withSession(['plex_pin_id' => 12345]);
 
     Http::fake([
-        'clients.plex.tv/api/v2/pins/12345*' => Http::response([
-            'authToken' => 'new-jwt-token',
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
+            'authToken' => 'pin-claimed',
+        ]),
+        'clients.plex.tv/api/v2/auth/nonce' => Http::response([
+            'nonce' => 'test-nonce-uuid',
+        ]),
+        'clients.plex.tv/api/v2/auth/token' => Http::response([
+            'auth_token' => 'new-jwt-token',
         ]),
         'plex.tv/api/v2/user' => Http::response([
             'id' => 999,
@@ -98,8 +110,14 @@ it('rejects users without server access', function () {
     $this->withSession(['plex_pin_id' => 12345]);
 
     Http::fake([
-        'clients.plex.tv/api/v2/pins/12345*' => Http::response([
-            'authToken' => 'test-jwt-token',
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
+            'authToken' => 'pin-claimed',
+        ]),
+        'clients.plex.tv/api/v2/auth/nonce' => Http::response([
+            'nonce' => 'test-nonce-uuid',
+        ]),
+        'clients.plex.tv/api/v2/auth/token' => Http::response([
+            'auth_token' => 'test-jwt-token',
         ]),
         'clients.plex.tv/api/v2/resources*' => Http::response([
             [
@@ -124,11 +142,11 @@ it('handles missing pin session', function () {
     $this->assertGuest();
 });
 
-it('handles failed token exchange', function () {
+it('handles unclaimed pin', function () {
     $this->withSession(['plex_pin_id' => 12345]);
 
     Http::fake([
-        'clients.plex.tv/api/v2/pins/12345*' => Http::response([
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => null,
         ]),
     ]);

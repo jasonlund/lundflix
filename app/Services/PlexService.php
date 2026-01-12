@@ -39,6 +39,7 @@ class PlexService
     public function createPin(): array
     {
         $response = $this->client()
+            ->asJson()
             ->post(self::BASE_URL.'/pins', [
                 'strong' => true,
                 'jwk' => $this->getJwk(),
@@ -66,19 +67,15 @@ class PlexService
     }
 
     /**
-     * Exchange a claimed PIN for a JWT token.
-     * Requires signing a device JWT to prove key ownership.
+     * Verify that a PIN was claimed by the user.
+     * Returns true if the user authenticated and the PIN is now linked.
      */
-    public function getAuthToken(int $pinId): ?string
+    public function verifyPinClaimed(int $pinId): bool
     {
-        $deviceJwt = $this->createDeviceJwt();
-
         $response = $this->client()
-            ->get(self::BASE_URL."/pins/{$pinId}", [
-                'deviceJWT' => $deviceJwt,
-            ]);
+            ->get(self::BASE_URL."/pins/{$pinId}");
 
-        return $response->json('authToken');
+        return $response->json('authToken') !== null;
     }
 
     /**
@@ -98,6 +95,7 @@ class PlexService
 
         // Step 3: Exchange for new Plex token
         $tokenResponse = $this->client()
+            ->asJson()
             ->post(self::BASE_URL.'/auth/token', [
                 'jwt' => $deviceJwt,
             ]);

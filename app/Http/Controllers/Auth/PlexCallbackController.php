@@ -19,12 +19,12 @@ class PlexCallbackController extends Controller
                 ->with('error', 'Invalid authentication session.');
         }
 
-        $token = $plex->getAuthToken($pinId);
-
-        if (! $token) {
+        if (! $plex->verifyPinClaimed($pinId)) {
             return redirect()->route('login')
                 ->with('error', 'Authentication failed. Please try again.');
         }
+
+        $token = $plex->refreshToken();
 
         if (! $plex->hasServerAccess($token)) {
             return redirect()->route('login')
