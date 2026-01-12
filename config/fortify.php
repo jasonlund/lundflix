@@ -144,7 +144,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Features::registration(), // Disabled - users register via Plex
         Features::resetPasswords(),
         Features::emailVerification(),
         // Features::updateProfileInformation(),

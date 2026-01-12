@@ -23,6 +23,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'plex_id',
+        'plex_token',
+        'plex_username',
+        'plex_thumb',
     ];
 
     /**
@@ -32,6 +36,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'plex_token',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
@@ -47,7 +52,16 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'plex_token' => 'encrypted',
         ];
+    }
+
+    /**
+     * Find a user by their Plex ID.
+     */
+    public static function findByPlexId(string $plexId): ?self
+    {
+        return static::where('plex_id', $plexId)->first();
     }
 
     /**
