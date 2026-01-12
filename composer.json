@@ -41,6 +41,8 @@
         }
     },
     "scripts": {
+        "pint": "vendor/bin/pint",
+        "pint:test": "vendor/bin/pint --test",
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",

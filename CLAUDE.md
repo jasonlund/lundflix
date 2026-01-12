@@ -1,5 +1,12 @@
 # Lundflix Project Rules
 
+## Code Formatting
+**Always run formatters before committing code:**
+- `composer pint` - PHP code formatting
+- `npm run format` - Prettier for resources/ (Blade, CSS, JS)
+
+Code must pass `composer pint:test` and `npm run format:check` before being committed.
+
 ## Git Commits
 **NEVER commit or push without explicit user permission.**
 
@@ -7,7 +14,7 @@ When committing changes, use this format:
 
 **Message:** Concise imperative statement (e.g., "Upgrade to Livewire 4 with native single-file components")
 
-**Description:** 3 bullet points summarizing the changes:
+**Description:** 1-4 bullet points summarizing the changes (use fewer for simple changes):
 - What was added/removed/upgraded
 - What was migrated or refactored
 - What tooling or config was added
