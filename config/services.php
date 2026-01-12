@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'plex' => [
+        'client_identifier' => env('PLEX_CLIENT_IDENTIFIER'),
+        'product_name' => env('PLEX_PRODUCT_NAME', 'Lund'),
+        'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
+        'private_key' => env('PLEX_PRIVATE_KEY'),
+        'key_id' => env('PLEX_KEY_ID'),
+    ],
+
 ];
