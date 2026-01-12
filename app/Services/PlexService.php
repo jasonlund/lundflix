@@ -2,14 +2,19 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 class PlexService
 {
     private const BASE_URL = 'https://clients.plex.tv/api/v2';
+
+    public const TOKEN_LIFETIME_DAYS = 7;
 
     private string $clientIdentifier;
 
@@ -148,6 +153,30 @@ class PlexService
             return $resource['clientIdentifier'] === $this->serverIdentifier
                 && $resource['provides'] === 'server';
         });
+    }
+
+    /**
+     * Make an authenticated request, automatically refreshing the token on 498 expiry.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function authenticatedRequest(User $user, string $method, string $url, array $options = []): Response
+    {
+        try {
+            return $this->client($user->plex_token)->$method($url, $options);
+        } catch (RequestException $e) {
+            if ($e->response->status() === 498) {
+                $newToken = $this->refreshToken();
+                $user->update([
+                    'plex_token' => $newToken,
+                    'plex_token_expires_at' => now()->addDays(self::TOKEN_LIFETIME_DAYS),
+                ]);
+
+                return $this->client($newToken)->$method($url, $options);
+            }
+
+            throw $e;
+        }
     }
 
     /**

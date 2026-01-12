@@ -36,6 +36,7 @@ class PlexCallbackController extends Controller
         $user = User::findByPlexId($plexUser['id']) ?? User::create([
             'plex_id' => $plexUser['id'],
             'plex_token' => $token,
+            'plex_token_expires_at' => now()->addDays(PlexService::TOKEN_LIFETIME_DAYS),
             'plex_username' => $plexUser['username'],
             'plex_thumb' => $plexUser['thumb'],
             'name' => $plexUser['username'],
@@ -45,6 +46,7 @@ class PlexCallbackController extends Controller
         if ($user->wasRecentlyCreated === false) {
             $user->update([
                 'plex_token' => $token,
+                'plex_token_expires_at' => now()->addDays(PlexService::TOKEN_LIFETIME_DAYS),
                 'plex_username' => $plexUser['username'],
                 'plex_thumb' => $plexUser['thumb'],
             ]);
