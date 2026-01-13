@@ -1,6 +1,5 @@
 <?php
 
-use App\Livewire\Auth\Register;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -15,7 +14,7 @@ it('displays the registration form with plex data', function () {
         ],
     ]);
 
-    Livewire::test(Register::class)
+    Livewire::test('auth.register')
         ->assertSet('plexUsername', 'plexuser')
         ->assertSet('plexEmail', 'plexuser@example.com')
         ->assertSet('name', 'plexuser')
@@ -24,7 +23,7 @@ it('displays the registration form with plex data', function () {
 });
 
 it('redirects to plex auth without session data', function () {
-    Livewire::test(Register::class)
+    Livewire::test('auth.register')
         ->assertRedirect(route('auth.plex'));
 });
 
@@ -39,7 +38,7 @@ it('creates a user on successful registration', function () {
         ],
     ]);
 
-    Livewire::test(Register::class)
+    Livewire::test('auth.register')
         ->set('name', 'My Display Name')
         ->set('password', 'password123')
         ->set('password_confirmation', 'password123')
@@ -70,7 +69,7 @@ it('validates name is required', function () {
         ],
     ]);
 
-    Livewire::test(Register::class)
+    Livewire::test('auth.register')
         ->set('name', '')
         ->set('password', 'password123')
         ->set('password_confirmation', 'password123')
@@ -89,7 +88,7 @@ it('validates password confirmation', function () {
         ],
     ]);
 
-    Livewire::test(Register::class)
+    Livewire::test('auth.register')
         ->set('name', 'My Name')
         ->set('password', 'password123')
         ->set('password_confirmation', 'different')
@@ -108,7 +107,7 @@ it('redirects to plex auth if session expires during registration', function () 
         ],
     ]);
 
-    $component = Livewire::test(Register::class)
+    $component = Livewire::test('auth.register')
         ->set('name', 'My Name')
         ->set('password', 'password123')
         ->set('password_confirmation', 'password123');

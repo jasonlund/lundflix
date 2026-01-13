@@ -28,15 +28,6 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->configureActions();
         $this->configureRateLimiting();
-        $this->configureViews();
-    }
-
-    /**
-     * Configure Fortify views.
-     */
-    private function configureViews(): void
-    {
-        Fortify::loginView(fn () => view('auth.login'));
     }
 
     /**

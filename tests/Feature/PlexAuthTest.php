@@ -61,7 +61,7 @@ it('redirects new users to registration', function () {
     ]);
 });
 
-it('logs in an existing plex user', function () {
+it('redirects existing plex user to login with error', function () {
     $existingUser = User::factory()->withPlex()->create([
         'plex_id' => '999',
         'name' => 'Existing User',
@@ -90,11 +90,11 @@ it('logs in an existing plex user', function () {
 
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect('/');
-    $this->assertAuthenticatedAs($existingUser);
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['plex' => 'A user is already associated with this Plex account.']);
+    $this->assertGuest();
 
     expect(User::count())->toBe(1);
-    expect($existingUser->fresh()->plex_username)->toBe('updated-username');
 });
 
 it('rejects users without server access', function () {
@@ -114,16 +114,16 @@ it('rejects users without server access', function () {
 
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect(route('home'));
-    $response->assertSessionHas('error', 'You do not have access to this server.');
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['plex' => 'You do not have access to lundflix.']);
     $this->assertGuest();
 });
 
 it('handles missing pin session', function () {
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect(route('home'));
-    $response->assertSessionHas('error', 'Invalid authentication session.');
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['plex' => 'Unable to authenticate your Plex user.']);
     $this->assertGuest();
 });
 
@@ -138,7 +138,7 @@ it('handles unclaimed pin', function () {
 
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect(route('home'));
-    $response->assertSessionHas('error', 'Authentication failed. Please try again.');
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['plex' => 'Unable to authenticate your Plex user.']);
     $this->assertGuest();
 });
