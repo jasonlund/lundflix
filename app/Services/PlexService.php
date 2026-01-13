@@ -57,6 +57,35 @@ class PlexService
     }
 
     /**
+     * Create a PIN for traditional (legacy) authentication.
+     * Uses simple strong PIN flow - no JWK required.
+     *
+     * @return array{id: int, code: string}
+     */
+    public function createLegacyPin(): array
+    {
+        $response = $this->client()
+            ->post(self::BASE_URL.'/pins?strong=true');
+
+        return [
+            'id' => $response->json('id'),
+            'code' => $response->json('code'),
+        ];
+    }
+
+    /**
+     * Get the auth token from a claimed PIN (legacy flow).
+     * Returns null if PIN not yet claimed.
+     */
+    public function getLegacyTokenFromPin(int $pinId): ?string
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL."/pins/{$pinId}");
+
+        return $response->json('authToken');
+    }
+
+    /**
      * Generate the Plex auth URL for user redirect.
      */
     public function getAuthUrl(string $code, string $forwardUrl): string
