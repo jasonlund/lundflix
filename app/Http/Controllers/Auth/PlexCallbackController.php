@@ -15,19 +15,19 @@ class PlexCallbackController extends Controller
 
         if (! $pinId) {
             return redirect()->route('login')
-                ->withErrors(['plex' => 'Unable to authenticate your Plex user.']);
+                ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);
         }
 
         $token = $plex->getTokenFromPin($pinId);
 
         if (! $token) {
             return redirect()->route('login')
-                ->withErrors(['plex' => 'Unable to authenticate your Plex user.']);
+                ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);
         }
 
         if (! $plex->hasServerAccess($token)) {
             return redirect()->route('login')
-                ->withErrors(['plex' => 'You do not have access to lundflix.']);
+                ->withErrors(['plex' => __('lundbergh.plex.no_access')]);
         }
 
         $plexUser = $plex->getUserInfo($token);
@@ -37,7 +37,7 @@ class PlexCallbackController extends Controller
         // Existing user - redirect to login with message
         if ($user) {
             return redirect()->route('login')
-                ->withErrors(['plex' => 'A user is already associated with this Plex account.']);
+                ->withErrors(['plex' => __('lundbergh.plex.already_linked')]);
         }
 
         // New user - store Plex data and redirect to registration

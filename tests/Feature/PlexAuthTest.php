@@ -91,7 +91,7 @@ it('redirects existing plex user to login with error', function () {
     $response = $this->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => 'A user is already associated with this Plex account.']);
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.already_linked')]);
     $this->assertGuest();
 
     expect(User::count())->toBe(1);
@@ -115,7 +115,7 @@ it('rejects users without server access', function () {
     $response = $this->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => 'You do not have access to lundflix.']);
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.no_access')]);
     $this->assertGuest();
 });
 
@@ -123,7 +123,7 @@ it('handles missing pin session', function () {
     $response = $this->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => 'Unable to authenticate your Plex user.']);
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
     $this->assertGuest();
 });
 
@@ -139,6 +139,6 @@ it('handles unclaimed pin', function () {
     $response = $this->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => 'Unable to authenticate your Plex user.']);
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
     $this->assertGuest();
 });

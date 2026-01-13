@@ -35,7 +35,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         if (! Auth::attempt($validated, $this->remember)) {
             RateLimiter::hit($throttleKey);
-            $this->addError('email', __('auth.failed'));
+            $this->addError('password', __('auth.failed'));
 
             return;
         }
@@ -55,22 +55,14 @@ new #[Layout('components.layouts.app')] class extends Component {
             <flux:error name="plex" class="mt-4" />
 
             <form wire:submit="login" class="mt-6 space-y-6">
-                <flux:input
-                    wire:model="email"
-                    label="Email"
-                    type="email"
-                    required
-                    autofocus
-                    description:trailing="The address associated with your plex account."
-                />
+                <flux:field>
+                    <flux:label>Email</flux:label>
+                    <flux:input wire:model="email" type="email" required autofocus />
+                    <flux:error name="email" />
+                    <flux:description>{{ __('lundbergh.form.email_description') }}</flux:description>
+                </flux:field>
 
-                <flux:input
-                    wire:model="password"
-                    label="Password"
-                    type="password"
-                    required
-                    description:trailing="Not necessarily the password to your plex account."
-                />
+                <flux:input wire:model="password" label="Password" type="password" required />
 
                 <flux:checkbox wire:model="remember" label="Remember me" />
 
@@ -96,8 +88,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                     <div>
                         <flux:heading size="lg">You are leaving lundflix</flux:heading>
                         <flux:text class="mt-2">
-                            You'll be redirected to plex.tv to authenticate your account and verify your access for
-                            registration.
+                            {!! nl2br(e(__('lundbergh.form.plex_redirect'))) !!}
                         </flux:text>
                     </div>
                     <div class="flex">
