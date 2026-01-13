@@ -2,11 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use Firebase\JWT\JWT;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -14,55 +10,25 @@ class PlexService
 {
     private const BASE_URL = 'https://clients.plex.tv/api/v2';
 
-    public const TOKEN_LIFETIME_DAYS = 7;
-
     private string $clientIdentifier;
 
     private string $productName;
 
     private string $serverIdentifier;
 
-    private string $privateKey;
-
-    private string $keyId;
-
     public function __construct()
     {
         $this->clientIdentifier = config('services.plex.client_identifier');
         $this->productName = config('services.plex.product_name');
         $this->serverIdentifier = config('services.plex.server_identifier');
-        $this->privateKey = config('services.plex.private_key');
-        $this->keyId = config('services.plex.key_id');
     }
 
     /**
-     * Create a new PIN for JWT authentication.
-     * Includes JWK (public key) in the request body.
+     * Create a PIN for Plex authentication.
      *
      * @return array{id: int, code: string}
      */
     public function createPin(): array
-    {
-        $response = $this->client()
-            ->asJson()
-            ->post(self::BASE_URL.'/pins', [
-                'strong' => true,
-                'jwk' => $this->getJwk(),
-            ]);
-
-        return [
-            'id' => $response->json('id'),
-            'code' => $response->json('code'),
-        ];
-    }
-
-    /**
-     * Create a PIN for traditional (legacy) authentication.
-     * Uses simple strong PIN flow - no JWK required.
-     *
-     * @return array{id: int, code: string}
-     */
-    public function createLegacyPin(): array
     {
         $response = $this->client()
             ->post(self::BASE_URL.'/pins?strong=true');
@@ -74,10 +40,10 @@ class PlexService
     }
 
     /**
-     * Get the auth token from a claimed PIN (legacy flow).
+     * Get the auth token from a claimed PIN.
      * Returns null if PIN not yet claimed.
      */
-    public function getLegacyTokenFromPin(int $pinId): ?string
+    public function getTokenFromPin(int $pinId): ?string
     {
         $response = $this->client()
             ->get(self::BASE_URL."/pins/{$pinId}");
@@ -98,43 +64,6 @@ class PlexService
         ]);
 
         return "https://app.plex.tv/auth#?{$params}";
-    }
-
-    /**
-     * Verify that a PIN was claimed by the user.
-     * Returns true if the user authenticated and the PIN is now linked.
-     */
-    public function verifyPinClaimed(int $pinId): bool
-    {
-        $response = $this->client()
-            ->get(self::BASE_URL."/pins/{$pinId}");
-
-        return $response->json('authToken') !== null;
-    }
-
-    /**
-     * Refresh the Plex JWT token using nonce-based flow.
-     * Call this when token expires (every 7 days).
-     */
-    public function refreshToken(): string
-    {
-        // Step 1: Get a nonce
-        $nonceResponse = $this->client()
-            ->get(self::BASE_URL.'/auth/nonce');
-
-        $nonce = $nonceResponse->json('nonce');
-
-        // Step 2: Create device JWT with nonce
-        $deviceJwt = $this->createDeviceJwt($nonce);
-
-        // Step 3: Exchange for new Plex token
-        $tokenResponse = $this->client()
-            ->asJson()
-            ->post(self::BASE_URL.'/auth/token', [
-                'jwt' => $deviceJwt,
-            ]);
-
-        return $tokenResponse->json('auth_token');
     }
 
     /**
@@ -182,73 +111,6 @@ class PlexService
             return $resource['clientIdentifier'] === $this->serverIdentifier
                 && $resource['provides'] === 'server';
         });
-    }
-
-    /**
-     * Make an authenticated request, automatically refreshing the token on 498 expiry.
-     *
-     * @param  array<string, mixed>  $options
-     */
-    public function authenticatedRequest(User $user, string $method, string $url, array $options = []): Response
-    {
-        try {
-            return $this->client($user->plex_token)->$method($url, $options);
-        } catch (RequestException $e) {
-            if ($e->response->status() === 498) {
-                $newToken = $this->refreshToken();
-                $user->update([
-                    'plex_token' => $newToken,
-                    'plex_token_expires_at' => now()->addDays(self::TOKEN_LIFETIME_DAYS),
-                ]);
-
-                return $this->client($newToken)->$method($url, $options);
-            }
-
-            throw $e;
-        }
-    }
-
-    /**
-     * Get the JWK (JSON Web Key) representation of our public key.
-     *
-     * @return array{kty: string, crv: string, x: string, kid: string, alg: string}
-     */
-    private function getJwk(): array
-    {
-        $privateKeyBytes = base64_decode($this->privateKey);
-        // ED25519 private key is 64 bytes: first 32 are seed, last 32 are public key
-        $publicKeyBytes = substr($privateKeyBytes, 32, 32);
-
-        return [
-            'kty' => 'OKP',
-            'crv' => 'Ed25519',
-            'x' => rtrim(strtr(base64_encode($publicKeyBytes), '+/', '-_'), '='),
-            'kid' => $this->keyId,
-            'alg' => 'EdDSA',
-        ];
-    }
-
-    /**
-     * Create a signed device JWT for Plex authentication.
-     */
-    private function createDeviceJwt(?string $nonce = null): string
-    {
-        $now = time();
-
-        $payload = [
-            'aud' => 'plex.tv',
-            'iss' => $this->clientIdentifier,
-            'iat' => $now,
-            'exp' => $now + 300, // 5 minutes
-        ];
-
-        if ($nonce !== null) {
-            $payload['nonce'] = $nonce;
-            $payload['scope'] = 'username,email';
-        }
-
-        // firebase/php-jwt expects base64-encoded key string for EdDSA
-        return JWT::encode($payload, $this->privateKey, 'EdDSA', $this->keyId);
     }
 
     /**

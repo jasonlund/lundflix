@@ -39,8 +39,6 @@ return [
         'client_identifier' => env('PLEX_CLIENT_IDENTIFIER').'-'.env('APP_ENV', 'production'),
         'product_name' => env('PLEX_PRODUCT_NAME', 'Lund'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
-        'private_key' => env('PLEX_PRIVATE_KEY'),
-        'key_id' => env('PLEX_KEY_ID'),
     ],
 
 ];

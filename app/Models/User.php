@@ -25,7 +25,6 @@ class User extends Authenticatable
         'password',
         'plex_id',
         'plex_token',
-        'plex_token_expires_at',
         'plex_username',
         'plex_thumb',
     ];
@@ -54,7 +53,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'plex_token' => 'encrypted',
-            'plex_token_expires_at' => 'datetime',
         ];
     }
 

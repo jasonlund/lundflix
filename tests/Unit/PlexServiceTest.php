@@ -4,22 +4,16 @@ use App\Services\PlexService;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    // Generate a test ED25519 key pair
-    $keypair = sodium_crypto_sign_keypair();
-    $privateKey = sodium_crypto_sign_secretkey($keypair);
-
     config([
         'services.plex.client_identifier' => 'test-client-id',
         'services.plex.product_name' => 'Lund',
         'services.plex.server_identifier' => 'test-server-123',
-        'services.plex.private_key' => base64_encode($privateKey),
-        'services.plex.key_id' => 'test-key-id',
     ]);
 });
 
-test('createPin returns id and code from Plex API with JWK', function () {
+test('createPin returns id and code from Plex API', function () {
     Http::fake([
-        'clients.plex.tv/api/v2/pins' => Http::response([
+        'clients.plex.tv/api/v2/pins?strong=true' => Http::response([
             'id' => 12345,
             'code' => 'ABCD1234',
         ]),
@@ -34,12 +28,9 @@ test('createPin returns id and code from Plex API with JWK', function () {
     ]);
 
     Http::assertSent(function ($request) {
-        return $request->url() === 'https://clients.plex.tv/api/v2/pins'
+        return str_contains($request->url(), 'clients.plex.tv/api/v2/pins')
             && $request->method() === 'POST'
-            && $request->hasHeader('X-Plex-Client-Identifier', 'test-client-id')
-            && isset($request->data()['jwk'])
-            && $request->data()['jwk']['kty'] === 'OKP'
-            && $request->data()['jwk']['crv'] === 'Ed25519';
+            && $request->hasHeader('X-Plex-Client-Identifier', 'test-client-id');
     });
 });
 
@@ -53,29 +44,24 @@ test('getAuthUrl generates correct Plex auth URL', function () {
         ->and($url)->toContain(urlencode('https://example.com/callback'));
 });
 
-test('getAuthToken exchanges PIN for JWT token with signed device JWT', function () {
+test('getTokenFromPin returns token when PIN is claimed', function () {
     Http::fake([
-        'clients.plex.tv/api/v2/pins/*' => Http::response([
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'id' => 12345,
             'code' => 'ABCD1234',
-            'authToken' => 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.test-jwt-token',
+            'authToken' => 'test-plex-token',
         ]),
     ]);
 
     $service = new PlexService;
-    $token = $service->getAuthToken(12345);
+    $token = $service->getTokenFromPin(12345);
 
-    expect($token)->toBe('eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.test-jwt-token');
-
-    Http::assertSent(function ($request) {
-        // Should include deviceJWT query parameter
-        return str_contains($request->url(), 'deviceJWT=');
-    });
+    expect($token)->toBe('test-plex-token');
 });
 
-test('getAuthToken returns null when PIN is not yet claimed', function () {
+test('getTokenFromPin returns null when PIN is not yet claimed', function () {
     Http::fake([
-        'clients.plex.tv/api/v2/pins/*' => Http::response([
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'id' => 12345,
             'code' => 'ABCD1234',
             'authToken' => null,
@@ -83,7 +69,7 @@ test('getAuthToken returns null when PIN is not yet claimed', function () {
     ]);
 
     $service = new PlexService;
-    $token = $service->getAuthToken(12345);
+    $token = $service->getTokenFromPin(12345);
 
     expect($token)->toBeNull();
 });
@@ -100,7 +86,7 @@ test('getUserInfo returns user details from Plex', function () {
     ]);
 
     $service = new PlexService;
-    $user = $service->getUserInfo('valid-jwt-token');
+    $user = $service->getUserInfo('valid-token');
 
     expect($user)->toBe([
         'id' => 98765,
@@ -111,7 +97,7 @@ test('getUserInfo returns user details from Plex', function () {
     ]);
 
     Http::assertSent(function ($request) {
-        return $request->hasHeader('X-Plex-Token', 'valid-jwt-token');
+        return $request->hasHeader('X-Plex-Token', 'valid-token');
     });
 });
 
@@ -189,22 +175,4 @@ test('hasServerAccess returns false for matching identifier that is not a server
     $service = new PlexService;
 
     expect($service->hasServerAccess('valid-token'))->toBeFalse();
-});
-
-test('refreshToken exchanges nonce for new JWT token', function () {
-    Http::fake([
-        'clients.plex.tv/api/v2/auth/nonce' => Http::response([
-            'nonce' => 'test-nonce-12345',
-        ]),
-        'clients.plex.tv/api/v2/auth/token' => Http::response([
-            'auth_token' => 'eyJhbGciOiJFZERTQSJ9.new-refreshed-token',
-        ]),
-    ]);
-
-    $service = new PlexService;
-    $token = $service->refreshToken();
-
-    expect($token)->toBe('eyJhbGciOiJFZERTQSJ9.new-refreshed-token');
-
-    Http::assertSentCount(2);
 });
