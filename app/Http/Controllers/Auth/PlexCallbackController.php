@@ -15,43 +15,43 @@ class PlexCallbackController extends Controller
         $pinId = session()->pull('plex_pin_id');
 
         if (! $pinId) {
-            return redirect()->route('home')
-                ->with('error', 'Invalid authentication session.');
+            return redirect()->route('login')
+                ->withErrors(['plex' => 'Unable to authenticate your Plex user.']);
         }
 
         $token = $plex->getTokenFromPin($pinId);
 
         if (! $token) {
-            return redirect()->route('home')
-                ->with('error', 'Authentication failed. Please try again.');
+            return redirect()->route('login')
+                ->withErrors(['plex' => 'Unable to authenticate your Plex user.']);
         }
 
         if (! $plex->hasServerAccess($token)) {
-            return redirect()->route('home')
-                ->with('error', 'You do not have access to this server.');
+            return redirect()->route('login')
+                ->withErrors(['plex' => 'You do not have access to lundflix.']);
         }
 
         $plexUser = $plex->getUserInfo($token);
 
-        $user = User::findByPlexId($plexUser['id']) ?? User::create([
-            'plex_id' => $plexUser['id'],
-            'plex_token' => $token,
-            'plex_username' => $plexUser['username'],
-            'plex_thumb' => $plexUser['thumb'],
-            'name' => $plexUser['username'],
-            'email' => $plexUser['email'],
-        ]);
+        $user = User::findByPlexId($plexUser['id']);
 
-        if ($user->wasRecentlyCreated === false) {
-            $user->update([
-                'plex_token' => $token,
-                'plex_username' => $plexUser['username'],
-                'plex_thumb' => $plexUser['thumb'],
-            ]);
+        // Existing user - redirect to login with message
+        if ($user) {
+            return redirect()->route('login')
+                ->withErrors(['plex' => 'A user is already associated with this Plex account.']);
         }
 
-        Auth::login($user, remember: true);
+        // New user - store Plex data and redirect to registration
+        session([
+            'plex_registration' => [
+                'plex_id' => $plexUser['id'],
+                'plex_token' => $token,
+                'plex_username' => $plexUser['username'],
+                'plex_email' => $plexUser['email'],
+                'plex_thumb' => $plexUser['thumb'],
+            ],
+        ]);
 
-        return redirect()->intended('/dashboard');
+        return redirect()->route('register');
     }
 }

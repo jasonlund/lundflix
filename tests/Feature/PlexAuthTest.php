@@ -24,7 +24,7 @@ it('redirects to plex for authentication', function () {
     expect(session('plex_pin_id'))->toBe(12345);
 });
 
-it('creates a new user on successful plex authentication', function () {
+it('redirects new users to registration', function () {
     $this->withSession(['plex_pin_id' => 12345]);
 
     Http::fake([
@@ -48,14 +48,17 @@ it('creates a new user on successful plex authentication', function () {
 
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect('/dashboard');
-    $this->assertAuthenticated();
+    $response->assertRedirect(route('register'));
+    $this->assertGuest();
 
-    $user = User::where('plex_id', '999')->first();
-    expect($user)->not->toBeNull()
-        ->and($user->plex_username)->toBe('plexuser')
-        ->and($user->email)->toBe('plexuser@example.com')
-        ->and($user->name)->toBe('plexuser');
+    expect(User::count())->toBe(0);
+    expect(session('plex_registration'))->toBe([
+        'plex_id' => 999,
+        'plex_token' => 'test-plex-token',
+        'plex_username' => 'plexuser',
+        'plex_email' => 'plexuser@example.com',
+        'plex_thumb' => 'https://plex.tv/users/999/avatar',
+    ]);
 });
 
 it('logs in an existing plex user', function () {
@@ -87,7 +90,7 @@ it('logs in an existing plex user', function () {
 
     $response = $this->get('/auth/plex/callback');
 
-    $response->assertRedirect('/dashboard');
+    $response->assertRedirect('/');
     $this->assertAuthenticatedAs($existingUser);
 
     expect(User::count())->toBe(1);
