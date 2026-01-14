@@ -26,12 +26,17 @@ class SyncTVMazeShows extends Command
         $progress->start();
 
         while (($shows = $tvmaze->shows($page)) !== null) {
-            foreach ($shows as $show) {
-                Show::updateOrCreate(
-                    ['tvmaze_id' => $show['id']],
-                    $this->mapShowData($show)
-                );
-            }
+            $batch = $shows->map(fn ($show) => [
+                'tvmaze_id' => $show['id'],
+                ...$this->mapShowData($show),
+            ])->all();
+
+            Show::upsert($batch, ['tvmaze_id'], [
+                'name', 'type', 'language', 'genres', 'status', 'runtime',
+                'premiered', 'ended', 'official_site', 'schedule', 'rating',
+                'weight', 'network', 'web_channel', 'externals', 'image',
+                'summary', 'updated_at_tvmaze',
+            ]);
 
             $total += $shows->count();
             $progress
@@ -40,7 +45,6 @@ class SyncTVMazeShows extends Command
             $progress->advance();
 
             $page++;
-            usleep(500000); // 0.5s delay for rate limiting
         }
 
         $progress->finish();
@@ -63,19 +67,19 @@ class SyncTVMazeShows extends Command
             'name' => $show['name'],
             'type' => $show['type'],
             'language' => $show['language'],
-            'genres' => $show['genres'],
+            'genres' => json_encode($show['genres']),
             'status' => $show['status'],
             'runtime' => $show['runtime'],
             'premiered' => $show['premiered'],
             'ended' => $show['ended'],
             'official_site' => $show['officialSite'],
-            'schedule' => $show['schedule'],
-            'rating' => $show['rating'],
+            'schedule' => json_encode($show['schedule']),
+            'rating' => json_encode($show['rating']),
             'weight' => $show['weight'],
-            'network' => $show['network'],
-            'web_channel' => $show['webChannel'],
-            'externals' => $show['externals'],
-            'image' => $show['image'],
+            'network' => json_encode($show['network']),
+            'web_channel' => json_encode($show['webChannel']),
+            'externals' => json_encode($show['externals']),
+            'image' => json_encode($show['image']),
             'summary' => $show['summary'],
             'updated_at_tvmaze' => $show['updated'],
         ];

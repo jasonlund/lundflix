@@ -17,10 +17,11 @@ class MovieFactory extends Factory
     public function definition(): array
     {
         return [
-            'tmdb_id' => fake()->unique()->numberBetween(1, 1000000),
+            'imdb_id' => 'tt'.fake()->unique()->numerify('#######'),
             'title' => fake()->sentence(3),
-            'popularity' => fake()->randomFloat(3, 0, 1000),
-            'video' => false,
+            'year' => fake()->year(),
+            'runtime' => fake()->numberBetween(80, 180),
+            'genres' => fake()->randomElement(['Action', 'Comedy', 'Drama', 'Action,Thriller', 'Comedy,Romance']),
         ];
     }
 }

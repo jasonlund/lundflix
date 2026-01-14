@@ -32,6 +32,7 @@ class TVMazeService
 
     private function client(): PendingRequest
     {
-        return Http::accept('application/json');
+        return Http::accept('application/json')
+            ->retry(3, 1000, when: fn ($e, $request) => $e->response?->status() === 429, throw: false);
     }
 }

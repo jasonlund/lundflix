@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,14 +14,19 @@ return new class extends Migration
     {
         Schema::create('movies', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('tmdb_id')->unique();
+            $table->string('imdb_id')->unique();
             $table->string('title');
-            $table->float('popularity')->default(0);
-            $table->boolean('video')->default(false);
+            $table->year('year')->nullable();
+            $table->smallInteger('runtime')->unsigned()->nullable();
+            $table->string('genres')->nullable();
             $table->timestamps();
 
             $table->index('title');
-            $table->index('popularity');
+            $table->index('year');
+
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->fullText('title');
+            }
         });
     }
 

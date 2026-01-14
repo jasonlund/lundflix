@@ -11,17 +11,18 @@ class Movie extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tmdb_id',
+        'imdb_id',
         'title',
-        'popularity',
-        'video',
+        'year',
+        'runtime',
+        'genres',
     ];
 
     protected function casts(): array
     {
         return [
-            'popularity' => 'float',
-            'video' => 'boolean',
+            'year' => 'integer',
+            'runtime' => 'integer',
         ];
     }
 }

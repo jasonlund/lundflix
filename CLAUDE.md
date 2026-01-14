@@ -21,6 +21,9 @@ When committing changes, use this format:
 
 **Co-author:** Always include `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
 
+## Database Migrations
+- Columns are ALWAYS placed before timestamps (created_at, updated_at)
+
 ---
 
 <laravel-boost-guidelines>
