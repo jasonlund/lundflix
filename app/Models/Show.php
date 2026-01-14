@@ -4,14 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Attributes\SearchUsingFullText;
+use Laravel\Scout\Searchable;
 
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $fillable = [
         'tvmaze_id',
+        'imdb_id',
         'name',
         'type',
         'language',
@@ -24,6 +27,7 @@ class Show extends Model
         'schedule',
         'rating',
         'weight',
+        'num_votes',
         'network',
         'web_channel',
         'externals',
@@ -44,6 +48,21 @@ class Show extends Model
             'image' => 'array',
             'premiered' => 'date',
             'ended' => 'date',
+            'num_votes' => 'integer',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    #[SearchUsingFullText(['name'])]
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'imdb_id' => $this->imdb_id,
+            'name' => $this->name,
+            'num_votes' => $this->num_votes,
         ];
     }
 }

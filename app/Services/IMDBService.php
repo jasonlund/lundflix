@@ -9,6 +9,8 @@ class IMDBService
 {
     private const EXPORT_URL = 'https://datasets.imdbws.com/title.basics.tsv.gz';
 
+    private const RATINGS_URL = 'https://datasets.imdbws.com/title.ratings.tsv.gz';
+
     /**
      * Download the daily title basics export file.
      *
@@ -86,5 +88,48 @@ class IMDBService
         gzclose($handle);
 
         return $count;
+    }
+
+    /**
+     * Download the daily ratings export file.
+     *
+     * @return string Path to the downloaded gzip file
+     */
+    public function downloadRatings(): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'imdb_ratings_');
+        Http::sink($tempFile)->timeout(600)->get(self::RATINGS_URL)->throw();
+
+        return $tempFile;
+    }
+
+    /**
+     * Parse the gzipped ratings TSV file into a lookup array.
+     *
+     * @return array<string, int> Map of imdb_id => num_votes
+     */
+    public function parseRatingsFile(string $gzipPath): array
+    {
+        $ratings = [];
+        $handle = gzopen($gzipPath, 'r');
+
+        // Skip header line (tconst, averageRating, numVotes)
+        gzgets($handle);
+
+        while (($line = gzgets($handle)) !== false) {
+            $fields = explode("\t", trim($line));
+
+            if (count($fields) < 3) {
+                continue;
+            }
+
+            [$tconst, $averageRating, $numVotes] = $fields;
+
+            $ratings[$tconst] = (int) $numVotes;
+        }
+
+        gzclose($handle);
+
+        return $ratings;
     }
 }

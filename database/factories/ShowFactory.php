@@ -18,6 +18,7 @@ class ShowFactory extends Factory
     {
         return [
             'tvmaze_id' => fake()->unique()->numberBetween(1, 100000),
+            'imdb_id' => 'tt'.fake()->unique()->numerify('#######'),
             'name' => fake()->sentence(3),
             'type' => fake()->randomElement(['Scripted', 'Animation', 'Reality', 'Documentary', 'Talk Show']),
             'language' => 'English',

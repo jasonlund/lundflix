@@ -24,6 +24,9 @@ When committing changes, use this format:
 ## Database Migrations
 - Columns are ALWAYS placed before timestamps (created_at, updated_at)
 
+## Environment Variables
+- When adding new environment variables to `.env`, always add them to `.env.example` as well
+
 ---
 
 <laravel-boost-guidelines>

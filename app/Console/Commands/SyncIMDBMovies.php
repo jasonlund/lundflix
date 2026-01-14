@@ -17,7 +17,6 @@ class SyncIMDBMovies extends Command
 
     public function handle(IMDBService $imdb): int
     {
-
         // Download export file
         $file = spin(
             fn () => $imdb->downloadExport(),
