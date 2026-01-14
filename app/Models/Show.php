@@ -62,6 +62,7 @@ class Show extends Model
             'id' => $this->id,
             'imdb_id' => $this->imdb_id,
             'name' => $this->name,
+            'year' => $this->premiered?->year,
             'num_votes' => $this->num_votes,
         ];
     }

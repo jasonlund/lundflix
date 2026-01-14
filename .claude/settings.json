@@ -6,7 +6,8 @@
       "Bash(git *)",
       "Bash(npm *)",
       "Bash(php *)",
-      "mcp__laravel-boost*"
+      "mcp__laravel-boost*",
+      "mcp__chrome-devtools*"
     ]
   }
 }

@@ -8,6 +8,8 @@
             {{ $slot }}
         </flux:main>
 
+        <livewire:media-search />
+
         @fluxScripts
     </body>
 </html>

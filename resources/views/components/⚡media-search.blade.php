@@ -2,6 +2,7 @@
 
 use App\Models\Movie;
 use App\Models\Show;
+use App\Services\SearchService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -14,42 +15,58 @@ new class extends Component {
             return collect();
         }
 
-        $term = '%' . $this->query . '%';
-
-        $shows = Show::query()
-            ->where('name', 'like', $term)
-            ->limit(10)
-            ->get()
-            ->map(fn ($s) => ['type' => 'show', 'id' => $s->id, 'title' => $s->name]);
-
-        $movies = Movie::query()
-            ->where('title', 'like', $term)
-            ->orderByDesc('year')
-            ->limit(10)
-            ->get()
-            ->map(fn ($m) => ['type' => 'movie', 'id' => $m->id, 'title' => $m->title, 'year' => $m->year]);
-
-        return $shows->concat($movies)->take(15);
+        return app(SearchService::class)
+            ->search($this->query)
+            ->take(15)
+            ->map(
+                fn ($item) => [
+                    'type' => $item instanceof Show ? 'show' : 'movie',
+                    'id' => $item->id,
+                    'title' => $item instanceof Show ? $item->name : $item->title,
+                    'year' => $item instanceof Show ? $item->premiered?->year : $item->year,
+                    'genres' => is_array($item->genres) ? implode(', ', $item->genres) : $item->genres,
+                ],
+            );
     }
 };
 ?>
 
-<div class="w-full max-w-xl">
-    <flux:command>
-        <flux:command.input wire:model.live.debounce.300ms="query" placeholder="Search shows & movies..." clearable />
-        <flux:command.items>
-            @forelse ($this->results() as $result)
-                <flux:command.item icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}">
-                    {{ $result['title'] }}
-                    @if ($result['type'] === 'movie' && $result['year'])
-                        <span class="text-zinc-400">({{ $result['year'] }})</span>
+<div>
+    <flux:modal.trigger name="search" shortcut="cmd.k">
+        <flux:input as="button" placeholder="Search..." icon="magnifying-glass" kbd="⌘K" />
+    </flux:modal.trigger>
+
+    <flux:modal name="search" variant="bare" class="my-[10vh] w-full max-w-xl">
+        <flux:command :filter="false" class="border-none shadow-lg">
+            <flux:command.input
+                wire:model.live.debounce.300ms="query"
+                placeholder="Search shows & movies..."
+                clearable
+                closable
+            />
+            <flux:command.items class="max-h-[60vh] overflow-y-auto">
+                @forelse ($this->results() as $result)
+                    <flux:command.item icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}">
+                        <div class="flex flex-col">
+                            <span>
+                                {{ $result['title'] }}
+                                @if ($result['year'])
+                                    <span class="text-zinc-400">({{ $result['year'] }})</span>
+                                @endif
+                            </span>
+                            @if ($result['genres'])
+                                <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+                            @endif
+                        </div>
+                    </flux:command.item>
+                @empty
+                    @if (strlen($query) >= 2)
+                        <div class="px-4 py-8 text-center text-sm text-zinc-500">No results found</div>
+                    @else
+                        <div class="px-4 py-8 text-center text-sm text-zinc-500">Type to search shows & movies...</div>
                     @endif
-                </flux:command.item>
-            @empty
-                @if (strlen($query) >= 2)
-                    <div class="px-4 py-3 text-sm text-zinc-500">No results found</div>
-                @endif
-            @endforelse
-        </flux:command.items>
-    </flux:command>
+                @endforelse
+            </flux:command.items>
+        </flux:command>
+    </flux:modal>
 </div>

@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Support\Collection;
+use Meilisearch\Client;
+use Meilisearch\Contracts\MultiSearchFederation;
+use Meilisearch\Contracts\SearchQuery;
 
 class SearchService
 {
@@ -61,9 +64,24 @@ class SearchService
 
     private function searchBoth(string $query): Collection
     {
-        $shows = Show::search($query)->get();
-        $movies = Movie::search($query)->get();
+        $client = app(Client::class);
 
-        return $shows->merge($movies);
+        $results = $client->multiSearch(
+            [
+                (new SearchQuery)->setIndexUid((new Show)->searchableAs())->setQuery($query),
+                (new SearchQuery)->setIndexUid((new Movie)->searchableAs())->setQuery($query),
+            ],
+            new MultiSearchFederation
+        );
+
+        return collect($results['hits'])->map(function ($hit) {
+            $indexUid = $hit['_federation']['indexUid'];
+
+            if (str_contains($indexUid, 'shows')) {
+                return Show::find($hit['id']);
+            }
+
+            return Movie::find($hit['id']);
+        })->filter();
     }
 }

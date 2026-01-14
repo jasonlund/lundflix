@@ -141,8 +141,8 @@ return [
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
             App\Models\Show::class => [
-                'filterableAttributes' => ['imdb_id'],
-                'sortableAttributes' => ['name', 'num_votes'],
+                'filterableAttributes' => ['imdb_id', 'year'],
+                'sortableAttributes' => ['name', 'year', 'num_votes'],
                 'rankingRules' => [
                     'words',
                     'typo',
