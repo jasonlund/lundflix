@@ -26,16 +26,15 @@ class MovieShowSeeder extends Seeder
         $port = config('database.connections.mysql.port');
 
         $cmd = sprintf(
-            'mysql -h%s -P%s -u%s %s %s < %s',
+            'mysql -h%s -P%s -u%s %s < %s',
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($username),
-            $password ? '-p'.escapeshellarg($password) : '',
             escapeshellarg($database),
             escapeshellarg($tempSql)
         );
 
-        $result = Process::run($cmd);
+        $result = Process::env($password ? ['MYSQL_PWD' => $password] : [])->run($cmd);
 
         unlink($tempSql);
 
