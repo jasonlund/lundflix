@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 
@@ -65,5 +66,13 @@ class Show extends Model
             'year' => $this->premiered?->year,
             'num_votes' => $this->num_votes,
         ];
+    }
+
+    /**
+     * @return HasMany<Episode, $this>
+     */
+    public function episodes(): HasMany
+    {
+        return $this->hasMany(Episode::class);
     }
 }

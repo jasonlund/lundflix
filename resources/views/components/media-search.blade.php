@@ -28,6 +28,12 @@ new class extends Component {
                 ],
             );
     }
+
+    public function selectResult(string $type, int $id): void
+    {
+        $route = $type === 'show' ? route('shows.show', $id) : route('movies.show', $id);
+        $this->redirect($route, navigate: true);
+    }
 };
 ?>
 
@@ -43,25 +49,22 @@ new class extends Component {
             />
             <flux:command.items class="max-h-[60vh] overflow-y-auto">
                 @forelse ($this->results() as $result)
-                    <a
-                        href="{{ $result['type'] === 'movie' ? route('movies.show', $result['id']) : '#' }}"
-                        wire:navigate
-                        class="block"
+                    <flux:command.item
+                        wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
+                        icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
                     >
-                        <flux:command.item icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}">
-                            <div class="flex flex-col">
-                                <span>
-                                    {{ $result['title'] }}
-                                    @if ($result['year'])
-                                        <span class="text-zinc-400">({{ $result['year'] }})</span>
-                                    @endif
-                                </span>
-                                @if ($result['genres'])
-                                    <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+                        <div class="flex flex-col">
+                            <span>
+                                {{ $result['title'] }}
+                                @if ($result['year'])
+                                    <span class="text-zinc-400">({{ $result['year'] }})</span>
                                 @endif
-                            </div>
-                        </flux:command.item>
-                    </a>
+                            </span>
+                            @if ($result['genres'])
+                                <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+                            @endif
+                        </div>
+                    </flux:command.item>
                 @empty
                     @if (strlen($query) >= 2)
                         <div class="px-4 py-8 text-center text-sm text-zinc-500">No results found</div>

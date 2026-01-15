@@ -46,3 +46,29 @@ it('returns null when no more pages exist', function () {
 
     expect($shows)->toBeNull();
 });
+
+it('fetches episodes for a show', function () {
+    Http::fake([
+        'api.tvmaze.com/shows/1/episodes' => Http::response([
+            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1],
+            ['id' => 2, 'name' => 'The Fire', 'season' => 1, 'number' => 2],
+        ]),
+    ]);
+
+    $service = new TVMazeService;
+    $episodes = $service->episodes(1);
+
+    expect($episodes)->toHaveCount(2)
+        ->and($episodes[0]['name'])->toBe('Pilot');
+});
+
+it('returns null when show does not exist for episodes', function () {
+    Http::fake([
+        'api.tvmaze.com/shows/999999/episodes' => Http::response([], 404),
+    ]);
+
+    $service = new TVMazeService;
+    $episodes = $service->episodes(999999);
+
+    expect($episodes)->toBeNull();
+});

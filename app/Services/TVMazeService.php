@@ -30,6 +30,26 @@ class TVMazeService
         return collect($response->json());
     }
 
+    /**
+     * Get all episodes for a show.
+     * Returns null if the show doesn't exist (404).
+     *
+     * @return array<int, array>|null
+     */
+    public function episodes(int $showId): ?array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL."/shows/{$showId}/episodes");
+
+        if ($response->notFound()) {
+            return null;
+        }
+
+        $response->throw();
+
+        return $response->json();
+    }
+
     private function client(): PendingRequest
     {
         return Http::accept('application/json')
