@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'user@lundflix.com'],
             [
                 'name' => 'lundflix',
+                'password' => Hash::make('password'),
                 'plex_id' => '217658',
                 'plex_username' => 'lundflix',
                 'plex_thumb' => 'https://plex.tv/users/6e1e991aa79f07da/avatar?c=1768416028',
