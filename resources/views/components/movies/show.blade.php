@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Movie;
+use App\Support\Formatters;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -10,26 +11,6 @@ new #[Layout('components.layouts.app')] class extends Component {
     public function mount(Movie $movie): void
     {
         $this->movie = $movie;
-    }
-
-    public function formattedRuntime(): ?string
-    {
-        if (! $this->movie->runtime) {
-            return null;
-        }
-
-        $hours = intdiv($this->movie->runtime, 60);
-        $minutes = $this->movie->runtime % 60;
-
-        if ($hours > 0 && $minutes > 0) {
-            return "{$hours}h {$minutes}m";
-        }
-
-        if ($hours > 0) {
-            return "{$hours}h";
-        }
-
-        return "{$minutes}m";
     }
 
     public function genresArray(): array
@@ -65,8 +46,8 @@ new #[Layout('components.layouts.app')] class extends Component {
             <span>&middot;</span>
         @endif
 
-        @if ($this->formattedRuntime())
-            <flux:text>{{ $this->formattedRuntime() }}</flux:text>
+        @if (Formatters::runtime($this->movie->runtime))
+            <flux:text>{{ Formatters::runtime($this->movie->runtime) }}</flux:text>
             <span>&middot;</span>
         @endif
 

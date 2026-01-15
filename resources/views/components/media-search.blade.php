@@ -17,7 +17,7 @@ new class extends Component {
 
         return app(SearchService::class)
             ->search($this->query)
-            ->take(15)
+            ->take(10)
             ->map(
                 fn ($item) => [
                     'type' => $item instanceof Show ? 'show' : 'movie',
