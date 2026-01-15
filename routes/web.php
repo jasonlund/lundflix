@@ -8,6 +8,8 @@ Route::get('/', function () {
     return view('dashboard');
 })->middleware('auth')->name('home');
 
+Route::livewire('/shows/{show}', 'shows.show')->middleware('auth')->name('shows.show');
+
 // Plex authentication (guests only)
 Route::middleware('guest')->group(function () {
     Route::get('/auth/plex', PlexRedirectController::class)->name('auth.plex');
