@@ -83,7 +83,7 @@ new #[Lazy] class extends Component {
                         class="flex items-center gap-4 rounded-lg bg-zinc-800 p-3"
                     >
                         <div class="w-12 shrink-0 text-center">
-                            <flux:text class="text-lg font-medium">{{ $episode['number'] }}</flux:text>
+                            <flux:text class="text-lg font-medium">{{ $episode['number'] ?? 'S' }}</flux:text>
                         </div>
 
                         <div class="min-w-0 flex-1">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Movie;
 use App\Models\Show;
 use Livewire\Livewire;
 
@@ -12,7 +13,7 @@ it('navigates to show page when show result is selected', function () {
 });
 
 it('navigates to movie page when movie result is selected', function () {
-    $movie = \App\Models\Movie::factory()->create();
+    $movie = Movie::factory()->create();
 
     Livewire::test('media-search')
         ->call('selectResult', 'movie', $movie->id)

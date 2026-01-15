@@ -94,6 +94,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 {{ $show->status }}
             </flux:badge>
 
+            {{-- Summary contains trusted HTML from TVMaze API --}}
             @if ($show->summary)
                 <div class="prose prose-zinc dark:prose-invert max-w-none">
                     {!! $show->summary !!}
