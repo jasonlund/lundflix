@@ -39,6 +39,7 @@ return [
         'client_identifier' => env('PLEX_CLIENT_IDENTIFIER').'-'.env('APP_ENV', 'production'),
         'product_name' => env('PLEX_PRODUCT_NAME', 'Lund'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
+        'seed_token' => env('SEED_PLEX_TOKEN'),
     ],
 
 ];
