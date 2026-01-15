@@ -13,11 +13,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        User::updateOrCreate(
+            ['email' => 'user@lundflix.com'],
+            [
+                'name' => 'lundflix',
+                'plex_id' => '217658',
+                'plex_username' => 'lundflix',
+                'plex_thumb' => 'https://plex.tv/users/6e1e991aa79f07da/avatar?c=1768416028',
+                'plex_token' => '-Bkxg2g4MCyUy6T8XiDc',
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $this->call(MovieShowSeeder::class);
     }
 }
