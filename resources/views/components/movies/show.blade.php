@@ -46,8 +46,9 @@ new #[Layout('components.layouts.app')] class extends Component {
             <span>&middot;</span>
         @endif
 
-        @if (Formatters::runtime($this->movie->runtime))
-            <flux:text>{{ Formatters::runtime($this->movie->runtime) }}</flux:text>
+        @php($runtime = Formatters::runtime($this->movie->runtime))
+        @if ($runtime)
+            <flux:text>{{ $runtime }}</flux:text>
             <span>&middot;</span>
         @endif
 
@@ -56,9 +57,10 @@ new #[Layout('components.layouts.app')] class extends Component {
         @endif
     </div>
 
-    @if (count($this->genresArray()) > 0)
+    @php($genres = $this->genresArray())
+    @if (count($genres) > 0)
         <div class="flex flex-wrap gap-2">
-            @foreach ($this->genresArray() as $genre)
+            @foreach ($genres as $genre)
                 <flux:badge>{{ $genre }}</flux:badge>
             @endforeach
         </div>
