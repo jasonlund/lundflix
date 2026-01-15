@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "setup": "FOLDER=$(basename $PWD) && cp .env.example .env && sed -i '' \"s|APP_URL=http://localhost|APP_URL=https://${FOLDER}.test|\" .env && sed -i '' \"s|DB_DATABASE=lundflix|DB_DATABASE=${FOLDER}|\" .env && sed -i '' \"s|APP_NAME=Laravel|APP_NAME=lundflix|\" .env && mysql -uroot -e \"CREATE DATABASE IF NOT EXISTS \\`${FOLDER}\\`\" && herd secure && composer install --no-interaction && php artisan key:generate --no-interaction && php artisan migrate --no-interaction && npm install && npm run build && php artisan scout:sync-index-settings --no-interaction && php artisan scout:import 'App\\Models\\Movie' --no-interaction && php artisan scout:import 'App\\Models\\Show' --no-interaction",
+        "run": "npm run build"
+    }
+}
