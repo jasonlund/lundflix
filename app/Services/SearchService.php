@@ -64,6 +64,11 @@ class SearchService
 
     private function searchBoth(string $query): Collection
     {
+        if (config('scout.driver') !== 'meilisearch') {
+            return Show::search($query)->get()
+                ->merge(Movie::search($query)->get());
+        }
+
         $client = app(Client::class);
 
         $results = $client->multiSearch(
