@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\StoreShowEpisodes;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Support\Collection;
@@ -14,9 +15,32 @@ new #[Lazy] class extends Component {
 
     public function mount(TVMazeService $tvMaze): void
     {
-        $episodes = $tvMaze->episodes($this->show->tvmaze_id) ?? [];
+        // Check DB first
+        $dbEpisodes = $this->show->episodes;
 
-        $this->episodesBySeason = collect($episodes)
+        if ($dbEpisodes->isNotEmpty()) {
+            $this->episodesBySeason = $this->groupBySeason($dbEpisodes->toArray());
+
+            return;
+        }
+
+        // Fetch from API
+        $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id) ?? [];
+        $this->episodesBySeason = $this->groupBySeason($apiEpisodes);
+
+        // Queue storage
+        if (! empty($apiEpisodes)) {
+            StoreShowEpisodes::dispatch($this->show, $apiEpisodes);
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $episodes
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private function groupBySeason(array $episodes): array
+    {
+        return collect($episodes)
             ->groupBy('season')
             ->sortKeys()
             ->map(fn (Collection $eps) => $eps->sortBy('number')->values()->all())
@@ -50,7 +74,7 @@ new #[Lazy] class extends Component {
             <div class="space-y-2">
                 @foreach ($episodes as $episode)
                     <div
-                        wire:key="episode-{{ $episode['id'] }}"
+                        wire:key="episode-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
                         class="flex items-center gap-4 rounded-lg bg-zinc-800 p-3"
                     >
                         <div class="w-12 shrink-0 text-center">
