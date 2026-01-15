@@ -94,4 +94,6 @@ new #[Layout('components.layouts.app')] class extends Component {
             @endif
         </div>
     </div>
+
+    <livewire:shows.episodes :show="$show" lazy />
 </div>
