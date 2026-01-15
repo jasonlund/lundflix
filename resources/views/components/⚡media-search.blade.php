@@ -32,15 +32,12 @@ new class extends Component {
 ?>
 
 <div>
-    <flux:modal.trigger name="search" shortcut="cmd.k">
-        <flux:input as="button" placeholder="Search..." icon="magnifying-glass" kbd="⌘K" />
-    </flux:modal.trigger>
-
     <flux:modal name="search" variant="bare" class="my-[10vh] w-full max-w-xl">
         <flux:command :filter="false" class="border-none shadow-lg">
             <flux:command.input
                 wire:model.live.debounce.300ms="query"
                 placeholder="Search shows & movies..."
+                autofocus
                 clearable
                 closable
             />

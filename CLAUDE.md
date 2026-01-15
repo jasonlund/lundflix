@@ -27,6 +27,9 @@ When committing changes, use this format:
 ## Environment Variables
 - When adding new environment variables to `.env`, always add them to `.env.example` as well
 
+## Branding
+- The app name is always styled as "lundflix" (lowercase)
+
 ---
 
 <laravel-boost-guidelines>
