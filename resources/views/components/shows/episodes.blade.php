@@ -43,7 +43,12 @@ new #[Lazy] class extends Component {
         return collect($episodes)
             ->groupBy('season')
             ->sortKeys()
-            ->map(fn (Collection $eps) => $eps->sortBy('number')->values()->all())
+            ->map(
+                fn (Collection $eps) => $eps
+                    ->sortBy('number')
+                    ->values()
+                    ->all(),
+            )
             ->all();
     }
 

@@ -6,6 +6,11 @@ use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
     public Show $show;
+
+    public function imdbUrl(): string
+    {
+        return "https://www.imdb.com/title/{$this->show->imdb_id}/";
+    }
 };
 ?>
 
@@ -26,11 +31,19 @@ new #[Layout('components.layouts.app')] class extends Component {
                 <flux:heading size="xl">{{ $show->name }}</flux:heading>
                 <flux:text class="mt-1">
                     @if ($show->premiered)
-                        {{ $show->premiered->year }}@if ($show->ended)–{{ $show->ended->year }}@elseif ($show->status === 'Running')–@endif
+                        {{ $show->premiered->year }}
+
+                        @if ($show->ended)
+                            –{{ $show->ended->year }}
+                        @elseif ($show->status === 'Running')
+                            –
+                        @endif
                     @endif
+
                     @if ($show->type)
                         · {{ $show->type }}
                     @endif
+
                     @if ($show->runtime)
                         · {{ $show->runtime }} min
                     @endif
@@ -87,9 +100,9 @@ new #[Layout('components.layouts.app')] class extends Component {
                 </div>
             @endif
 
-            @if ($show->official_site)
-                <flux:button as="a" href="{{ $show->official_site }}" target="_blank" icon="arrow-top-right-on-square">
-                    Official Site
+            @if ($show->imdb_id)
+                <flux:button as="a" href="{{ $this->imdbUrl() }}" target="_blank" icon="arrow-top-right-on-square">
+                    View on IMDB
                 </flux:button>
             @endif
         </div>
