@@ -4,6 +4,10 @@ use App\Models\Movie;
 use App\Models\User;
 use Livewire\Livewire;
 
+beforeEach(function () {
+    config(['scout.driver' => 'collection']);
+});
+
 it('requires authentication to view movie page', function () {
     $movie = Movie::factory()->create();
 
