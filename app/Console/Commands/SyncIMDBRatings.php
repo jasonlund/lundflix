@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Movie\SyncMovieRatings;
+use App\Actions\Tv\SyncShowRatings;
 use App\Services\IMDBService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 use function Laravel\Prompts\progress;
 use function Laravel\Prompts\spin;
@@ -15,8 +16,11 @@ class SyncIMDBRatings extends Command
 
     protected $description = 'Sync vote counts from IMDb ratings dataset for movies and shows';
 
-    public function handle(IMDBService $imdb): int
-    {
+    public function handle(
+        IMDBService $imdb,
+        SyncMovieRatings $syncMovieRatings,
+        SyncShowRatings $syncShowRatings
+    ): int {
         // Download ratings file
         $file = spin(
             fn () => $imdb->downloadRatings(),
@@ -53,8 +57,8 @@ class SyncIMDBRatings extends Command
             }
 
             if (count($batch) >= $batchSize) {
-                $moviesUpdated += $this->updateTable('movies', $batch);
-                $showsUpdated += $this->updateTable('shows', $batch);
+                $moviesUpdated += $syncMovieRatings->sync($batch);
+                $showsUpdated += $syncShowRatings->sync($batch);
                 $progress->advance($batchSize);
                 $progress->hint("{$count} processed");
                 $batch = [];
@@ -63,8 +67,8 @@ class SyncIMDBRatings extends Command
 
         // Final batch
         if (count($batch) > 0) {
-            $moviesUpdated += $this->updateTable('movies', $batch);
-            $showsUpdated += $this->updateTable('shows', $batch);
+            $moviesUpdated += $syncMovieRatings->sync($batch);
+            $showsUpdated += $syncShowRatings->sync($batch);
             $progress->advance(count($batch));
         }
 
@@ -90,30 +94,5 @@ class SyncIMDBRatings extends Command
         gzclose($handle);
 
         return $count;
-    }
-
-    private function updateTable(string $table, array $ratings): int
-    {
-        if (empty($ratings)) {
-            return 0;
-        }
-
-        $ids = array_keys($ratings);
-        $cases = [];
-        $bindings = [];
-
-        foreach ($ratings as $imdbId => $numVotes) {
-            $cases[] = 'WHEN imdb_id = ? THEN ?';
-            $bindings[] = $imdbId;
-            $bindings[] = $numVotes;
-        }
-
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $caseStatement = implode(' ', $cases);
-
-        $sql = "UPDATE {$table} SET num_votes = CASE {$caseStatement} END WHERE imdb_id IN ({$placeholders})";
-        $bindings = array_merge($bindings, $ids);
-
-        return DB::update($sql, $bindings);
     }
 }

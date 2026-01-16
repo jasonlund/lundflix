@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Tv\UpsertShows;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Console\Command;
@@ -16,7 +17,7 @@ class SyncTVMazeShows extends Command
 
     private const ESTIMATED_PAGES = 360;
 
-    public function handle(TVMazeService $tvmaze): int
+    public function handle(TVMazeService $tvmaze, UpsertShows $upsertShows): int
     {
         $page = $this->option('fresh') ? 0 : $this->calculateStartPage();
         $total = 0;
@@ -31,12 +32,7 @@ class SyncTVMazeShows extends Command
                 ...$this->mapShowData($show),
             ])->all();
 
-            Show::upsert($batch, ['tvmaze_id'], [
-                'name', 'type', 'language', 'genres', 'status', 'runtime',
-                'premiered', 'ended', 'official_site', 'schedule', 'rating',
-                'weight', 'network', 'web_channel', 'externals', 'image',
-                'summary', 'updated_at_tvmaze',
-            ]);
+            $upsertShows->upsert($batch);
 
             $total += $shows->count();
             $progress

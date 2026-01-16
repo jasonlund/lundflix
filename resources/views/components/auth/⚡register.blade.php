@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use App\Actions\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
@@ -32,7 +32,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->name = $plexData['plex_username'];
     }
 
-    public function register(): void
+    public function register(CreateNewUser $createUser): void
     {
         $plexData = session()->pull('plex_registration');
 
@@ -47,7 +47,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::create([
+        $user = $createUser->create([
             'name' => $validated['name'],
             'email' => $plexData['plex_email'],
             'password' => $validated['password'],

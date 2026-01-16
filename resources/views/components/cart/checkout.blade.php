@@ -1,9 +1,9 @@
 <?php
 
+use App\Actions\Request\CreateRequest;
+use App\Actions\Request\CreateRequestItems;
 use App\Models\Episode;
 use App\Models\Movie;
-use App\Models\Request;
-use App\Models\RequestItem;
 use App\Services\CartService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +38,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         }
     }
 
-    public function submit(): void
+    public function submit(CreateRequest $createRequest, CreateRequestItems $createRequestItems): void
     {
         $this->validate([
             'notes' => 'nullable|string|max:1000',
@@ -52,20 +52,20 @@ new #[Layout('components.layouts.app')] class extends Component {
             return;
         }
 
-        DB::transaction(function () use ($cart) {
-            $request = Request::create([
-                'user_id' => Auth::id(),
-                'status' => 'pending',
-                'notes' => $this->notes ?: null,
-            ]);
+        DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
+            $request = $createRequest->create(Auth::user(), $this->notes ?: null);
 
-            foreach ($cart->loadItems() as $item) {
-                RequestItem::create([
-                    'request_id' => $request->id,
-                    'requestable_type' => $item::class,
-                    'requestable_id' => $item->id,
-                ]);
-            }
+            $items = $cart
+                ->loadItems()
+                ->map(
+                    fn ($item) => [
+                        'type' => $item::class,
+                        'id' => $item->id,
+                    ],
+                )
+                ->all();
+
+            $createRequestItems->create($request, $items);
 
             $cart->clear();
         });
