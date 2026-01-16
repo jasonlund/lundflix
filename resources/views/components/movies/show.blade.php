@@ -66,9 +66,10 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     @endif
 
-    <div class="pt-4">
+    <div class="flex gap-3 pt-4">
         <flux:button as="a" href="{{ $this->imdbUrl() }}" target="_blank" icon="arrow-top-right-on-square">
             View on IMDB
         </flux:button>
+        <livewire:cart.add-button :item="$movie" />
     </div>
 </div>

@@ -13,6 +13,8 @@
                 <flux:button variant="ghost" icon="magnifying-glass" kbd="⌘K">Search</flux:button>
             </flux:modal.trigger>
 
+            <livewire:cart.dropdown />
+
             <flux:spacer />
 
             <form method="POST" action="{{ route('logout') }}">

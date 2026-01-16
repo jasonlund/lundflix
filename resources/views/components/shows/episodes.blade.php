@@ -1,8 +1,10 @@
 <?php
 
 use App\Jobs\StoreShowEpisodes;
+use App\Models\Episode;
 use App\Models\Show;
 use App\Services\TVMazeService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Lazy;
 use Livewire\Component;
@@ -52,6 +54,22 @@ new #[Lazy] class extends Component {
             ->all();
     }
 
+    /**
+     * Get the cart item for an episode (Model for DB episodes, array for API episodes).
+     *
+     * @param  array<string, mixed>  $episode
+     * @return Model|array<string, mixed>
+     */
+    public function cartItemFor(array $episode): Model|array
+    {
+        // DB episodes have show_id, API episodes don't
+        if (isset($episode['show_id'])) {
+            return Episode::find($episode['id']);
+        }
+
+        return array_merge($episode, ['show_id' => $this->show->id]);
+    }
+
     public function placeholder(): string
     {
         return <<<'HTML'
@@ -98,6 +116,11 @@ new #[Lazy] class extends Component {
                         @if ($episode['runtime'])
                             <flux:text class="text-sm text-zinc-400">{{ $episode['runtime'] }} min</flux:text>
                         @endif
+
+                        <livewire:cart.add-button
+                            :item="$this->cartItemFor($episode)"
+                            wire:key="add-btn-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
+                        />
                     </div>
                 @endforeach
             </div>
