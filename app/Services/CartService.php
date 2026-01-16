@@ -6,6 +6,7 @@ use App\Models\Episode;
 use App\Models\Movie;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Webmozart\Assert\Assert;
 
 class CartService
 {
@@ -146,19 +147,21 @@ class CartService
 
         $movies = Movie::whereIn('id', $items['movies'])->get();
 
-        // Query episodes by show_id + season + number
+        // Batch query episodes by show_id + season + number
         $episodes = collect();
-        foreach ($items['episodes'] as $ep) {
-            $parsed = $this->parseEpisodeCode($ep['code']);
-            $episode = Episode::with('show')
-                ->where('show_id', $ep['show_id'])
-                ->where('season', $parsed['season'])
-                ->where('number', $parsed['number'])
-                ->first();
-
-            if ($episode) {
-                $episodes->push($episode);
-            }
+        if (! empty($items['episodes'])) {
+            $episodes = Episode::with('show')
+                ->where(function ($query) use ($items) {
+                    foreach ($items['episodes'] as $ep) {
+                        $parsed = $this->parseEpisodeCode($ep['code']);
+                        $query->orWhere(function ($q) use ($ep, $parsed) {
+                            $q->where('show_id', $ep['show_id'])
+                                ->where('season', $parsed['season'])
+                                ->where('number', $parsed['number']);
+                        });
+                    }
+                })
+                ->get();
         }
 
         return $movies->concat($episodes);
@@ -184,7 +187,8 @@ class CartService
      */
     private function parseEpisodeCode(string $code): array
     {
-        preg_match('/s(\d+)e(\d+)/', $code, $matches);
+        $matched = preg_match('/s(\d+)e(\d+)/', $code, $matches);
+        Assert::true($matched === 1 && count($matches) >= 3, sprintf('Invalid episode code format: %s', $code));
 
         return [
             'season' => (int) $matches[1],

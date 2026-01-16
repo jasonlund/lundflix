@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -7,37 +8,43 @@ use App\Services\CartService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
     public string $notes = '';
 
-    public function items(CartService $cart): Collection
+    #[Computed]
+    public function cartItems(): Collection
     {
-        return $cart->loadItems();
+        return app(CartService::class)->loadItems();
     }
 
-    public function count(CartService $cart): int
+    #[Computed]
+    public function cartCount(): int
     {
-        return $cart->count();
+        return app(CartService::class)->count();
     }
 
-    public function removeItem(string $type, int $id, CartService $cart): void
+    public function removeItem(string $type, int $id): void
     {
-        $model = $type === 'movie' ? Movie::find($id) : \App\Models\Episode::find($id);
+        $model = $type === 'movie' ? Movie::find($id) : Episode::find($id);
 
         if ($model) {
-            $cart->remove($model);
+            app(CartService::class)->remove($model);
+            unset($this->cartItems, $this->cartCount);
             $this->dispatch('cart-updated');
         }
     }
 
-    public function submit(CartService $cart): void
+    public function submit(): void
     {
         $this->validate([
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        $cart = app(CartService::class);
 
         if ($cart->isEmpty()) {
             $this->addError('cart', 'Your cart is empty.');
@@ -85,9 +92,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         <flux:callout variant="danger">{{ $message }}</flux:callout>
     @enderror
 
-    @php($cartItems = $this->items(app(CartService::class)))
-
-    @if ($cartItems->isEmpty())
+    @if ($this->cartItems->isEmpty())
         <div class="rounded-lg bg-zinc-800 p-8 text-center">
             <flux:icon name="shopping-cart" class="mx-auto mb-4 size-12 text-zinc-500" />
             <flux:heading size="lg">Your cart is empty</flux:heading>
@@ -96,7 +101,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     @else
         <div class="space-y-3">
-            @foreach ($cartItems as $item)
+            @foreach ($this->cartItems as $item)
                 <div
                     wire:key="checkout-{{ class_basename($item) }}-{{ $item->id }}"
                     class="flex items-center gap-4 rounded-lg bg-zinc-800 p-4"
@@ -139,7 +144,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             />
 
             <flux:button wire:click="submit" variant="primary" class="w-full">
-                Submit Request ({{ $this->count(app(CartService::class)) }} items)
+                Submit Request ({{ $this->cartCount }} items)
             </flux:button>
         </div>
     @endif
