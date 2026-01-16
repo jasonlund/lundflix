@@ -98,6 +98,18 @@ new #[Lazy] class extends Component {
                         @if ($episode['runtime'])
                             <flux:text class="text-sm text-zinc-400">{{ $episode['runtime'] }} min</flux:text>
                         @endif
+
+                        @php
+                            // DB episodes have show_id, API episodes don't
+                            $cartItem = isset($episode['show_id'])
+                                ? \App\Models\Episode::find($episode['id'])
+                                : array_merge($episode, ['show_id' => $show->id]);
+                        @endphp
+
+                        <livewire:cart.add-button
+                            :item="$cartItem"
+                            wire:key="add-btn-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
+                        />
                     </div>
                 @endforeach
             </div>
