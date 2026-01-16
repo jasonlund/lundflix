@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
+    #[Validate('nullable|string|max:1000')]
     public string $notes = '';
 
     #[Computed]
@@ -29,6 +31,10 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function removeItem(string $type, int $id): void
     {
+        if (! in_array($type, ['movie', 'episode'], true)) {
+            return;
+        }
+
         $model = $type === 'movie' ? Movie::find($id) : Episode::find($id);
 
         if ($model) {
@@ -40,9 +46,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function submit(CreateRequest $createRequest, CreateRequestItems $createRequestItems): void
     {
-        $this->validate([
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        $this->validate();
 
         $cart = app(CartService::class);
 
@@ -136,12 +140,15 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
 
         <div class="space-y-4 pt-4">
-            <flux:textarea
-                wire:model="notes"
-                label="Notes (optional)"
-                placeholder="Any special requests or notes..."
-                rows="3"
-            />
+            <flux:field>
+                <flux:textarea
+                    wire:model.blur="notes"
+                    label="Notes (optional)"
+                    placeholder="Any special requests or notes..."
+                    rows="3"
+                />
+                <flux:error name="notes" />
+            </flux:field>
 
             <flux:button wire:click="submit" variant="primary" class="w-full">
                 Submit Request ({{ $this->cartCount }} items)

@@ -47,6 +47,39 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Livewire Validation
+
+### Convention: Use `#[Validate]` Attributes
+
+For Livewire 4, use `#[Validate]` attributes to declare validation rules:
+
+```php
+use Livewire\Attributes\Validate;
+
+#[Validate('required|email')]
+public string $email = '';
+
+#[Validate('required|min:8')]
+public string $password = '';
+```
+
+- Use `wire:model.blur` for real-time validation on blur
+- Always call `$this->validate()` in action methods before persisting data
+- Use `rules()` method when Laravel Rule objects are needed (e.g., `Password::defaults()`)
+- Display errors with `<flux:error name="fieldName" />`
+
+### Password Validation
+
+- Always use `Password::defaults()` for password validation
+- Password defaults are configured in `AppServiceProvider::boot()`
+- Never hardcode password rules - always reference `Password::defaults()`
+
+### Validation Testing
+
+- Every validation rule must have a corresponding test
+- Use Pest datasets for testing multiple invalid inputs
+- Test both submission validation and real-time (blur) validation
+
 ---
 
 <laravel-boost-guidelines>

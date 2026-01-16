@@ -138,3 +138,37 @@ it('creates request item with correct polymorphic type', function () {
     expect($item->requestable_type)->toBe(Movie::class)
         ->and($item->requestable_id)->toBe($movie->id);
 });
+
+it('ignores invalid item types in removeItem', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->add($movie);
+
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->call('removeItem', 'invalid', $movie->id);
+
+    expect(app(CartService::class)->has($movie))->toBeTrue();
+});
+
+it('validates notes max length on blur', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->add($movie);
+
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->set('notes', str_repeat('a', 1001))
+        ->assertHasErrors(['notes' => 'max']);
+});
+
+it('allows notes at max length', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->add($movie);
+
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->set('notes', str_repeat('a', 1000))
+        ->assertHasNoErrors('notes');
+});
