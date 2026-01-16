@@ -32,7 +32,7 @@ class PlexCallbackController extends Controller
 
         $plexUser = $plex->getUserInfo($token);
 
-        $user = User::findByPlexId($plexUser['id']);
+        $user = User::findByPlexId((string) $plexUser['id']);
 
         // Existing user - redirect to login with message
         if ($user) {

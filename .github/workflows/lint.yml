@@ -25,6 +25,12 @@ jobs:
         with:
           php-version: '8.4'
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
       - name: Add Flux Credentials Loaded From ENV
         run: composer config http-basic.composer.fluxui.dev "${{ secrets.FLUX_USERNAME }}" "${{ secrets.FLUX_LICENSE_KEY }}"
 
@@ -34,7 +40,19 @@ jobs:
           npm install
 
       - name: Run Pint
-        run: vendor/bin/pint
+        run: vendor/bin/pint --test
+
+      - name: Run Prettier
+        run: npm run format:check
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=512M
+
+      - name: Security Audit (Composer)
+        run: composer audit
+
+      - name: Security Audit (npm)
+        run: npm audit --audit-level=high
 
       # - name: Commit Changes
       #   uses: stefanzweifel/git-auto-commit-action@v7

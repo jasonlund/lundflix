@@ -188,7 +188,7 @@ class CartService
     private function parseEpisodeCode(string $code): array
     {
         $matched = preg_match('/s(\d+)e(\d+)/', $code, $matches);
-        Assert::true($matched === 1 && count($matches) >= 3, sprintf('Invalid episode code format: %s', $code));
+        Assert::true($matched === 1, sprintf('Invalid episode code format: %s', $code));
 
         return [
             'season' => (int) $matches[1],
