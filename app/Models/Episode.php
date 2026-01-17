@@ -11,20 +11,7 @@ class Episode extends Model
     /** @use HasFactory<\Database\Factories\EpisodeFactory> */
     use HasFactory;
 
-    protected $fillable = [
-        'show_id',
-        'tvmaze_id',
-        'season',
-        'number',
-        'name',
-        'type',
-        'airdate',
-        'airtime',
-        'runtime',
-        'rating',
-        'image',
-        'summary',
-    ];
+    protected $guarded = [];
 
     protected function casts(): array
     {

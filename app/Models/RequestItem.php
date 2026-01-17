@@ -12,11 +12,7 @@ class RequestItem extends Model
     /** @use HasFactory<\Database\Factories\RequestItemFactory> */
     use HasFactory;
 
-    protected $fillable = [
-        'request_id',
-        'requestable_type',
-        'requestable_id',
-    ];
+    protected $guarded = [];
 
     public function request(): BelongsTo
     {

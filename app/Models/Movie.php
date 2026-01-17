@@ -12,14 +12,7 @@ class Movie extends Model
     /** @use HasFactory<\Database\Factories\MovieFactory> */
     use HasFactory, Searchable;
 
-    protected $fillable = [
-        'imdb_id',
-        'title',
-        'year',
-        'runtime',
-        'genres',
-        'num_votes',
-    ];
+    protected $guarded = [];
 
     protected function casts(): array
     {

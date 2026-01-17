@@ -13,29 +13,7 @@ class Show extends Model
     /** @use HasFactory<\Database\Factories\ShowFactory> */
     use HasFactory, Searchable;
 
-    protected $fillable = [
-        'tvmaze_id',
-        'imdb_id',
-        'name',
-        'type',
-        'language',
-        'genres',
-        'status',
-        'runtime',
-        'premiered',
-        'ended',
-        'official_site',
-        'schedule',
-        'rating',
-        'weight',
-        'num_votes',
-        'network',
-        'web_channel',
-        'externals',
-        'image',
-        'summary',
-        'updated_at_tvmaze',
-    ];
+    protected $guarded = [];
 
     protected function casts(): array
     {

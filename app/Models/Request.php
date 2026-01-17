@@ -12,11 +12,7 @@ class Request extends Model
     /** @use HasFactory<\Database\Factories\RequestFactory> */
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'status',
-        'notes',
-    ];
+    protected $guarded = [];
 
     public function user(): BelongsTo
     {
