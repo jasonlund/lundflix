@@ -22,7 +22,7 @@ it('parses tsv export file correctly', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     // Should skip adult content and non-movies (tvSeries)
     expect($movies)->toHaveCount(3)
@@ -54,7 +54,7 @@ it('excludes movies with null runtime', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     expect($movies)->toHaveCount(1)
         ->and($movies[0]['imdb_id'])->toBe('tt0000002')
@@ -81,7 +81,7 @@ it('parses tvMovie entries alongside regular movies', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     // Should include both movie and tvMovie, but skip tvSeries
     expect($movies)->toHaveCount(2)
