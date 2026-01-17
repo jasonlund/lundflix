@@ -4,6 +4,7 @@ use App\Jobs\StoreShowEpisodes;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Services\TVMazeService;
+use App\Support\EpisodeCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Lazy;
@@ -54,7 +55,7 @@ new #[Lazy] class extends Component {
             // Sort specials by airdate, then tvmaze_id, and assign numbers
             if ($specials->isNotEmpty()) {
                 $specials = $specials
-                    ->sortBy([['airdate', 'asc'], ['tvmaze_id', 'asc']])
+                    ->sort(EpisodeCode::compareForSorting(...))
                     ->values()
                     ->map(function ($ep, $index) {
                         // Only assign number if not already set (API episodes have null)

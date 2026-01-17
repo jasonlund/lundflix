@@ -3,6 +3,7 @@
 namespace App\Actions\Tv;
 
 use App\Models\Episode;
+use App\Support\EpisodeCode;
 
 class UpsertEpisodes
 {
@@ -66,29 +67,14 @@ class UpsertEpisodes
             $specialsByShowSeason[$key][] = $special;
         }
 
+        // No specials to process
+        if (empty($specialsByShowSeason)) {
+            return $regular;
+        }
+
         // Sort each group by airdate (ascending), then by tvmaze_id as fallback
         foreach ($specialsByShowSeason as &$group) {
-            usort($group, function (array $a, array $b): int {
-                $aDate = $a['airdate'] ?? null;
-                $bDate = $b['airdate'] ?? null;
-
-                // Both have dates - compare them
-                if ($aDate !== null && $bDate !== null) {
-                    $cmp = strcmp($aDate, $bDate);
-                    if ($cmp !== 0) {
-                        return $cmp;
-                    }
-                }
-                // One has date, other doesn't - dated one comes first
-                elseif ($aDate !== null) {
-                    return -1;
-                } elseif ($bDate !== null) {
-                    return 1;
-                }
-
-                // Fallback to tvmaze_id
-                return $a['tvmaze_id'] <=> $b['tvmaze_id'];
-            });
+            usort($group, EpisodeCode::compareForSorting(...));
 
             // Assign sequential numbers starting from 1
             foreach ($group as $i => &$special) {
