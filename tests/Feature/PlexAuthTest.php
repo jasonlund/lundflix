@@ -104,6 +104,13 @@ it('rejects users without server access', function () {
         'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => 'test-plex-token',
         ]),
+        'plex.tv/api/v2/user' => Http::response([
+            'id' => 999,
+            'uuid' => 'user-uuid-123',
+            'username' => 'plexuser',
+            'email' => 'plexuser@example.com',
+            'thumb' => 'https://plex.tv/users/999/avatar',
+        ]),
         'clients.plex.tv/api/v2/resources*' => Http::response([
             [
                 'clientIdentifier' => 'different-server-id',
