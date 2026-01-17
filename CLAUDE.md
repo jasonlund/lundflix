@@ -215,7 +215,15 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+- Enum cases use CAPITAL_SNAKE_CASE. For example: `FAVORITE_PERSON`, `BEST_LAKE`, `MONTHLY`.
+- All enums should have a `getLabel(): string` method that returns a human-readable label using `Str::headline()`.
+
+```php
+public function getLabel(): string
+{
+    return Str::headline($this->name);
+}
+```
 
 === tests rules ===
 
