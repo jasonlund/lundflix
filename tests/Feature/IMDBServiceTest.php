@@ -22,7 +22,7 @@ it('parses tsv export file correctly', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     // Should skip adult content and non-movies (tvSeries)
     expect($movies)->toHaveCount(3)
@@ -54,7 +54,7 @@ it('excludes movies with null runtime', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     expect($movies)->toHaveCount(1)
         ->and($movies[0]['imdb_id'])->toBe('tt0000002')
@@ -81,7 +81,7 @@ it('parses tvMovie entries alongside regular movies', function () {
     gzclose($gz);
 
     $service = new IMDBService;
-    $movies = iterator_to_array($service->parseExportFile($gzFile));
+    $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
     // Should include both movie and tvMovie, but skip tvSeries
     expect($movies)->toHaveCount(2)
@@ -91,6 +91,51 @@ it('parses tvMovie entries alongside regular movies', function () {
         ->and($movies[1]['title'])->toBe('South Park: Post COVID')
         ->and($movies[1]['year'])->toBe(2021)
         ->and($movies[1]['runtime'])->toBe(60);
+
+    unlink($gzFile);
+    @unlink($tempFile);
+});
+
+it('yields null for skipped entries to enable progress tracking', function () {
+    $tempFile = tempnam(sys_get_temp_dir(), 'imdb_test_');
+    $gzFile = $tempFile.'.gz';
+
+    $lines = [
+        "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres",
+        "tt0000001\tmovie\tValid Movie\tValid Movie\t0\t2000\t\\N\t120\tDrama", // valid
+        "tt0000002\tmovie\tAdult Film\tAdult Film\t1\t2020\t\\N\t90\tAdult", // skipped: adult
+        "tt0000003\ttvSeries\tTV Show\tTV Show\t0\t2020\t\\N\t45\tDrama", // skipped: not movie
+        "tt0000004\tmovie\tNo Runtime\tNo Runtime\t0\t2020\t\\N\t\\N\tDrama", // skipped: no runtime
+        "tt0000005\tmovie\tAnother Valid\tAnother Valid\t0\t2021\t\\N\t100\tComedy", // valid
+    ];
+    $content = implode("\n", $lines);
+
+    $gz = gzopen($gzFile, 'w');
+    gzwrite($gz, $content);
+    gzclose($gz);
+
+    $service = new IMDBService;
+    $results = iterator_to_array($service->parseExportFile($gzFile));
+
+    // Should yield 5 items total (one per data line)
+    expect($results)->toHaveCount(5);
+
+    // First entry: valid movie (array)
+    expect($results[0])->toBeArray()
+        ->and($results[0]['imdb_id'])->toBe('tt0000001');
+
+    // Second entry: adult content (null)
+    expect($results[1])->toBeNull();
+
+    // Third entry: TV series (null)
+    expect($results[2])->toBeNull();
+
+    // Fourth entry: no runtime (null)
+    expect($results[3])->toBeNull();
+
+    // Fifth entry: valid movie (array)
+    expect($results[4])->toBeArray()
+        ->and($results[4]['imdb_id'])->toBe('tt0000005');
 
     unlink($gzFile);
     @unlink($tempFile);

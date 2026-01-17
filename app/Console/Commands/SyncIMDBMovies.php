@@ -37,24 +37,38 @@ class SyncIMDBMovies extends Command
 
         $batch = [];
         $count = 0;
-        $batchSize = 1000;
+        $processed = 0;
+        $upsertBatchSize = 1000;
+        $progressBatchSize = 10000;
 
         foreach ($imdb->parseExportFile($file) as $movie) {
-            $batch[] = $movie;
-            $count++;
+            $processed++;
 
-            if (count($batch) >= $batchSize) {
-                $upsertMovies->upsert($batch);
-                $progress->advance($batchSize);
+            if ($movie !== null) {
+                $batch[] = $movie;
+                $count++;
+
+                if (count($batch) >= $upsertBatchSize) {
+                    $upsertMovies->upsert($batch);
+                    $batch = [];
+                }
+            }
+
+            if ($processed % $progressBatchSize === 0) {
+                $progress->advance($progressBatchSize);
                 $progress->hint("{$count} imported");
-                $batch = [];
             }
         }
 
-        // Final batch
+        // Final upsert
         if (count($batch) > 0) {
             $upsertMovies->upsert($batch);
-            $progress->advance(count($batch));
+        }
+
+        // Final progress advance
+        $remaining = $processed % $progressBatchSize;
+        if ($remaining > 0) {
+            $progress->advance($remaining);
         }
 
         $progress->finish();

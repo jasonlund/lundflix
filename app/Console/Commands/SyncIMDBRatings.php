@@ -47,10 +47,12 @@ class SyncIMDBRatings extends Command
         $moviesUpdated = 0;
         $showsUpdated = 0;
         $batchSize = 5000;
+        $linesSinceLastAdvance = 0;
 
         while (($line = gzgets($handle)) !== false) {
             $fields = explode("\t", trim($line));
             $count++;
+            $linesSinceLastAdvance++;
 
             if (count($fields) >= 3) {
                 $batch[$fields[0]] = (int) $fields[2]; // imdb_id => num_votes
@@ -59,7 +61,8 @@ class SyncIMDBRatings extends Command
             if (count($batch) >= $batchSize) {
                 $moviesUpdated += $syncMovieRatings->sync($batch);
                 $showsUpdated += $syncShowRatings->sync($batch);
-                $progress->advance($batchSize);
+                $progress->advance($linesSinceLastAdvance);
+                $linesSinceLastAdvance = 0;
                 $progress->hint("{$count} processed");
                 $batch = [];
             }
@@ -69,7 +72,9 @@ class SyncIMDBRatings extends Command
         if (count($batch) > 0) {
             $moviesUpdated += $syncMovieRatings->sync($batch);
             $showsUpdated += $syncShowRatings->sync($batch);
-            $progress->advance(count($batch));
+        }
+        if ($linesSinceLastAdvance > 0) {
+            $progress->advance($linesSinceLastAdvance);
         }
 
         gzclose($handle);
