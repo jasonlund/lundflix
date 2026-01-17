@@ -26,9 +26,10 @@ class IMDBService
 
     /**
      * Parse the gzipped TSV export file.
-     * Yields movie records only, skipping adult content and short films.
+     * Yields movie records for valid entries, null for skipped entries.
+     * This allows callers to track progress through all lines in the file.
      *
-     * @return Generator<array>
+     * @return Generator<array|null>
      */
     public function parseExportFile(string $gzipPath): Generator
     {
@@ -42,6 +43,8 @@ class IMDBService
 
             // Fields: tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes, genres
             if (count($fields) < 9) {
+                yield null;
+
                 continue;
             }
 
@@ -49,12 +52,16 @@ class IMDBService
 
             // Only movies and TV movies, no adult content
             if (! in_array($titleType, ['movie', 'tvMovie'], true) || $isAdult === '1') {
+                yield null;
+
                 continue;
             }
 
             // Exclude entries without runtime
             $runtime = $runtimeMinutes !== '\\N' ? (int) $runtimeMinutes : null;
             if ($runtime === null) {
+                yield null;
+
                 continue;
             }
 
