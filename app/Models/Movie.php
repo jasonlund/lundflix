@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MediaType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Searchable;
@@ -34,5 +35,10 @@ class Movie extends Model
             'year' => $this->year,
             'num_votes' => $this->num_votes,
         ];
+    }
+
+    public function getMediaType(): MediaType
+    {
+        return MediaType::MOVIE;
     }
 }

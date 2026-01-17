@@ -46,7 +46,7 @@ new class extends Component {
                 <div class="max-h-64 space-y-2 overflow-y-auto p-2">
                     @foreach ($this->cartItems(app(CartService::class)) as $item)
                         <div
-                            wire:key="cart-item-{{ class_basename($item) }}-{{ $item->id }}"
+                            wire:key="cart-item-{{ $item->getMediaType()->getLabel() }}-{{ $item->id }}"
                             class="flex items-center gap-3 rounded-lg bg-zinc-800 p-2"
                         >
                             <flux:icon

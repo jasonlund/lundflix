@@ -2,6 +2,7 @@
 
 use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
+use App\Enums\MediaType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Services\CartService;
@@ -63,7 +64,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 ->loadItems()
                 ->map(
                     fn ($item) => [
-                        'type' => $item::class,
+                        'type' => $item->getMediaType(),
                         'id' => $item->id,
                     ],
                 )
@@ -107,7 +108,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         <div class="space-y-3">
             @foreach ($this->cartItems as $item)
                 <div
-                    wire:key="checkout-{{ class_basename($item) }}-{{ $item->id }}"
+                    wire:key="checkout-{{ $item->getMediaType()->getLabel() }}-{{ $item->id }}"
                     class="flex items-center gap-4 rounded-lg bg-zinc-800 p-4"
                 >
                     <flux:icon
