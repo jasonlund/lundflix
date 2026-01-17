@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -32,5 +33,7 @@ class AppServiceProvider extends ServiceProvider
         Http::globalRequestMiddleware(fn ($request) => $request->withHeader(
             'User-Agent', config('app.name').'/1.0 (+'.config('app.url').')'
         ));
+
+        Vite::macro('image', fn (string $asset) => Vite::asset("resources/images/{$asset}"));
     }
 }
