@@ -25,4 +25,6 @@ When Conductor leaves comments during the review process, present those comments
 - Applicable file path
 - Line number(s)
 
+**Important:** Do not group multiple unrelated issues into a single question. Each question should address one specific issue so the user can respond to them individually.
+
 This allows the user to respond to review feedback interactively rather than having to navigate to each comment manually.

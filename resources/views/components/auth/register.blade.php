@@ -69,7 +69,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         Auth::login($user, remember: true);
 
-        $this->redirect('/');
+        $this->redirect(route('home'));
     }
 };
 ?>

@@ -42,7 +42,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         RateLimiter::clear($throttleKey);
         session()->regenerate();
-        $this->redirect('/');
+        $this->redirect(route('home'));
     }
 };
 ?>
