@@ -43,6 +43,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Horizon Admin Emails
+    |--------------------------------------------------------------------------
+    |
+    | These email addresses will be granted access to the Horizon dashboard
+    | in non-local environments. Provide a comma-separated list of emails
+    | via the HORIZON_ADMIN_EMAILS environment variable.
+    |
+    */
+
+    'admin_emails' => array_filter(
+        array_map('trim', explode(',', env('HORIZON_ADMIN_EMAILS', '')))
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon Redis Connection
     |--------------------------------------------------------------------------
     |
