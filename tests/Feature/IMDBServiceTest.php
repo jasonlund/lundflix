@@ -64,6 +64,38 @@ it('excludes movies with null runtime', function () {
     @unlink($tempFile);
 });
 
+it('parses tvMovie entries alongside regular movies', function () {
+    $tempFile = tempnam(sys_get_temp_dir(), 'imdb_test_');
+    $gzFile = $tempFile.'.gz';
+
+    $lines = [
+        "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres",
+        "tt0133093\tmovie\tThe Matrix\tThe Matrix\t0\t1999\t\\N\t136\tAction,Sci-Fi",
+        "tt15005868\ttvMovie\tSouth Park: Post COVID\tSouth Park: Post COVID\t0\t2021\t\\N\t60\tAnimation,Comedy",
+        "tt0903747\ttvSeries\tBreaking Bad\tBreaking Bad\t0\t2008\t2013\t45\tCrime,Drama,Thriller",
+    ];
+    $content = implode("\n", $lines);
+
+    $gz = gzopen($gzFile, 'w');
+    gzwrite($gz, $content);
+    gzclose($gz);
+
+    $service = new IMDBService;
+    $movies = iterator_to_array($service->parseExportFile($gzFile));
+
+    // Should include both movie and tvMovie, but skip tvSeries
+    expect($movies)->toHaveCount(2)
+        ->and($movies[0]['imdb_id'])->toBe('tt0133093')
+        ->and($movies[0]['title'])->toBe('The Matrix')
+        ->and($movies[1]['imdb_id'])->toBe('tt15005868')
+        ->and($movies[1]['title'])->toBe('South Park: Post COVID')
+        ->and($movies[1]['year'])->toBe(2021)
+        ->and($movies[1]['runtime'])->toBe(60);
+
+    unlink($gzFile);
+    @unlink($tempFile);
+});
+
 it('counts lines in gzipped file', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'imdb_test_');
     $gzFile = $tempFile.'.gz';

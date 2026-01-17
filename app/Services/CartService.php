@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Support\EpisodeCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Webmozart\Assert\Assert;
 
 class CartService
 {
@@ -28,7 +28,7 @@ class CartService
     /**
      * Add an item to cart. Accepts Model or array (for API episodes).
      *
-     * @param  Model|array{show_id?: int, season?: int, number?: int}  $item
+     * @param  Model|array{show_id?: int, season?: int, number?: int, type?: string}  $item
      */
     public function add(Model|array $item): void
     {
@@ -38,19 +38,8 @@ class CartService
             if (! in_array($item->id, $items['movies'])) {
                 $items['movies'][] = $item->id;
             }
-        } elseif ($item instanceof Episode) {
-            $entry = [
-                'show_id' => $item->show_id,
-                'code' => $this->episodeCode($item->season, $item->number),
-            ];
-            if (! $this->hasEpisodeEntry($items['episodes'], $entry)) {
-                $items['episodes'][] = $entry;
-            }
-        } elseif (is_array($item) && isset($item['show_id'], $item['season'], $item['number'])) {
-            $entry = [
-                'show_id' => $item['show_id'],
-                'code' => $this->episodeCode($item['season'], $item['number']),
-            ];
+        } elseif ($item instanceof Episode || $this->isEpisodeArray($item)) {
+            $entry = $this->makeEpisodeEntry($item);
             if (! $this->hasEpisodeEntry($items['episodes'], $entry)) {
                 $items['episodes'][] = $entry;
             }
@@ -62,7 +51,7 @@ class CartService
     /**
      * Remove an item from cart.
      *
-     * @param  Model|array{show_id?: int, season?: int, number?: int}  $item
+     * @param  Model|array{show_id?: int, season?: int, number?: int, type?: string}  $item
      */
     public function remove(Model|array $item): void
     {
@@ -73,17 +62,8 @@ class CartService
                 $items['movies'],
                 fn ($id) => $id !== $item->id
             ));
-        } elseif ($item instanceof Episode) {
-            $entry = [
-                'show_id' => $item->show_id,
-                'code' => $this->episodeCode($item->season, $item->number),
-            ];
-            $items['episodes'] = $this->removeEpisodeEntry($items['episodes'], $entry);
-        } elseif (is_array($item) && isset($item['show_id'], $item['season'], $item['number'])) {
-            $entry = [
-                'show_id' => $item['show_id'],
-                'code' => $this->episodeCode($item['season'], $item['number']),
-            ];
+        } elseif ($item instanceof Episode || $this->isEpisodeArray($item)) {
+            $entry = $this->makeEpisodeEntry($item);
             $items['episodes'] = $this->removeEpisodeEntry($items['episodes'], $entry);
         }
 
@@ -93,7 +73,7 @@ class CartService
     /**
      * Check if an item is in the cart.
      *
-     * @param  Model|array{show_id?: int, season?: int, number?: int}  $item
+     * @param  Model|array{show_id?: int, season?: int, number?: int, type?: string}  $item
      */
     public function has(Model|array $item): bool
     {
@@ -103,20 +83,8 @@ class CartService
             return in_array($item->id, $items['movies']);
         }
 
-        if ($item instanceof Episode) {
-            $entry = [
-                'show_id' => $item->show_id,
-                'code' => $this->episodeCode($item->season, $item->number),
-            ];
-
-            return $this->hasEpisodeEntry($items['episodes'], $entry);
-        }
-
-        if (is_array($item) && isset($item['show_id'], $item['season'], $item['number'])) {
-            $entry = [
-                'show_id' => $item['show_id'],
-                'code' => $this->episodeCode($item['season'], $item['number']),
-            ];
+        if ($item instanceof Episode || $this->isEpisodeArray($item)) {
+            $entry = $this->makeEpisodeEntry($item);
 
             return $this->hasEpisodeEntry($items['episodes'], $entry);
         }
@@ -147,17 +115,19 @@ class CartService
 
         $movies = Movie::whereIn('id', $items['movies'])->get();
 
-        // Batch query episodes by show_id + season + number
+        // Batch query episodes by show_id + season + number + type
         $episodes = collect();
         if (! empty($items['episodes'])) {
             $episodes = Episode::with('show')
                 ->where(function ($query) use ($items) {
                     foreach ($items['episodes'] as $ep) {
-                        $parsed = $this->parseEpisodeCode($ep['code']);
-                        $query->orWhere(function ($q) use ($ep, $parsed) {
+                        $parsed = EpisodeCode::parse($ep['code']);
+                        $type = $parsed['is_special'] ? 'significant_special' : 'regular';
+                        $query->orWhere(function ($q) use ($ep, $parsed, $type) {
                             $q->where('show_id', $ep['show_id'])
                                 ->where('season', $parsed['season'])
-                                ->where('number', $parsed['number']);
+                                ->where('number', $parsed['number'])
+                                ->where('type', $type);
                         });
                     }
                 })
@@ -173,26 +143,35 @@ class CartService
     }
 
     /**
-     * Format season and episode number as s01e05.
+     * Check if the given array represents an episode.
+     *
+     * @param  array<string, mixed>  $item
      */
-    private function episodeCode(int $season, int $number): string
+    private function isEpisodeArray(array $item): bool
     {
-        return sprintf('s%02de%02d', $season, $number);
+        return isset($item['show_id'], $item['season'], $item['number']);
     }
 
     /**
-     * Parse episode code into season and number.
+     * Create a cart entry for an episode.
      *
-     * @return array{season: int, number: int}
+     * @param  Episode|array{show_id: int, season: int, number: int, type?: string}  $item
+     * @return array{show_id: int, code: string}
      */
-    private function parseEpisodeCode(string $code): array
+    private function makeEpisodeEntry(Episode|array $item): array
     {
-        $matched = preg_match('/s(\d+)e(\d+)/', $code, $matches);
-        Assert::true($matched === 1, sprintf('Invalid episode code format: %s', $code));
+        if ($item instanceof Episode) {
+            return [
+                'show_id' => $item->show_id,
+                'code' => $item->code,
+            ];
+        }
+
+        $isSpecial = ($item['type'] ?? 'regular') === 'significant_special';
 
         return [
-            'season' => (int) $matches[1],
-            'number' => (int) $matches[2],
+            'show_id' => $item['show_id'],
+            'code' => EpisodeCode::generate($item['season'], $item['number'], $isSpecial),
         ];
     }
 

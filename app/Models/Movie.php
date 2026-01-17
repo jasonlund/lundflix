@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\MediaType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 
 class Movie extends Model
@@ -12,14 +12,7 @@ class Movie extends Model
     /** @use HasFactory<\Database\Factories\MovieFactory> */
     use HasFactory, Searchable;
 
-    protected $fillable = [
-        'imdb_id',
-        'title',
-        'year',
-        'runtime',
-        'genres',
-        'num_votes',
-    ];
+    protected $guarded = [];
 
     protected function casts(): array
     {
@@ -33,7 +26,6 @@ class Movie extends Model
     /**
      * @return array<string, mixed>
      */
-    #[SearchUsingFullText(['title'])]
     public function toSearchableArray(): array
     {
         return [
@@ -43,5 +35,10 @@ class Movie extends Model
             'year' => $this->year,
             'num_votes' => $this->num_votes,
         ];
+    }
+
+    public function getMediaType(): MediaType
+    {
+        return MediaType::MOVIE;
     }
 }

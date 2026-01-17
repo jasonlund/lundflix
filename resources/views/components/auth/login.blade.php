@@ -50,7 +50,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 <div class="flex min-h-screen items-center justify-center">
     <div class="w-full max-w-md">
         <flux:card>
-            <img src="/images/logo.png" alt="Lundflix" class="mx-auto h-12" />
+            <img src="{{ Vite::image('logo.png') }}" alt="Lundflix" class="mx-auto h-12" />
 
             <flux:error name="plex" class="mt-4" />
 

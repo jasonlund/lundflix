@@ -14,20 +14,7 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'plex_id',
-        'plex_token',
-        'plex_username',
-        'plex_thumb',
-    ];
+    protected $guarded = [];
 
     /**
      * The attributes that should be hidden for serialization.

@@ -39,6 +39,10 @@ When committing changes, use this format:
 
 - Columns are ALWAYS placed before timestamps (created_at, updated_at)
 
+## Models
+
+- Use `protected $guarded = [];` instead of `$fillable` for mass assignment protection
+
 ## Environment Variables
 
 - When adding new environment variables to `.env`, always add them to `.env.example` as well
@@ -211,7 +215,15 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+- Enum cases use CAPITAL_SNAKE_CASE. For example: `FAVORITE_PERSON`, `BEST_LAKE`, `MONTHLY`.
+- All enums should have a `getLabel(): string` method that returns a human-readable label using `Str::headline()`.
+
+```php
+public function getLabel(): string
+{
+    return Str::headline($this->name);
+}
+```
 
 === tests rules ===
 

@@ -33,9 +33,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
                 return true;
             }
 
-            return in_array(optional($user)->email, [
-                'jasonlund@gmail.com',
-            ]);
+            return in_array(optional($user)->email, config('horizon.admin_emails'));
         });
     }
 }

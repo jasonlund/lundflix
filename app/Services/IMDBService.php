@@ -47,8 +47,8 @@ class IMDBService
 
             [$tconst, $titleType, $primaryTitle, $originalTitle, $isAdult, $startYear, $endYear, $runtimeMinutes, $genres] = $fields;
 
-            // Only movies, no adult content
-            if ($titleType !== 'movie' || $isAdult === '1') {
+            // Only movies and TV movies, no adult content
+            if (! in_array($titleType, ['movie', 'tvMovie'], true) || $isAdult === '1') {
                 continue;
             }
 

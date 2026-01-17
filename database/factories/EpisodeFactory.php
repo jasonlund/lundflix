@@ -32,4 +32,14 @@ class EpisodeFactory extends Factory
             'summary' => '<p>'.fake()->paragraph().'</p>',
         ];
     }
+
+    /**
+     * Indicate that the episode is a significant special.
+     */
+    public function special(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'significant_special',
+        ]);
+    }
 }
