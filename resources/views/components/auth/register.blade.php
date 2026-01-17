@@ -1,9 +1,10 @@
 <?php
 
-use App\Models\User;
+use App\Actions\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
@@ -11,11 +12,23 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public string $plexEmail = '';
 
+    #[Validate('required|string|max:255')]
     public string $name = '';
 
+    #[Validate]
     public string $password = '';
 
     public string $password_confirmation = '';
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    protected function rules(): array
+    {
+        return [
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ];
+    }
 
     public function mount(): void
     {
@@ -32,7 +45,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->name = $plexData['plex_username'];
     }
 
-    public function register(): void
+    public function register(CreateNewUser $createUser): void
     {
         $plexData = session()->pull('plex_registration');
 
@@ -42,12 +55,9 @@ new #[Layout('components.layouts.app')] class extends Component {
             return;
         }
 
-        $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $validated = $this->validate();
 
-        $user = User::create([
+        $user = $createUser->create([
             'name' => $validated['name'],
             'email' => $plexData['plex_email'],
             'password' => $validated['password'],
@@ -59,7 +69,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         Auth::login($user, remember: true);
 
-        $this->redirect('/');
+        $this->redirect(route('home'));
     }
 };
 ?>
@@ -75,11 +85,22 @@ new #[Layout('components.layouts.app')] class extends Component {
 
                 <flux:input label="Email" type="email" :value="$plexEmail" disabled />
 
-                <flux:input wire:model="name" label="Display Name" placeholder="Your display name" required />
+                <flux:field>
+                    <flux:label>Display Name</flux:label>
+                    <flux:input wire:model.blur="name" placeholder="Your display name" required />
+                    <flux:error name="name" />
+                </flux:field>
 
-                <flux:input wire:model="password" label="Password" type="password" required />
+                <flux:field>
+                    <flux:label>Password</flux:label>
+                    <flux:input wire:model.blur="password" type="password" required />
+                    <flux:error name="password" />
+                </flux:field>
 
-                <flux:input wire:model="password_confirmation" label="Confirm Password" type="password" required />
+                <flux:field>
+                    <flux:label>Confirm Password</flux:label>
+                    <flux:input wire:model.blur="password_confirmation" type="password" required />
+                </flux:field>
 
                 <flux:button type="submit" variant="primary" class="w-full">Create Account</flux:button>
             </form>

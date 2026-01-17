@@ -4,21 +4,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
+    #[Validate('required|email')]
     public string $email = '';
 
+    #[Validate('required')]
     public string $password = '';
 
     public bool $remember = false;
 
     public function login(): void
     {
-        $validated = $this->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $validated = $this->validate();
 
         $throttleKey = Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
 
@@ -42,7 +42,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         RateLimiter::clear($throttleKey);
         session()->regenerate();
-        $this->redirect('/');
+        $this->redirect(route('home'));
     }
 };
 ?>
@@ -57,12 +57,16 @@ new #[Layout('components.layouts.app')] class extends Component {
             <form wire:submit="login" class="mt-6 space-y-6">
                 <flux:field>
                     <flux:label>Email</flux:label>
-                    <flux:input wire:model="email" type="email" required autofocus />
+                    <flux:input wire:model.blur="email" type="email" required autofocus />
                     <flux:error name="email" />
                     <flux:description>{{ __('lundbergh.form.email_description') }}</flux:description>
                 </flux:field>
 
-                <flux:input wire:model="password" label="Password" type="password" required />
+                <flux:field>
+                    <flux:label>Password</flux:label>
+                    <flux:input wire:model.blur="password" type="password" required />
+                    <flux:error name="password" />
+                </flux:field>
 
                 <flux:checkbox wire:model="remember" label="Remember me" />
 

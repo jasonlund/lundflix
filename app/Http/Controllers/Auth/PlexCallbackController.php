@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\PlexService;
 use Illuminate\Http\RedirectResponse;
+use InvalidArgumentException;
 
 class PlexCallbackController extends Controller
 {
@@ -14,6 +15,8 @@ class PlexCallbackController extends Controller
         $pinId = session()->pull('plex_pin_id');
 
         if (! $pinId) {
+            report(new InvalidArgumentException('Plex auth failed: missing pin_id from session'));
+
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);
         }
@@ -21,21 +24,41 @@ class PlexCallbackController extends Controller
         $token = $plex->getTokenFromPin($pinId);
 
         if (! $token) {
+            report(new InvalidArgumentException(sprintf(
+                'Plex auth failed: could not retrieve token for pin_id=%s',
+                $pinId
+            )));
+
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);
         }
 
+        $plexUser = $plex->getUserInfo($token);
+
         if (! $plex->hasServerAccess($token)) {
+            report(new InvalidArgumentException(sprintf(
+                'Plex auth failed: user has no server access (plex_id=%s, plex_username=%s, plex_email=%s)',
+                $plexUser['id'],
+                $plexUser['username'],
+                $plexUser['email']
+            )));
+
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.no_access')]);
         }
 
-        $plexUser = $plex->getUserInfo($token);
-
-        $user = User::findByPlexId($plexUser['id']);
+        $user = User::findByPlexId((string) $plexUser['id']);
 
         // Existing user - redirect to login with message
         if ($user) {
+            report(new InvalidArgumentException(sprintf(
+                'Plex auth failed: user already linked (plex_id=%s, plex_username=%s, plex_email=%s, existing_user_id=%s)',
+                $plexUser['id'],
+                $plexUser['username'],
+                $plexUser['email'],
+                $user->id
+            )));
+
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.already_linked')]);
         }

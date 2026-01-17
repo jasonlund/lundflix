@@ -120,3 +120,60 @@ it('redirects to plex auth if session expires during registration', function () 
 
     expect(User::count())->toBe(0);
 });
+
+it('validates password minimum length', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', 'Test User')
+        ->set('password', 'short')
+        ->set('password_confirmation', 'short')
+        ->call('register')
+        ->assertHasErrors(['password']);
+});
+
+it('validates name maximum length', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', str_repeat('a', 256))
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->call('register')
+        ->assertHasErrors(['name' => 'max']);
+});
+
+it('validates password is required', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', 'Test User')
+        ->set('password', '')
+        ->set('password_confirmation', '')
+        ->call('register')
+        ->assertHasErrors(['password' => 'required']);
+});

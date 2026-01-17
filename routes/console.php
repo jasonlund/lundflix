@@ -9,3 +9,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+// Sync TV shows and movies daily at 2:00 AM Pacific, then ratings (which depend on both existing)
+Schedule::command('tvmaze:sync-shows')
+    ->daily()
+    ->at('02:00')
+    ->timezone('America/Los_Angeles')
+    ->then(fn () => Artisan::call('imdb:sync-movies'))
+    ->then(fn () => Artisan::call('imdb:sync-ratings'));

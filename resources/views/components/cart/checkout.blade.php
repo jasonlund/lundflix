@@ -1,18 +1,20 @@
 <?php
 
+use App\Actions\Request\CreateRequest;
+use App\Actions\Request\CreateRequestItems;
 use App\Models\Episode;
 use App\Models\Movie;
-use App\Models\Request;
-use App\Models\RequestItem;
 use App\Services\CartService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
+    #[Validate('nullable|string|max:1000')]
     public string $notes = '';
 
     #[Computed]
@@ -29,6 +31,10 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function removeItem(string $type, int $id): void
     {
+        if (! in_array($type, ['movie', 'episode'], true)) {
+            return;
+        }
+
         $model = $type === 'movie' ? Movie::find($id) : Episode::find($id);
 
         if ($model) {
@@ -38,11 +44,9 @@ new #[Layout('components.layouts.app')] class extends Component {
         }
     }
 
-    public function submit(): void
+    public function submit(CreateRequest $createRequest, CreateRequestItems $createRequestItems): void
     {
-        $this->validate([
-            'notes' => 'nullable|string|max:1000',
-        ]);
+        $this->validate();
 
         $cart = app(CartService::class);
 
@@ -52,20 +56,20 @@ new #[Layout('components.layouts.app')] class extends Component {
             return;
         }
 
-        DB::transaction(function () use ($cart) {
-            $request = Request::create([
-                'user_id' => Auth::id(),
-                'status' => 'pending',
-                'notes' => $this->notes ?: null,
-            ]);
+        DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
+            $request = $createRequest->create(Auth::user(), $this->notes ?: null);
 
-            foreach ($cart->loadItems() as $item) {
-                RequestItem::create([
-                    'request_id' => $request->id,
-                    'requestable_type' => $item::class,
-                    'requestable_id' => $item->id,
-                ]);
-            }
+            $items = $cart
+                ->loadItems()
+                ->map(
+                    fn ($item) => [
+                        'type' => $item::class,
+                        'id' => $item->id,
+                    ],
+                )
+                ->all();
+
+            $createRequestItems->create($request, $items);
 
             $cart->clear();
         });
@@ -136,12 +140,15 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
 
         <div class="space-y-4 pt-4">
-            <flux:textarea
-                wire:model="notes"
-                label="Notes (optional)"
-                placeholder="Any special requests or notes..."
-                rows="3"
-            />
+            <flux:field>
+                <flux:textarea
+                    wire:model.blur="notes"
+                    label="Notes (optional)"
+                    placeholder="Any special requests or notes..."
+                    rows="3"
+                />
+                <flux:error name="notes" />
+            </flux:field>
 
             <flux:button wire:click="submit" variant="primary" class="w-full">
                 Submit Request ({{ $this->cartCount }} items)

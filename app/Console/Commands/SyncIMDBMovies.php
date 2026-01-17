@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Movie;
+use App\Actions\Movie\UpsertMovies;
 use App\Services\IMDBService;
 use Illuminate\Console\Command;
 
@@ -15,7 +15,7 @@ class SyncIMDBMovies extends Command
 
     protected $description = 'Sync movies from IMDb daily export';
 
-    public function handle(IMDBService $imdb): int
+    public function handle(IMDBService $imdb, UpsertMovies $upsertMovies): int
     {
         // Download export file
         $file = spin(
@@ -44,7 +44,7 @@ class SyncIMDBMovies extends Command
             $count++;
 
             if (count($batch) >= $batchSize) {
-                Movie::upsert($batch, ['imdb_id'], ['title', 'year', 'runtime', 'genres']);
+                $upsertMovies->upsert($batch);
                 $progress->advance($batchSize);
                 $progress->hint("{$count} imported");
                 $batch = [];
@@ -53,7 +53,7 @@ class SyncIMDBMovies extends Command
 
         // Final batch
         if (count($batch) > 0) {
-            Movie::upsert($batch, ['imdb_id'], ['title', 'year', 'runtime', 'genres']);
+            $upsertMovies->upsert($batch);
             $progress->advance(count($batch));
         }
 
