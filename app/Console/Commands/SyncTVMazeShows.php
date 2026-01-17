@@ -60,6 +60,7 @@ class SyncTVMazeShows extends Command
     private function mapShowData(array $show): array
     {
         return [
+            'imdb_id' => $show['externals']['imdb'] ?? null,
             'name' => $show['name'],
             'type' => $show['type'],
             'language' => $show['language'],
