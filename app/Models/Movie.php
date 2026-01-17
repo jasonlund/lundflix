@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 
 class Movie extends Model
@@ -26,7 +25,6 @@ class Movie extends Model
     /**
      * @return array<string, mixed>
      */
-    #[SearchUsingFullText(['title'])]
     public function toSearchableArray(): array
     {
         return [

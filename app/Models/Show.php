@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 
 class Show extends Model
@@ -34,7 +33,6 @@ class Show extends Model
     /**
      * @return array<string, mixed>
      */
-    #[SearchUsingFullText(['name'])]
     public function toSearchableArray(): array
     {
         return [
