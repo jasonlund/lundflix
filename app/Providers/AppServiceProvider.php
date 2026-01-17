@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -27,5 +28,9 @@ class AppServiceProvider extends ServiceProvider
                 ? $rule->letters()->mixedCase()->numbers()->symbols()->uncompromised()
                 : $rule;
         });
+
+        Http::globalRequestMiddleware(fn ($request) => $request->withHeader(
+            'User-Agent', config('app.name').'/1.0 (+'.config('app.url').')'
+        ));
     }
 }
