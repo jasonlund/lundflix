@@ -70,7 +70,7 @@ return [
 
     'make_command' => [
         'type' => 'sfc', // Options: 'sfc', 'mfc', 'class'
-        'emoji' => true, // Options: true, false
+        'emoji' => false, // Disabled due to Conductor rendering bug (see .conductor/instructions.md)
     ],
 
     /*

@@ -549,3 +549,9 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>
+
+---
+
+## Conductor
+
+@.conductor/instructions.md
