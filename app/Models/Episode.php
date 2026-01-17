@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\MediaType;
+use App\Support\EpisodeCode;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,5 +39,29 @@ class Episode extends Model
     public function getMediaType(): MediaType
     {
         return MediaType::EPISODE;
+    }
+
+    /**
+     * Get the episode code (e.g., s01e05 for regular, s01s01 for special).
+     *
+     * @return Attribute<string, never>
+     */
+    protected function code(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => EpisodeCode::generate(
+                $this->season,
+                $this->number,
+                $this->isSpecial()
+            ),
+        );
+    }
+
+    /**
+     * Check if this episode is a significant special.
+     */
+    public function isSpecial(): bool
+    {
+        return $this->type === 'significant_special';
     }
 }

@@ -124,9 +124,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                                 @endif
                             @else
                                 {{ $item->show->name }}
-                                <span class="text-zinc-400">
-                                    - S{{ $item->season }}E{{ $item->number }}: {{ $item->name }}
-                                </span>
+                                <span class="text-zinc-400">- {{ strtoupper($item->code) }}: {{ $item->name }}</span>
                             @endif
                         </flux:text>
                     </div>

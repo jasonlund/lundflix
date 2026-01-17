@@ -42,16 +42,39 @@ new #[Lazy] class extends Component {
      */
     private function groupBySeason(array $episodes): array
     {
-        return collect($episodes)
-            ->groupBy('season')
-            ->sortKeys()
-            ->map(
-                fn (Collection $eps) => $eps
-                    ->sortBy('number')
+        // Filter out insignificant specials
+        $filtered = collect($episodes)->filter(fn (array $ep) => ($ep['type'] ?? 'regular') !== 'insignificant_special');
+
+        // Assign display numbers to significant specials within each season
+        $processed = $filtered->groupBy('season')->map(function (Collection $seasonEps) {
+            // Separate regular and special episodes
+            $regular = $seasonEps->filter(fn ($ep) => ($ep['type'] ?? 'regular') === 'regular');
+            $specials = $seasonEps->filter(fn ($ep) => ($ep['type'] ?? 'regular') === 'significant_special');
+
+            // Sort specials by airdate, then tvmaze_id, and assign numbers
+            if ($specials->isNotEmpty()) {
+                $specials = $specials
+                    ->sortBy([['airdate', 'asc'], ['tvmaze_id', 'asc']])
                     ->values()
-                    ->all(),
-            )
-            ->all();
+                    ->map(function ($ep, $index) {
+                        // Only assign number if not already set (API episodes have null)
+                        if ($ep['number'] === null) {
+                            $ep['number'] = $index + 1;
+                        }
+
+                        return $ep;
+                    });
+            }
+
+            // Merge and sort: regular first by number, then specials
+            return $regular
+                ->sortBy('number')
+                ->values()
+                ->concat($specials)
+                ->all();
+        });
+
+        return $processed->sortKeys()->all();
     }
 
     /**
@@ -101,7 +124,13 @@ new #[Lazy] class extends Component {
                         class="flex items-center gap-4 rounded-lg bg-zinc-800 p-3"
                     >
                         <div class="w-12 shrink-0 text-center">
-                            <flux:text class="text-lg font-medium">{{ $episode['number'] ?? 'S' }}</flux:text>
+                            @php
+                                $isSpecial = ($episode['type'] ?? 'regular') === 'significant_special';
+                            @endphp
+
+                            <flux:text class="text-lg font-medium">
+                                {{ $isSpecial ? 'S' : '' }}{{ $episode['number'] }}
+                            </flux:text>
                         </div>
 
                         <div class="min-w-0 flex-1">

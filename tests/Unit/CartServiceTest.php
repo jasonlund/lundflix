@@ -105,3 +105,81 @@ it('can mix movies and episodes in cart', function () {
         ->and($cart->has($movie2))->toBeTrue()
         ->and($cart->has($episode))->toBeTrue();
 });
+
+it('can add a special episode to cart', function () {
+    $cart = new CartService;
+    $episode = Episode::factory()->special()->create([
+        'season' => 24,
+        'number' => 1,
+    ]);
+
+    $cart->add($episode);
+
+    expect($cart->count())->toBe(1)
+        ->and($cart->has($episode))->toBeTrue();
+
+    $items = $cart->items();
+    expect($items['episodes'][0]['code'])->toBe('s24s01');
+});
+
+it('can add episode via array with type', function () {
+    $cart = new CartService;
+    $show = \App\Models\Show::factory()->create();
+
+    $cart->add([
+        'show_id' => $show->id,
+        'season' => 24,
+        'number' => 1,
+        'type' => 'significant_special',
+    ]);
+
+    expect($cart->count())->toBe(1);
+
+    $items = $cart->items();
+    expect($items['episodes'][0]['code'])->toBe('s24s01');
+});
+
+it('distinguishes between regular and special episodes with same season and number', function () {
+    $cart = new CartService;
+    $show = \App\Models\Show::factory()->create();
+
+    $regularEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 24,
+        'number' => 1,
+        'type' => 'regular',
+    ]);
+
+    $specialEpisode = Episode::factory()->special()->create([
+        'show_id' => $show->id,
+        'season' => 24,
+        'number' => 1,
+    ]);
+
+    $cart->add($regularEpisode);
+    $cart->add($specialEpisode);
+
+    expect($cart->count())->toBe(2)
+        ->and($cart->has($regularEpisode))->toBeTrue()
+        ->and($cart->has($specialEpisode))->toBeTrue();
+
+    $items = $cart->items();
+    $codes = array_column($items['episodes'], 'code');
+    expect($codes)->toContain('s24e01')
+        ->and($codes)->toContain('s24s01');
+});
+
+it('loads special episodes correctly', function () {
+    $cart = new CartService;
+    $episode = Episode::factory()->special()->create([
+        'season' => 24,
+        'number' => 1,
+    ]);
+
+    $cart->add($episode);
+    $loaded = $cart->loadItems();
+
+    expect($loaded)->toHaveCount(1)
+        ->and($loaded->first()->id)->toBe($episode->id)
+        ->and($loaded->first()->isSpecial())->toBeTrue();
+});

@@ -58,7 +58,7 @@ new class extends Component {
                                     @if ($item instanceof Movie)
                                         {{ $item->title }}
                                     @else
-                                        {{ $item->show->name }} - S{{ $item->season }}E{{ $item->number }}
+                                        {{ $item->show->name }} - {{ strtoupper($item->code) }}
                                     @endif
                                 </flux:text>
                             </div>

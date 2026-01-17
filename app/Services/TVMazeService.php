@@ -39,7 +39,7 @@ class TVMazeService
     public function episodes(int $showId): ?array
     {
         $response = $this->client()
-            ->get(self::BASE_URL."/shows/{$showId}/episodes");
+            ->get(self::BASE_URL."/shows/{$showId}/episodes", ['specials' => 1]);
 
         if ($response->notFound()) {
             return null;
