@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -50,5 +51,42 @@ class Show extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(Episode::class);
+    }
+
+    /**
+     * Get the most recent season (currently airing, or most recently completed).
+     */
+    protected function mostRecentSeason(): Attribute
+    {
+        return Attribute::get(function (): ?int {
+            $today = now()->startOfDay();
+
+            // Find season that is "currently airing" (has both past AND future episodes)
+            $currentlyAiring = $this->episodes()
+                ->selectRaw('season')
+                ->groupBy('season')
+                ->havingRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0', [$today])
+                ->havingRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0', [$today])
+                ->orderByDesc('season')
+                ->value('season');
+
+            if ($currentlyAiring !== null) {
+                return (int) $currentlyAiring;
+            }
+
+            // Fallback to highest season with at least one aired episode
+            $highestAired = $this->episodes()
+                ->where('airdate', '<=', $today)
+                ->max('season');
+
+            if ($highestAired !== null) {
+                return (int) $highestAired;
+            }
+
+            // No aired episodes - show the first season (for upcoming shows)
+            $firstSeason = $this->episodes()->min('season');
+
+            return $firstSeason !== null ? (int) $firstSeason : null;
+        });
     }
 }

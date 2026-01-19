@@ -97,7 +97,7 @@ new #[Lazy] class extends Component {
     public function placeholder(): string
     {
         return <<<'HTML'
-        <div class="mt-8">
+        <div class="animate-fade-in mt-8 opacity-0" style="animation-delay: 200ms">
             <flux:heading size="lg">Episodes</flux:heading>
             <div class="mt-4 animate-pulse space-y-2">
                 <div class="h-8 w-32 rounded bg-zinc-700"></div>
@@ -114,48 +114,63 @@ new #[Lazy] class extends Component {
 <div class="mt-8">
     <flux:heading size="lg">Episodes</flux:heading>
 
-    @forelse ($episodesBySeason as $season => $episodes)
-        <div class="mt-6" wire:key="season-{{ $season }}">
-            <flux:heading size="md" class="mb-3">Season {{ $season }}</flux:heading>
+    @if (count($episodesBySeason) > 0)
+        <flux:accordion transition class="mt-6">
+            @foreach ($episodesBySeason as $season => $episodes)
+                <flux:accordion.item wire:key="season-{{ $season }}" :expanded="$season === $show->most_recent_season">
+                    <flux:accordion.heading>Season {{ $season }}</flux:accordion.heading>
 
-            <div class="space-y-2">
-                @foreach ($episodes as $episode)
-                    <div
-                        wire:key="episode-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
-                        class="flex items-center gap-4 rounded-lg bg-zinc-800 p-3"
-                    >
-                        <div class="w-12 shrink-0 text-center">
-                            @php
-                                $isSpecial = ($episode['type'] ?? 'regular') === 'significant_special';
-                            @endphp
+                    <flux:accordion.content>
+                        <div class="space-y-2">
+                            @foreach ($episodes as $episode)
+                                @php
+                                    $isSpecial = ($episode['type'] ?? 'regular') === 'significant_special';
+                                    $isFutureEpisode = $episode['airdate'] && \Carbon\Carbon::parse($episode['airdate'])->gt(now());
+                                @endphp
 
-                            <flux:text class="text-lg font-medium">
-                                {{ $isSpecial ? 'S' : '' }}{{ $episode['number'] }}
-                            </flux:text>
+                                <div
+                                    wire:key="episode-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
+                                    class="flex items-center gap-4 rounded-lg bg-zinc-800 p-3"
+                                >
+                                    <div class="w-12 shrink-0 text-center">
+                                        <flux:text class="text-lg font-medium">
+                                            {{ $isSpecial ? 'S' : '' }}{{ $episode['number'] }}
+                                        </flux:text>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <flux:text class="font-medium">{{ $episode['name'] }}</flux:text>
+                                        @if ($episode['airdate'])
+                                            <flux:text class="text-sm text-zinc-400">
+                                                {{ \Carbon\Carbon::parse($episode['airdate'])->format('M j, Y') }}
+                                            </flux:text>
+                                        @endif
+                                    </div>
+
+                                    @if ($episode['runtime'])
+                                        <flux:text class="text-sm text-zinc-400">
+                                            {{ $episode['runtime'] }} min
+                                        </flux:text>
+                                    @endif
+
+                                    @if ($isFutureEpisode)
+                                        <flux:button disabled variant="filled" icon="clock" size="sm">
+                                            Not Yet Aired
+                                        </flux:button>
+                                    @else
+                                        <livewire:cart.add-button
+                                            :item="$this->cartItemFor($episode)"
+                                            wire:key="add-btn-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
+                                        />
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
-
-                        <div class="min-w-0 flex-1">
-                            <flux:text class="font-medium">{{ $episode['name'] }}</flux:text>
-                            @if ($episode['airdate'])
-                                <flux:text class="text-sm text-zinc-400">
-                                    {{ \Carbon\Carbon::parse($episode['airdate'])->format('M j, Y') }}
-                                </flux:text>
-                            @endif
-                        </div>
-
-                        @if ($episode['runtime'])
-                            <flux:text class="text-sm text-zinc-400">{{ $episode['runtime'] }} min</flux:text>
-                        @endif
-
-                        <livewire:cart.add-button
-                            :item="$this->cartItemFor($episode)"
-                            wire:key="add-btn-{{ $episode['tvmaze_id'] ?? $episode['id'] }}"
-                        />
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @empty
+                    </flux:accordion.content>
+                </flux:accordion.item>
+            @endforeach
+        </flux:accordion>
+    @else
         <flux:text class="mt-4 text-zinc-400">No episodes available.</flux:text>
-    @endforelse
+    @endif
 </div>

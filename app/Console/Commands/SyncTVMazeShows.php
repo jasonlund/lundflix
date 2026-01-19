@@ -6,6 +6,7 @@ use App\Actions\Tv\UpsertShows;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 use function Laravel\Prompts\progress;
 
@@ -19,6 +20,8 @@ class SyncTVMazeShows extends Command
 
     public function handle(TVMazeService $tvmaze, UpsertShows $upsertShows): int
     {
+        DB::disableQueryLog();
+
         $page = $this->option('fresh') ? 0 : $this->calculateStartPage();
         $total = 0;
         $estimatedPages = max(1, self::ESTIMATED_PAGES - $page);
@@ -32,15 +35,24 @@ class SyncTVMazeShows extends Command
                 ...$this->mapShowData($show),
             ])->all();
 
+            $count = count($batch);
             $upsertShows->upsert($batch);
 
-            $total += $shows->count();
+            // Free memory explicitly
+            unset($batch, $shows);
+
+            $total += $count;
             $progress
                 ->label("Page {$page}")
                 ->hint("{$total} shows synced");
             $progress->advance();
 
             $page++;
+
+            // Force garbage collection every 10 pages
+            if ($page % 10 === 0) {
+                gc_collect_cycles();
+            }
         }
 
         $progress->finish();

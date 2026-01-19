@@ -127,3 +127,41 @@ it('does not dispatch job when no episodes returned from API', function () {
 
     Queue::assertNothingPushed();
 });
+
+it('shows disabled button for future episodes', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Future Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->addWeek(),
+    ]);
+
+    Livewire::withoutLazyLoading()
+        ->test('shows.episodes', ['show' => $show])
+        ->assertSee('Future Episode')
+        ->assertSee('Not Yet Aired')
+        ->assertDontSee('Add to Cart');
+});
+
+it('shows add to cart button for past episodes', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Past Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    Livewire::withoutLazyLoading()
+        ->test('shows.episodes', ['show' => $show])
+        ->assertSee('Past Episode')
+        ->assertSee('Add to Cart')
+        ->assertDontSee('Not Yet Aired');
+});
