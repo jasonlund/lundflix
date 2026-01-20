@@ -61,32 +61,21 @@ class Show extends Model
         return Attribute::get(function (): ?int {
             $today = now()->startOfDay();
 
-            // Find season that is "currently airing" (has both past AND future episodes)
-            $currentlyAiring = $this->episodes()
+            // Priority: 1) Currently airing (has past AND future episodes)
+            //           2) Completed (has only past episodes)
+            //           3) Future-only (upcoming season)
+            // Within each tier, prefer the highest season number.
+            $result = $this->episodes()
                 ->selectRaw('season')
+                ->selectRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) as past_count', [$today])
+                ->selectRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) as future_count', [$today])
                 ->groupBy('season')
-                ->havingRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0', [$today])
-                ->havingRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0', [$today])
+                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0) DESC', [$today, $today])
+                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0) DESC', [$today])
                 ->orderByDesc('season')
-                ->value('season');
+                ->first();
 
-            if ($currentlyAiring !== null) {
-                return (int) $currentlyAiring;
-            }
-
-            // Fallback to highest season with at least one aired episode
-            $highestAired = $this->episodes()
-                ->where('airdate', '<=', $today)
-                ->max('season');
-
-            if ($highestAired !== null) {
-                return (int) $highestAired;
-            }
-
-            // No aired episodes - show the first season (for upcoming shows)
-            $firstSeason = $this->episodes()->min('season');
-
-            return $firstSeason !== null ? (int) $firstSeason : null;
-        });
+            return $result?->season;
+        })->shouldCache();
     }
 }
