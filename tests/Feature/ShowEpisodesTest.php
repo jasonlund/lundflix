@@ -23,8 +23,8 @@ it('displays episodes from database when available', function () {
     ]);
 
     // No HTTP fake needed - should not call API
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('DB Episode')
         ->assertSee('Season 1');
 
@@ -42,8 +42,8 @@ it('fetches from API when database is empty and dispatches job', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('Pilot')
         ->assertSee('Season 1');
 
@@ -65,8 +65,8 @@ it('displays episodes grouped by season from API', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('Season 1')
         ->assertSee('Season 2')
         ->assertSee('Pilot')
@@ -87,8 +87,8 @@ it('displays episodes in order by episode number', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
-    $component = Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show]);
+    $component = Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
 
     $episodes = $component->get('episodesBySeason')[1];
 
@@ -106,8 +106,8 @@ it('handles show with no episodes from API', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('No episodes available.');
 
     Queue::assertNothingPushed();
@@ -122,8 +122,46 @@ it('does not dispatch job when no episodes returned from API', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show]);
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
 
     Queue::assertNothingPushed();
+});
+
+it('shows correct button state for future and past episodes', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Past Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 101,
+        'name' => 'Future Episode',
+        'season' => 1,
+        'number' => 2,
+        'airdate' => now()->addWeek(),
+    ]);
+
+    $component = Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
+
+    // Both episodes are displayed
+    $component->assertSee('Past Episode')
+        ->assertSee('Future Episode');
+
+    // Future episode shows disabled "Not Yet Aired" button
+    $component->assertSee('Not Yet Aired');
+
+    // Past episode shows "Add to Cart" button
+    $component->assertSee('Add to Cart');
+
+    // Verify the HTML structure: disabled button should have the disabled attribute
+    $component->assertSeeHtml('disabled');
 });
