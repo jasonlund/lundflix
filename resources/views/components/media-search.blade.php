@@ -25,6 +25,7 @@ new class extends Component {
                     'title' => $item instanceof Show ? $item->name : $item->title,
                     'year' => $item instanceof Show ? $item->premiered?->year : $item->year,
                     'genres' => is_array($item->genres) ? implode(', ', $item->genres) : $item->genres,
+                    'model' => $item instanceof Show ? null : $item,
                 ],
             );
     }
@@ -53,16 +54,35 @@ new class extends Component {
                         wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
                         icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
                     >
-                        <div class="flex flex-col">
-                            <span>
-                                {{ $result['title'] }}
-                                @if ($result['year'])
-                                    <span class="text-zinc-400">({{ $result['year'] }})</span>
+                        <div class="flex w-full items-center justify-between gap-2">
+                            <div class="flex min-w-0 flex-col">
+                                <span>
+                                    {{ $result['title'] }}
+                                    @if ($result['year'])
+                                        <span class="text-zinc-400">({{ $result['year'] }})</span>
+                                    @endif
+                                </span>
+                                @if ($result['genres'])
+                                    <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
                                 @endif
-                            </span>
-                            @if ($result['genres'])
-                                <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
-                            @endif
+                            </div>
+                            <div @click.stop class="flex shrink-0 gap-1">
+                                @if ($result['type'] === 'movie')
+                                    <livewire:cart.add-button
+                                        :item="$result['model']"
+                                        :show-text="false"
+                                        :wire:key="'search-cart-'.$result['id']"
+                                    />
+                                @endif
+
+                                <flux:button
+                                    as="a"
+                                    href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
+                                    wire:navigate
+                                    icon="arrow-right"
+                                    size="sm"
+                                />
+                            </div>
                         </div>
                     </flux:command.item>
                 @empty

@@ -8,6 +8,8 @@ new class extends Component {
     /** @var Model|array{id?: int, tvmaze_id?: int, show_id?: int} */
     public Model|array $item;
 
+    public bool $showText = true;
+
     public bool $inCart = false;
 
     public function mount(CartService $cart): void
@@ -37,6 +39,8 @@ new class extends Component {
         :icon="$inCart ? 'minus' : 'plus'"
         size="sm"
     >
-        {{ $inCart ? 'Remove' : 'Add to Cart' }}
+        @if ($showText)
+            {{ $inCart ? 'Remove' : 'Add to Cart' }}
+        @endif
     </flux:button>
 </div>
