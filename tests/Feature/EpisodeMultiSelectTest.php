@@ -18,8 +18,8 @@ it('displays checkbox for each episode', function () {
         'season' => 1,
     ]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSeeHtml('data-flux-checkbox');
 });
 
@@ -31,8 +31,8 @@ it('shows unchecked checkbox for episode not in cart', function () {
         'number' => 1,
     ]);
 
-    $component = Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show]);
+    $component = Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
 
     expect($component->get('selectedEpisodes'))->toBeEmpty();
 });
@@ -48,8 +48,8 @@ it('shows checked state for episode in cart', function () {
     $cart = app(CartService::class);
     $cart->add($episode);
 
-    $component = Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show]);
+    $component = Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
 
     expect($component->get('selectedEpisodes'))->toContain($episode->code);
 });
@@ -65,8 +65,8 @@ it('can add single episode via checkbox click', function () {
 
     $episodeData = $episode->toArray();
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleEpisode', $episodeData)
         ->assertDispatched('cart-updated');
 
@@ -87,8 +87,8 @@ it('can remove single episode via checkbox click', function () {
 
     $episodeData = $episode->toArray();
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleEpisode', $episodeData)
         ->assertDispatched('cart-updated');
 
@@ -102,8 +102,8 @@ it('shows Request Season button when no episodes selected', function () {
         'season' => 1,
     ]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('Request Season')
         ->assertDontSee('Remove Season');
 });
@@ -118,8 +118,8 @@ it('shows Request Season button when some episodes selected', function () {
     $cart = app(CartService::class);
     $cart->add($episodes->first());
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('Request Season')
         ->assertDontSee('Remove Season');
 });
@@ -136,8 +136,8 @@ it('shows Remove Season button when all episodes selected', function () {
         $cart->add($episode);
     }
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->assertSee('Remove Season')
         ->assertDontSee('Request Season');
 });
@@ -156,8 +156,8 @@ it('adds all season episodes when clicking Request Season', function () {
         'type' => 'regular',
     ]);
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleSeason', 1)
         ->assertDispatched('cart-updated');
 
@@ -184,8 +184,8 @@ it('removes all season episodes when clicking Remove Season', function () {
         $cart->add($episode);
     }
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleSeason', 1)
         ->assertDispatched('cart-updated');
 
@@ -209,8 +209,8 @@ it('only adds unselected episodes when some already selected', function () {
     $cart = app(CartService::class);
     $cart->add($episodes->first());
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleSeason', 1)
         ->assertDispatched('cart-updated');
 
@@ -234,8 +234,8 @@ it('handles special episodes correctly', function () {
 
     $episodeData = $special->toArray();
 
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleEpisode', $episodeData)
         ->assertDispatched('cart-updated');
 
@@ -250,8 +250,8 @@ it('updates selection state when cart-updated event received', function () {
         'number' => 1,
     ]);
 
-    $component = Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show]);
+    $component = Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes');
 
     expect($component->get('selectedEpisodes'))->toBeEmpty();
 
@@ -287,8 +287,8 @@ it('handles multiple seasons correctly', function () {
     ]);
 
     // Add all season 1 episodes
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->call('toggleSeason', 1)
         ->assertSee('Remove Season')  // Season 1 button should change
         ->assertSee('Request Season'); // Season 2 button should remain
@@ -317,8 +317,8 @@ it('syncs cart when selectedEpisodes changes via wire:model', function () {
 
     // Setting selectedEpisodes directly simulates wire:model.live behavior
     // This triggers updatedSelectedEpisodes() which needs the episodesByCode map
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->set('selectedEpisodes', [$episode->code])
         ->assertDispatched('cart-updated');
 
@@ -341,8 +341,8 @@ it('removes episode from cart when unchecked via wire:model', function () {
     expect($cart->has($episode))->toBeTrue();
 
     // Setting selectedEpisodes to empty simulates unchecking via wire:model
-    Livewire::withoutLazyLoading()
-        ->test('shows.episodes', ['show' => $show])
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->call('loadEpisodes')
         ->set('selectedEpisodes', [])
         ->assertDispatched('cart-updated');
 
