@@ -347,6 +347,7 @@ accordion, autocomplete, avatar, badge, brand, breadcrumbs, button, calendar, ca
 ## Livewire Best Practices
 
 - Livewire components require a single root element.
+- Avoid `@php` blocks in Livewire Blade templates. Since Livewire SFCs have PHP and Blade in the same file, put all PHP logic in the class section and call methods from the template (e.g., `{{ $this->getEpisodeCode($episode) }}`).
 - Use `wire:loading` and `wire:dirty` for delightful loading states.
 - Add `wire:key` in loops:
 

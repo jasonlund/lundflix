@@ -137,6 +137,16 @@ class CartService
         return $movies->concat($episodes);
     }
 
+    /**
+     * Load and group cart items for consolidated display.
+     *
+     * @return array{movies: Collection<int, Movie>, shows: array<int, array{show: \App\Models\Show, seasons: array<int, array{season: int, is_full: bool, runs: array<int, Collection<int, Episode>>, episodes: Collection<int, Episode>}>}>}
+     */
+    public function loadGroupedItems(): array
+    {
+        return app(CartItemGrouper::class)->group($this->loadItems());
+    }
+
     public function isEmpty(): bool
     {
         return $this->count() === 0;
