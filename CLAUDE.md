@@ -100,15 +100,20 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - php - 8.4.16
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
+- laravel/horizon (HORIZON) - v5
 - laravel/prompts (PROMPTS) - v0
+- laravel/scout (SCOUT) - v10
+- larastan/larastan (LARASTAN) - v3
 - livewire/flux (FLUXUI_FREE) - v2
 - livewire/flux-pro (FLUXUI_PRO) - v2
 - livewire/livewire (LIVEWIRE) - v4
 - laravel/mcp (MCP) - v0
+- laravel/pennant (PENNANT) - v1
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
+- prettier (PRETTIER) - v3
 - tailwindcss (TAILWINDCSS) - v4
 
 ## Conventions
@@ -570,6 +575,154 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | overflow-ellipsis | text-ellipsis |
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
+
+=== scout/core rules ===
+
+## Laravel Scout
+
+- Scout provides full-text search for Eloquent models using drivers like Meilisearch, Algolia, or database.
+- Use the `search-docs` tool for version-specific Scout documentation.
+- Add the `Searchable` trait to models that need search functionality.
+- Use `php artisan scout:import` to index existing records.
+- Use `Model::search('query')` to perform searches.
+
+### Searchable Models
+
+```php
+use Laravel\Scout\Searchable;
+
+class Post extends Model
+{
+    use Searchable;
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'content' => $this->content,
+        ];
+    }
+}
+```
+
+### Searching
+
+```php
+$posts = Post::search('laravel')->get();
+$posts = Post::search('laravel')->where('user_id', 1)->get();
+$posts = Post::search('laravel')->paginate(15);
+```
+
+=== horizon/core rules ===
+
+## Laravel Horizon
+
+- Horizon provides a dashboard and configuration for Laravel Redis queues.
+- Use the `search-docs` tool for version-specific Horizon documentation.
+- Access the dashboard at `/horizon` (protected by `HorizonServiceProvider` authorization).
+- Configure queue workers and supervisors in `config/horizon.php`.
+
+### Configuration
+
+- Horizon configuration lives in `config/horizon.php`.
+- Define environments, supervisors, and queue settings there.
+- Use `php artisan horizon` to start the Horizon process.
+- Use `php artisan horizon:terminate` for graceful shutdown during deployments.
+
+=== filament/v5 rules ===
+
+## Filament 5
+
+- Filament is an admin panel and form/table builder for Laravel.
+- Use the `search-docs` tool for version-specific Filament documentation.
+- Resources are static classes that build CRUD interfaces for Eloquent models.
+
+### Panels
+
+- Configure panels in a PanelProvider (e.g., `AdminPanelProvider`).
+- Use `php artisan make:filament-panel` to create new panels.
+- Enable database notifications with `->databaseNotifications()` in panel configuration.
+
+### Resources
+
+- Use `php artisan make:filament-resource` to generate resources.
+- Resources include tables, forms, and pages for managing Eloquent models.
+- Follow existing resource patterns in the codebase.
+
+### Testing
+
+- For multi-tenant panels, call `Filament::bootCurrentPanel()` after setting the tenant.
+- Use Filament's testing helpers for resource tests.
+
+```php
+use Filament\Facades\Filament;
+
+$team = Team::factory()->create();
+Filament::setTenant($team);
+Filament::bootCurrentPanel();
+```
+
+=== pennant/core rules ===
+
+## Laravel Pennant
+
+- Pennant is a lightweight feature flag package for incremental rollouts and A/B testing.
+- Use the `search-docs` tool for version-specific Pennant documentation.
+- Prefer class-based features over closure-based definitions.
+
+### Defining Features
+
+- Use `php artisan pennant:feature FeatureName` to create class-based features in `app/Features/`.
+- Features resolve against a scope (usually the authenticated user).
+
+```php
+namespace App\Features;
+
+use App\Models\User;
+
+class NewDashboard
+{
+    public function resolve(User $user): bool
+    {
+        return $user->is_beta_tester;
+    }
+}
+```
+
+### Checking Features
+
+```php
+use Laravel\Pennant\Feature;
+
+// Check if active
+Feature::active(NewDashboard::class);
+
+// Conditional execution
+Feature::when(NewDashboard::class,
+    fn () => /* feature active */,
+    fn () => /* feature inactive */,
+);
+```
+
+### Blade Directive
+
+```blade
+@feature(App\Features\NewDashboard::class)
+    <x-new-dashboard />
+@else
+    <x-old-dashboard />
+@endfeature
+```
+
+### Testing
+
+```php
+use Laravel\Pennant\Feature;
+
+Feature::define(NewDashboard::class, true);
+expect(Feature::active(NewDashboard::class))->toBeTrue();
+```
 </laravel-boost-guidelines>
 
 ---
