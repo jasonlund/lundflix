@@ -159,8 +159,8 @@ it('shows correct button state for future and past episodes', function () {
     // Future episode shows disabled "Not Yet Aired" button
     $component->assertSee('Not Yet Aired');
 
-    // Past episode shows "Add to Cart" button
-    $component->assertSee('Add to Cart');
+    // Past episode shows checkbox for selection (not "Add to Cart" since we use multi-select)
+    $component->assertSeeHtml('data-flux-checkbox');
 
     // Verify the HTML structure: disabled button should have the disabled attribute
     $component->assertSeeHtml('disabled');

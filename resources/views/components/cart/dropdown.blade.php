@@ -2,7 +2,9 @@
 
 use App\Models\Movie;
 use App\Services\CartService;
+use App\Support\CartItemFormatter;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -20,9 +22,20 @@ new class extends Component {
         $this->itemCount = $cart->count();
     }
 
-    public function cartItems(CartService $cart): Collection
+    #[Computed]
+    public function groupedCartItems(): array
     {
-        return $cart->loadItems();
+        return app(CartService::class)->loadGroupedItems();
+    }
+
+    public function formatRun(Collection $episodes): string
+    {
+        return CartItemFormatter::formatRun($episodes);
+    }
+
+    public function formatSeason(int $season): string
+    {
+        return CartItemFormatter::formatSeason($season);
     }
 };
 ?>
@@ -44,23 +57,42 @@ new class extends Component {
                 </div>
             @else
                 <div class="max-h-64 space-y-2 overflow-y-auto p-2">
-                    @foreach ($this->cartItems(app(CartService::class)) as $item)
+                    {{-- Movies --}}
+                    @foreach ($this->groupedCartItems['movies'] as $movie)
                         <div
-                            wire:key="cart-item-{{ $item->getMediaType()->getLabel() }}-{{ $item->id }}"
+                            wire:key="cart-item-movie-{{ $movie->id }}"
                             class="flex items-center gap-3 rounded-lg bg-zinc-800 p-2"
                         >
-                            <flux:icon
-                                name="{{ $item instanceof Movie ? 'film' : 'tv' }}"
-                                class="size-5 shrink-0 text-zinc-400"
-                            />
+                            <flux:icon name="film" class="size-5 shrink-0 text-zinc-400" />
                             <div class="min-w-0 flex-1">
-                                <flux:text class="truncate font-medium">
-                                    @if ($item instanceof Movie)
-                                        {{ $item->title }}
-                                    @else
-                                        {{ $item->show->name }} - {{ strtoupper($item->code) }}
-                                    @endif
-                                </flux:text>
+                                <flux:text class="truncate font-medium">{{ $movie->title }}</flux:text>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    {{-- Shows --}}
+                    @foreach ($this->groupedCartItems['shows'] as $showGroup)
+                        <div wire:key="cart-item-show-{{ $showGroup['show']->id }}" class="rounded-lg bg-zinc-800 p-2">
+                            <div class="flex items-center gap-3">
+                                <flux:icon name="tv" class="size-5 shrink-0 text-zinc-400" />
+                                <div class="min-w-0 flex-1">
+                                    <flux:text class="truncate font-medium">{{ $showGroup['show']->name }}</flux:text>
+                                    <div class="mt-1 flex flex-wrap gap-1">
+                                        @foreach ($showGroup['seasons'] as $seasonData)
+                                            @if ($seasonData['is_full'])
+                                                <flux:badge size="sm" color="zinc">
+                                                    {{ $this->formatSeason($seasonData['season']) }}
+                                                </flux:badge>
+                                            @else
+                                                @foreach ($seasonData['runs'] as $run)
+                                                    <flux:badge size="sm" color="zinc">
+                                                        {{ $this->formatRun($run) }}
+                                                    </flux:badge>
+                                                @endforeach
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endforeach

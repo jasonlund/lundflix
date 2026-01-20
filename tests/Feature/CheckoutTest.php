@@ -35,14 +35,14 @@ it('displays cart items', function () {
         ->assertSee('Test Movie');
 });
 
-it('can remove item from checkout', function () {
+it('can remove movie from checkout', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
     app(CartService::class)->add($movie);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
-        ->call('removeItem', 'movie', $movie->id)
+        ->call('removeMovie', $movie->id)
         ->assertDispatched('cart-updated');
 
     expect(app(CartService::class)->isEmpty())->toBeTrue();
@@ -139,16 +139,30 @@ it('creates request item with correct polymorphic type', function () {
         ->and($item->requestable_id)->toBe($movie->id);
 });
 
-it('ignores invalid item types in removeItem', function () {
+it('can remove episodes from checkout', function () {
     $user = User::factory()->create();
-    $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    $show = \App\Models\Show::factory()->create();
+    $episodes = \App\Models\Episode::factory()->count(3)->sequence(
+        ['number' => 1],
+        ['number' => 2],
+        ['number' => 3],
+    )->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'type' => 'regular',
+    ]);
+
+    $cart = app(CartService::class);
+    foreach ($episodes as $episode) {
+        $cart->add($episode);
+    }
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
-        ->call('removeItem', 'invalid', $movie->id);
+        ->call('removeEpisodes', $episodes->pluck('id')->all())
+        ->assertDispatched('cart-updated');
 
-    expect(app(CartService::class)->has($movie))->toBeTrue();
+    expect(app(CartService::class)->isEmpty())->toBeTrue();
 });
 
 it('validates notes max length on blur', function () {
@@ -171,4 +185,46 @@ it('allows notes at max length', function () {
         ->test('cart.checkout')
         ->set('notes', str_repeat('a', 1000))
         ->assertHasNoErrors('notes');
+});
+
+it('ignores empty episode IDs array in removeEpisodes', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->add($movie);
+
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->call('removeEpisodes', [])
+        ->assertNotDispatched('cart-updated');
+
+    expect(app(CartService::class)->count())->toBe(1);
+});
+
+it('ignores non-existent episode IDs in removeEpisodes', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->add($movie);
+
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->call('removeEpisodes', [99999, 99998, 99997])
+        ->assertNotDispatched('cart-updated');
+
+    expect(app(CartService::class)->count())->toBe(1);
+});
+
+it('ignores episodes not in cart in removeEpisodes', function () {
+    $user = User::factory()->create();
+    $show = \App\Models\Show::factory()->create();
+    $episode = \App\Models\Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+    ]);
+
+    // Episode exists but is not in cart
+    Livewire::actingAs($user)
+        ->test('cart.checkout')
+        ->call('removeEpisodes', [$episode->id])
+        ->assertNotDispatched('cart-updated');
 });

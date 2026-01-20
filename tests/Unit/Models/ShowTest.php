@@ -13,16 +13,19 @@ describe('most_recent_season attribute', function () {
         // Season 1 - all past episodes
         Episode::factory()->for($show)->create([
             'season' => 1,
+            'number' => 1,
             'airdate' => now()->subMonth(),
         ]);
 
         // Season 2 - currently airing (has past AND future episodes)
         Episode::factory()->for($show)->create([
             'season' => 2,
+            'number' => 1,
             'airdate' => now()->subWeek(),
         ]);
         Episode::factory()->for($show)->create([
             'season' => 2,
+            'number' => 2,
             'airdate' => now()->addWeek(),
         ]);
 
@@ -35,18 +38,21 @@ describe('most_recent_season attribute', function () {
         // Season 1 - all past
         Episode::factory()->for($show)->create([
             'season' => 1,
+            'number' => 1,
             'airdate' => now()->subMonth(),
         ]);
 
         // Season 2 - all past (most recently completed)
         Episode::factory()->for($show)->create([
             'season' => 2,
+            'number' => 1,
             'airdate' => now()->subWeek(),
         ]);
 
         // Season 3 - all future (hasn't started)
         Episode::factory()->for($show)->create([
             'season' => 3,
+            'number' => 1,
             'airdate' => now()->addMonth(),
         ]);
 

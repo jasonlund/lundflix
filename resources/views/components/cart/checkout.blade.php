@@ -6,6 +6,7 @@ use App\Enums\MediaType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Services\CartService;
+use App\Support\CartItemFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +20,9 @@ new #[Layout('components.layouts.app')] class extends Component {
     public string $notes = '';
 
     #[Computed]
-    public function cartItems(): Collection
+    public function groupedCartItems(): array
     {
-        return app(CartService::class)->loadItems();
+        return app(CartService::class)->loadGroupedItems();
     }
 
     #[Computed]
@@ -30,17 +31,41 @@ new #[Layout('components.layouts.app')] class extends Component {
         return app(CartService::class)->count();
     }
 
-    public function removeItem(string $type, int $id): void
+    public function removeMovie(int $id): void
     {
-        if (! in_array($type, ['movie', 'episode'], true)) {
+        $movie = Movie::find($id);
+        if ($movie) {
+            app(CartService::class)->remove($movie);
+            unset($this->groupedCartItems, $this->cartCount);
+            $this->dispatch('cart-updated');
+        }
+    }
+
+    /**
+     * Remove a group of episodes (a run or full season).
+     *
+     * @param  array<int>  $episodeIds
+     */
+    public function removeEpisodes(array $episodeIds): void
+    {
+        if (empty($episodeIds)) {
             return;
         }
 
-        $model = $type === 'movie' ? Movie::find($id) : Episode::find($id);
+        $cart = app(CartService::class);
+        $episodes = Episode::whereIn('id', $episodeIds)->get();
 
-        if ($model) {
-            app(CartService::class)->remove($model);
-            unset($this->cartItems, $this->cartCount);
+        // Only remove episodes that exist and are in the cart
+        $removedAny = false;
+        foreach ($episodes as $episode) {
+            if ($cart->has($episode)) {
+                $cart->remove($episode);
+                $removedAny = true;
+            }
+        }
+
+        if ($removedAny) {
+            unset($this->groupedCartItems, $this->cartCount);
             $this->dispatch('cart-updated');
         }
     }
@@ -80,6 +105,24 @@ new #[Layout('components.layouts.app')] class extends Component {
         session()->flash('message', 'Your request has been submitted!');
         $this->redirect(route('home'), navigate: true);
     }
+
+    /**
+     * Format a run of episodes for display.
+     *
+     * @param  Collection<int, Episode>  $episodes
+     */
+    public function formatRun(Collection $episodes): string
+    {
+        return CartItemFormatter::formatRun($episodes);
+    }
+
+    /**
+     * Format a season label for display.
+     */
+    public function formatSeason(int $season): string
+    {
+        return CartItemFormatter::formatSeason($season);
+    }
 };
 ?>
 
@@ -97,7 +140,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         <flux:callout variant="danger">{{ $message }}</flux:callout>
     @enderror
 
-    @if ($this->cartItems->isEmpty())
+    @if ($this->cartCount === 0)
         <div class="rounded-lg bg-zinc-800 p-8 text-center">
             <flux:icon name="shopping-cart" class="mx-auto mb-4 size-12 text-zinc-500" />
             <flux:heading size="lg">Your cart is empty</flux:heading>
@@ -106,34 +149,78 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     @else
         <div class="space-y-3">
-            @foreach ($this->cartItems as $item)
+            {{-- Movies --}}
+            @foreach ($this->groupedCartItems['movies'] as $movie)
                 <div
-                    wire:key="checkout-{{ $item->getMediaType()->getLabel() }}-{{ $item->id }}"
+                    wire:key="checkout-movie-{{ $movie->id }}"
                     class="flex items-center gap-4 rounded-lg bg-zinc-800 p-4"
                 >
-                    <flux:icon
-                        name="{{ $item instanceof Movie ? 'film' : 'tv' }}"
-                        class="size-6 shrink-0 text-zinc-400"
-                    />
+                    <flux:icon name="film" class="size-6 shrink-0 text-zinc-400" />
                     <div class="min-w-0 flex-1">
                         <flux:text class="font-medium">
-                            @if ($item instanceof Movie)
-                                {{ $item->title }}
-                                @if ($item->year)
-                                    <span class="text-zinc-400">({{ $item->year }})</span>
-                                @endif
-                            @else
-                                {{ $item->show->name }}
-                                <span class="text-zinc-400">- {{ strtoupper($item->code) }}: {{ $item->name }}</span>
+                            {{ $movie->title }}
+                            @if ($movie->year)
+                                <span class="text-zinc-400">({{ $movie->year }})</span>
                             @endif
                         </flux:text>
                     </div>
-                    <flux:button
-                        wire:click="removeItem('{{ $item instanceof Movie ? 'movie' : 'episode' }}', {{ $item->id }})"
-                        variant="ghost"
-                        icon="x-mark"
-                        size="sm"
-                    />
+                    <flux:button wire:click="removeMovie({{ $movie->id }})" variant="ghost" icon="x-mark" size="sm" />
+                </div>
+            @endforeach
+
+            {{-- Shows with episodes --}}
+            @foreach ($this->groupedCartItems['shows'] as $showGroup)
+                <div wire:key="checkout-show-{{ $showGroup['show']->id }}" class="rounded-lg bg-zinc-800 p-4">
+                    <div class="mb-3 flex items-center gap-3">
+                        <flux:icon name="tv" class="size-6 shrink-0 text-zinc-400" />
+                        <flux:text class="font-medium">{{ $showGroup['show']->name }}</flux:text>
+                    </div>
+
+                    <div class="ml-9 space-y-2">
+                        @foreach ($showGroup['seasons'] as $seasonData)
+                            @if ($seasonData['is_full'])
+                                {{-- Full season --}}
+                                <div
+                                    wire:key="checkout-show-{{ $showGroup['show']->id }}-season-{{ $seasonData['season'] }}"
+                                    class="flex items-center justify-between rounded bg-zinc-700/50 px-3 py-2"
+                                >
+                                    <flux:text class="text-sm">
+                                        {{ $this->formatSeason($seasonData['season']) }}
+                                        <span class="text-zinc-400">
+                                            ({{ $seasonData['episodes']->count() }} episodes)
+                                        </span>
+                                    </flux:text>
+                                    <flux:button
+                                        wire:click="removeEpisodes({{ json_encode($seasonData['episodes']->pluck('id')->all()) }})"
+                                        variant="ghost"
+                                        icon="x-mark"
+                                        size="xs"
+                                    />
+                                </div>
+                            @else
+                                {{-- Individual runs --}}
+                                @foreach ($seasonData['runs'] as $runIndex => $run)
+                                    <div
+                                        wire:key="checkout-show-{{ $showGroup['show']->id }}-season-{{ $seasonData['season'] }}-run-{{ $runIndex }}"
+                                        class="flex items-center justify-between rounded bg-zinc-700/50 px-3 py-2"
+                                    >
+                                        <flux:text class="text-sm">
+                                            {{ $this->formatRun($run) }}
+                                            @if ($run->count() > 1)
+                                                <span class="text-zinc-400">({{ $run->count() }} episodes)</span>
+                                            @endif
+                                        </flux:text>
+                                        <flux:button
+                                            wire:click="removeEpisodes({{ json_encode($run->pluck('id')->all()) }})"
+                                            variant="ghost"
+                                            icon="x-mark"
+                                            size="xs"
+                                        />
+                                    </div>
+                                @endforeach
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
             @endforeach
         </div>
