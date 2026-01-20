@@ -396,6 +396,16 @@ accordion, autocomplete, avatar, badge, brand, breadcrumbs, button, calendar, ca
 
 - If you need to verify a feature is working, write or update a Unit / Feature test.
 
+### Test Isolation
+
+Each Pest test runs in complete isolation:
+
+- **Fresh application instance** - PHPUnit/Pest creates a new Laravel app for each test
+- **Array session driver** - Laravel automatically uses the `array` driver during testing, so sessions are stored in memory and not persisted between tests
+- **RefreshDatabase** - Database is rolled back after each test (configured in `tests/Pest.php`)
+
+Do not add `beforeEach(session()->flush())` or similar session cleanup hooks—they are unnecessary.
+
 ### Pest Tests
 
 - All tests must be written using Pest. Use `php artisan make:test --pest {name}`.
