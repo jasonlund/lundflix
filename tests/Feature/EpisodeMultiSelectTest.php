@@ -13,7 +13,11 @@ beforeEach(function () {
 
 it('displays checkbox for each episode', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
-    Episode::factory()->count(3)->create([
+    Episode::factory()->count(3)->sequence(
+        ['number' => 1],
+        ['number' => 2],
+        ['number' => 3],
+    )->create([
         'show_id' => $show->id,
         'season' => 1,
     ]);
@@ -97,7 +101,11 @@ it('can remove single episode via checkbox click', function () {
 
 it('shows Request Season button when no episodes selected', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
-    Episode::factory()->count(3)->create([
+    Episode::factory()->count(3)->sequence(
+        ['number' => 1],
+        ['number' => 2],
+        ['number' => 3],
+    )->create([
         'show_id' => $show->id,
         'season' => 1,
     ]);
@@ -110,7 +118,11 @@ it('shows Request Season button when no episodes selected', function () {
 
 it('shows Request Season button when some episodes selected', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
-    $episodes = Episode::factory()->count(3)->create([
+    $episodes = Episode::factory()->count(3)->sequence(
+        ['number' => 1],
+        ['number' => 2],
+        ['number' => 3],
+    )->create([
         'show_id' => $show->id,
         'season' => 1,
     ]);
@@ -126,7 +138,10 @@ it('shows Request Season button when some episodes selected', function () {
 
 it('shows Remove Season button when all episodes selected', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
-    $episodes = Episode::factory()->count(2)->create([
+    $episodes = Episode::factory()->count(2)->sequence(
+        ['number' => 1],
+        ['number' => 2],
+    )->create([
         'show_id' => $show->id,
         'season' => 1,
     ]);
