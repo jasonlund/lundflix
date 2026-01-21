@@ -50,6 +50,25 @@ class TVMazeService
         return $response->json();
     }
 
+    /**
+     * Get the full schedule of all future episodes globally.
+     * Returns null on failure.
+     *
+     * @return array<int, array>|null
+     */
+    public function fullSchedule(): ?array
+    {
+        $response = $this->client()
+            ->timeout(60)
+            ->get(self::BASE_URL.'/schedule/full');
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        return $response->json();
+    }
+
     private function client(): PendingRequest
     {
         return Http::accept('application/json')

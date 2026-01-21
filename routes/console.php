@@ -16,4 +16,5 @@ Schedule::command('tvmaze:sync-shows')
     ->at('02:00')
     ->timezone('America/Los_Angeles')
     ->then(fn () => Artisan::call('imdb:sync-movies'))
-    ->then(fn () => Artisan::call('imdb:sync-ratings'));
+    ->then(fn () => Artisan::call('imdb:sync-ratings'))
+    ->then(fn () => Artisan::call('tvmaze:sync-schedule'));
