@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\MediaType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
 
 class Movie extends Model
@@ -40,5 +41,13 @@ class Movie extends Model
     public function getMediaType(): MediaType
     {
         return MediaType::MOVIE;
+    }
+
+    /**
+     * @return MorphMany<Media, $this>
+     */
+    public function media(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'mediable');
     }
 }
