@@ -16,7 +16,7 @@ sed -i '' "s|^DB_DATABASE=.*|DB_DATABASE=${FOLDER}|" .env
 # -----------------------------------------------------------------------------
 # Database Setup
 # -----------------------------------------------------------------------------
-mysql -uroot -e "CREATE DATABASE IF NOT EXISTS \`${FOLDER}\`"
+mysql -uroot -e "DROP DATABASE IF EXISTS \`${FOLDER}\`; CREATE DATABASE \`${FOLDER}\`"
 
 # -----------------------------------------------------------------------------
 # Herd Configuration
