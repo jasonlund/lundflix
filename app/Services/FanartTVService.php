@@ -49,6 +49,21 @@ class FanartTVService
         return $response->json();
     }
 
+    /**
+     * Find the best image from a list of images.
+     * Prefers English or language-neutral images with the most likes.
+     *
+     * @param  array<int, array<string, mixed>>  $images
+     * @return array<string, mixed>|null
+     */
+    public function bestImage(array $images): ?array
+    {
+        return collect($images)
+            ->filter(fn ($img) => in_array($img['lang'] ?? null, ['en', null, '']))
+            ->sortByDesc(fn ($img) => (int) ($img['likes'] ?? 0))
+            ->first();
+    }
+
     private function client(): PendingRequest
     {
         return Http::accept('application/json')

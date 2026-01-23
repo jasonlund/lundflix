@@ -100,3 +100,45 @@ it('sends api key header with requests', function () {
 
     Http::assertSent(fn ($request) => $request->hasHeader('api-key', 'test-api-key'));
 });
+
+it('returns best image preferring english with highest likes', function () {
+    $service = new FanartTVService;
+
+    $images = [
+        ['id' => '1', 'url' => 'https://example.com/1.jpg', 'lang' => 'de', 'likes' => '20'],
+        ['id' => '2', 'url' => 'https://example.com/2.jpg', 'lang' => 'en', 'likes' => '5'],
+        ['id' => '3', 'url' => 'https://example.com/3.jpg', 'lang' => 'en', 'likes' => '15'],
+        ['id' => '4', 'url' => 'https://example.com/4.jpg', 'lang' => null, 'likes' => '10'],
+    ];
+
+    $best = $service->bestImage($images);
+
+    expect($best['id'])->toBe('3');
+});
+
+it('returns best image with null language when no english available', function () {
+    $service = new FanartTVService;
+
+    $images = [
+        ['id' => '1', 'url' => 'https://example.com/1.jpg', 'lang' => 'de', 'likes' => '20'],
+        ['id' => '2', 'url' => 'https://example.com/2.jpg', 'lang' => null, 'likes' => '5'],
+        ['id' => '3', 'url' => 'https://example.com/3.jpg', 'lang' => '', 'likes' => '10'],
+    ];
+
+    $best = $service->bestImage($images);
+
+    expect($best['id'])->toBe('3');
+});
+
+it('returns null when no english or null language images exist', function () {
+    $service = new FanartTVService;
+
+    $images = [
+        ['id' => '1', 'url' => 'https://example.com/1.jpg', 'lang' => 'de', 'likes' => '20'],
+        ['id' => '2', 'url' => 'https://example.com/2.jpg', 'lang' => 'fr', 'likes' => '15'],
+    ];
+
+    $best = $service->bestImage($images);
+
+    expect($best)->toBeNull();
+});

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('fanart_id');
             $table->string('type');
             $table->string('url');
+            $table->string('path')->nullable();
             $table->string('lang')->nullable();
             $table->unsignedInteger('likes')->default(0);
             $table->unsignedSmallInteger('season')->nullable();
