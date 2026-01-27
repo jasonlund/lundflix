@@ -1,11 +1,17 @@
 <?php
 
 use App\Models\Show;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
     public Show $show;
+
+    public function episodes(): Collection
+    {
+        return $this->show->episodes;
+    }
 
     public function imdbUrl(): string
     {
@@ -109,5 +115,11 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     </div>
 
-    <livewire:shows.episodes :show="$show" lazy />
+    @if ($this->episodes()->isNotEmpty())
+        {{-- Episodes exist in DB - render immediately --}}
+        <livewire:shows.episodes :show="$show" :episodes="$this->episodes()" />
+    @else
+        {{-- No episodes - use lazy loading to fetch from API --}}
+        <livewire:shows.episodes :show="$show" lazy />
+    @endif
 </div>

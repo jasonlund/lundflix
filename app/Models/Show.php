@@ -55,6 +55,20 @@ class Show extends Model
     }
 
     /**
+     * Retrieve the model for a bound value with eager-loaded episodes.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        return $this->query()
+            ->with('episodes')
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
+
+    /**
      * Get the most recent season (currently airing, or most recently completed).
      */
     protected function mostRecentSeason(): Attribute
