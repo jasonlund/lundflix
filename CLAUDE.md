@@ -653,15 +653,29 @@ $posts = Post::search('laravel')->paginate(15);
 
 ### Testing
 
+- **All Filament resource pages require test coverage.** For each resource, test:
+  - List page renders successfully
+  - View page renders successfully (if applicable)
+  - Data displays correctly in tables and infolists
+  - Policy enforcement (create/edit/delete actions hidden when denied)
+- Tests live in `tests/Feature/Filament/` and use `Livewire::test()` for page components.
 - For multi-tenant panels, call `Filament::bootCurrentPanel()` after setting the tenant.
-- Use Filament's testing helpers for resource tests.
 
 ```php
-use Filament\Facades\Filament;
+use Livewire\Livewire;
 
-$team = Team::factory()->create();
-Filament::setTenant($team);
-Filament::bootCurrentPanel();
+beforeEach(function () {
+    $this->admin = User::factory()->create(['plex_token' => 'admin-token']);
+    $this->actingAs($this->admin);
+});
+
+it('can render the list page', function () {
+    Livewire::test(ListMovies::class)->assertSuccessful();
+});
+
+it('does not show create button due to policy', function () {
+    Livewire::test(ListMovies::class)->assertDontSee('New movie');
+});
 ```
 
 === pennant/core rules ===

@@ -28,7 +28,7 @@ class RequestItemFactory extends Factory
     /**
      * Create an item for a specific requestable.
      */
-    public function for(mixed $requestable): static
+    public function forRequestable(mixed $requestable): static
     {
         return $this->state(fn (array $attributes) => [
             'requestable_type' => $requestable::class,
