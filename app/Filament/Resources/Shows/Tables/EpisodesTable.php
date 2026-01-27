@@ -52,6 +52,8 @@ class EpisodesTable
                         'significant_special' => 'Special',
                     ]),
             ])
+            // TODO: Fix multi-column sorting - chained defaultSort() calls override each other.
+            // Use ->modifyQueryUsing(fn ($query) => $query->orderBy('season')->orderBy('number'))
             ->defaultSort('season')
             ->defaultSort('number');
     }
