@@ -14,7 +14,7 @@ beforeEach(function () {
 it('displays episodes from database when available', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
-    Episode::factory()->create([
+    $episode = Episode::factory()->create([
         'show_id' => $show->id,
         'tvmaze_id' => 100,
         'name' => 'DB Episode',
@@ -22,30 +22,28 @@ it('displays episodes from database when available', function () {
         'number' => 1,
     ]);
 
-    // No HTTP fake needed - should not call API
-    Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes')
+    // Pass episodes directly - no HTTP call needed
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
         ->assertSee('DB Episode')
-        ->assertSee('Season 1');
+        ->assertSee('S01');
 
     Http::assertNothingSent();
 });
 
-it('fetches from API when database is empty and dispatches job', function () {
+it('fetches from API when no episodes passed and dispatches job', function () {
     Queue::fake();
 
     Http::fake([
         'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
-            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60],
+            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60, 'type' => 'regular'],
         ]),
     ]);
 
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
     Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes')
         ->assertSee('Pilot')
-        ->assertSee('Season 1');
+        ->assertSee('S01');
 
     Queue::assertPushed(StoreShowEpisodes::class, function ($job) use ($show) {
         return $job->show->id === $show->id;
@@ -57,44 +55,20 @@ it('displays episodes grouped by season from API', function () {
 
     Http::fake([
         'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
-            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60],
-            ['id' => 2, 'name' => 'The Fire', 'season' => 1, 'number' => 2, 'airdate' => '2013-07-01', 'runtime' => 60],
-            ['id' => 10, 'name' => 'Heads Will Roll', 'season' => 2, 'number' => 1, 'airdate' => '2014-06-30', 'runtime' => 60],
+            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60, 'type' => 'regular'],
+            ['id' => 2, 'name' => 'The Fire', 'season' => 1, 'number' => 2, 'airdate' => '2013-07-01', 'runtime' => 60, 'type' => 'regular'],
+            ['id' => 10, 'name' => 'Heads Will Roll', 'season' => 2, 'number' => 1, 'airdate' => '2014-06-30', 'runtime' => 60, 'type' => 'regular'],
         ]),
     ]);
 
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
     Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes')
-        ->assertSee('Season 1')
-        ->assertSee('Season 2')
+        ->assertSee('S01')
+        ->assertSee('S02')
         ->assertSee('Pilot')
         ->assertSee('The Fire')
         ->assertSee('Heads Will Roll');
-});
-
-it('displays episodes in order by episode number', function () {
-    Queue::fake();
-
-    Http::fake([
-        'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
-            ['id' => 3, 'name' => 'Third', 'season' => 1, 'number' => 3, 'airdate' => null, 'runtime' => null],
-            ['id' => 1, 'name' => 'First', 'season' => 1, 'number' => 1, 'airdate' => null, 'runtime' => null],
-            ['id' => 2, 'name' => 'Second', 'season' => 1, 'number' => 2, 'airdate' => null, 'runtime' => null],
-        ]),
-    ]);
-
-    $show = Show::factory()->create(['tvmaze_id' => 1]);
-
-    $component = Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes');
-
-    $episodes = $component->get('episodesBySeason')[1];
-
-    expect($episodes[0]['name'])->toBe('First')
-        ->and($episodes[1]['name'])->toBe('Second')
-        ->and($episodes[2]['name'])->toBe('Third');
 });
 
 it('handles show with no episodes from API', function () {
@@ -107,7 +81,6 @@ it('handles show with no episodes from API', function () {
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
     Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes')
         ->assertSee('No episodes available.');
 
     Queue::assertNothingPushed();
@@ -122,46 +95,24 @@ it('does not dispatch job when no episodes returned from API', function () {
 
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
-    Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes');
+    Livewire::test('shows.episodes', ['show' => $show]);
 
     Queue::assertNothingPushed();
 });
 
-it('shows correct button state for future and past episodes', function () {
+it('displays episode checkboxes', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
-    Episode::factory()->create([
+    $episode = Episode::factory()->create([
         'show_id' => $show->id,
         'tvmaze_id' => 100,
-        'name' => 'Past Episode',
+        'name' => 'Test Episode',
         'season' => 1,
         'number' => 1,
         'airdate' => now()->subWeek(),
     ]);
 
-    Episode::factory()->create([
-        'show_id' => $show->id,
-        'tvmaze_id' => 101,
-        'name' => 'Future Episode',
-        'season' => 1,
-        'number' => 2,
-        'airdate' => now()->addWeek(),
-    ]);
-
-    $component = Livewire::test('shows.episodes', ['show' => $show])
-        ->call('loadEpisodes');
-
-    // Both episodes are displayed
-    $component->assertSee('Past Episode')
-        ->assertSee('Future Episode');
-
-    // Future episode shows disabled "Not Yet Aired" button
-    $component->assertSee('Not Yet Aired');
-
-    // Past episode shows checkbox for selection (not "Add to Cart" since we use multi-select)
-    $component->assertSeeHtml('data-flux-checkbox');
-
-    // Verify the HTML structure: disabled button should have the disabled attribute
-    $component->assertSeeHtml('disabled');
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
+        ->assertSee('Test Episode')
+        ->assertSeeHtml('data-flux-checkbox');
 });

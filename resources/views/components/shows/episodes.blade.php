@@ -10,7 +10,8 @@ use Livewire\Component;
 new class extends Component {
     public Show $show;
 
-    public Collection $episodes;
+    /** @var Collection<int, mixed> */
+    public $episodes;
 
     public function placeholder(): string
     {
@@ -37,6 +38,42 @@ new class extends Component {
         }
     }
 
+    public function dehydrate(): void
+    {
+        if ($this->episodes === null) {
+            return;
+        }
+
+        $this->episodes = $this->episodes
+            ->map(
+                fn ($ep) => is_array($ep)
+                    ? [
+                        'id' => $ep['id'] ?? null,
+                        'tvmaze_id' => $ep['tvmaze_id'] ?? ($ep['id'] ?? null),
+                        'season' => $ep['season'],
+                        'number' => $ep['number'] ?? 1,
+                        'name' => $ep['name'] ?? '',
+                        'type' => $ep['type'] ?? 'regular',
+                        'airdate' => $ep['airdate'] ?? null,
+                    ]
+                    : [
+                        'id' => $ep->id,
+                        'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
+                        'season' => $ep->season,
+                        'number' => $ep->number,
+                        'name' => $ep->name,
+                        'type' => $ep->type ?? 'regular',
+                        'airdate' => $ep->airdate?->format('Y-m-d'),
+                    ],
+            )
+            ->all();
+    }
+
+    public function hydrate(): void
+    {
+        $this->episodes = collect($this->episodes);
+    }
+
     /**
      * @return Collection<int, array{number: int, codes: array<int, string>, episodes: Collection<int, mixed>}>
      */
@@ -44,7 +81,7 @@ new class extends Component {
     public function seasons(): Collection
     {
         return $this->episodes
-            ->groupBy(fn ($ep) => $ep['season'] ?? $ep->season)
+            ->groupBy(fn ($ep) => is_array($ep) ? $ep['season'] : $ep->season)
             ->sortKeys()
             ->map(
                 fn ($episodes, $seasonNumber) => [
@@ -53,7 +90,7 @@ new class extends Component {
                         ->map(fn ($ep) => \App\Models\Episode::displayCode($ep))
                         ->values()
                         ->all(),
-                    'episodes' => $episodes->sortBy(fn ($ep) => $ep['number'] ?? $ep->number),
+                    'episodes' => $episodes->sortBy(fn ($ep) => is_array($ep) ? $ep['number'] : $ep->number),
                 ],
             );
     }
@@ -61,7 +98,7 @@ new class extends Component {
     /**
      * Map of episode code to airdate for Alpine sorting.
      *
-     * @return array<string, string>
+     * @return array<string, string|null>
      */
     #[Computed]
     public function episodeAirdates(): array
@@ -69,7 +106,7 @@ new class extends Component {
         return $this->episodes
             ->mapWithKeys(
                 fn ($ep) => [
-                    \App\Models\Episode::displayCode($ep) => $ep['airdate'] ?? $ep->airdate,
+                    \App\Models\Episode::displayCode($ep) => is_array($ep) ? $ep['airdate'] : $ep->airdate,
                 ],
             )
             ->all();
