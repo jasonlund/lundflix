@@ -70,6 +70,6 @@ new #[Layout('components.layouts.app')] class extends Component {
         <flux:button as="a" href="{{ $this->imdbUrl() }}" target="_blank" icon="arrow-top-right-on-square">
             View on IMDB
         </flux:button>
-        <livewire:cart.add-button :item="$movie" />
+        <livewire:cart.add-movie-button :movie="$movie" />
     </div>
 </div>

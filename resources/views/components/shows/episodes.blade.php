@@ -116,12 +116,20 @@ new class extends Component {
 
 <div
     x-data="{
-        selected: [],
+        seasonSelections: {},
         airdates: @js($this->episodeAirdates),
+        get selected() {
+            return Object.values(this.seasonSelections).flat()
+        },
         get sortedSelected() {
             return [...this.selected].sort((a, b) =>
                 (this.airdates[a] || '').localeCompare(this.airdates[b] || ''),
             )
+        },
+        initSeason(num) {
+            if (! this.seasonSelections[num]) {
+                this.seasonSelections[num] = []
+            }
         },
     }"
 >
@@ -131,24 +139,26 @@ new class extends Component {
     <pre x-text="JSON.stringify(sortedSelected, null, 2)" class="mt-2 text-xs text-zinc-500"></pre>
 
     @forelse ($this->seasons as $season)
-        <flux:checkbox.group x-model="selected" class="mt-4" wire:key="season-{{ $season['number'] }}">
-            <flux:checkbox.all label="S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}" />
+        <div x-init="initSeason('{{ $season['number'] }}')" wire:key="season-{{ $season['number'] }}">
+            <flux:checkbox.group x-model="seasonSelections['{{ $season['number'] }}']" class="mt-4">
+                <flux:checkbox.all label="S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}" />
 
-            <div class="mt-2 ml-6 space-y-1">
-                @foreach ($season['episodes'] as $episode)
-                    <div
-                        wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
-                        class="flex items-center gap-3"
-                    >
-                        <flux:checkbox value="{{ \App\Models\Episode::displayCode($episode) }}" />
-                        <span>
-                            {{ \App\Models\Episode::displayCode($episode) }} {{ $episode['name'] }} -
-                            {{ $episode['airdate'] }}
-                        </span>
-                    </div>
-                @endforeach
-            </div>
-        </flux:checkbox.group>
+                <div class="mt-2 ml-6 space-y-1">
+                    @foreach ($season['episodes'] as $episode)
+                        <div
+                            wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
+                            class="flex items-center gap-3"
+                        >
+                            <flux:checkbox value="{{ \App\Models\Episode::displayCode($episode) }}" />
+                            <span>
+                                {{ \App\Models\Episode::displayCode($episode) }} {{ $episode['name'] }} -
+                                {{ $episode['airdate'] }}
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            </flux:checkbox.group>
+        </div>
     @empty
         <p>No episodes available.</p>
     @endforelse

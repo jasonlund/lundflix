@@ -28,7 +28,7 @@ it('shows empty cart message when no items', function () {
 it('displays cart items', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create(['title' => 'Test Movie']);
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -38,7 +38,7 @@ it('displays cart items', function () {
 it('can remove movie from checkout', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -51,7 +51,7 @@ it('can remove movie from checkout', function () {
 it('creates request on submit', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -69,7 +69,7 @@ it('creates request on submit', function () {
 it('creates request without notes', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -83,7 +83,7 @@ it('creates request without notes', function () {
 it('validates notes max length', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -104,7 +104,7 @@ it('prevents submit with empty cart', function () {
 it('associates request with authenticated user', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -116,7 +116,7 @@ it('associates request with authenticated user', function () {
 it('sets request status to pending', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -128,7 +128,7 @@ it('sets request status to pending', function () {
 it('creates request item with correct polymorphic type', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -153,9 +153,7 @@ it('can remove episodes from checkout', function () {
     ]);
 
     $cart = app(CartService::class);
-    foreach ($episodes as $episode) {
-        $cart->add($episode);
-    }
+    $cart->syncShowEpisodes($show->id, $episodes->pluck('code')->all());
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -168,7 +166,7 @@ it('can remove episodes from checkout', function () {
 it('validates notes max length on blur', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -179,7 +177,7 @@ it('validates notes max length on blur', function () {
 it('allows notes at max length', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -190,7 +188,7 @@ it('allows notes at max length', function () {
 it('ignores empty episode IDs array in removeEpisodes', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')
@@ -203,7 +201,7 @@ it('ignores empty episode IDs array in removeEpisodes', function () {
 it('ignores non-existent episode IDs in removeEpisodes', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
-    app(CartService::class)->add($movie);
+    app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.checkout')

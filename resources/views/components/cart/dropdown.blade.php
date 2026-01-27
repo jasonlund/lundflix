@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Movie;
 use App\Services\CartService;
 use App\Support\CartItemFormatter;
 use Illuminate\Support\Collection;
@@ -36,6 +35,28 @@ new class extends Component {
     public function formatSeason(int $season): string
     {
         return CartItemFormatter::formatSeason($season);
+    }
+
+    /**
+     * Sync episodes for a show - replaces all episodes for that show.
+     *
+     * @param  array<int, string>  $episodeCodes
+     */
+    #[On('sync-show-episodes-to-cart')]
+    public function syncShowEpisodes(int $showId, array $episodeCodes): void
+    {
+        app(CartService::class)->syncShowEpisodes($showId, $episodeCodes);
+        $this->dispatch('cart-updated');
+    }
+
+    /**
+     * Toggle a movie in/out of the cart by ID.
+     */
+    #[On('toggle-movie-in-cart')]
+    public function toggleMovieInCart(int $movieId): void
+    {
+        app(CartService::class)->toggleMovie($movieId);
+        $this->dispatch('cart-updated');
     }
 };
 ?>

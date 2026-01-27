@@ -68,8 +68,8 @@ new class extends Component {
                             </div>
                             <div @click.stop class="flex shrink-0 gap-1">
                                 @if ($result['type'] === 'movie')
-                                    <livewire:cart.add-button
-                                        :item="$result['model']"
+                                    <livewire:cart.add-movie-button
+                                        :movie="$result['model']"
                                         :show-text="false"
                                         :wire:key="'search-cart-'.$result['id']"
                                     />

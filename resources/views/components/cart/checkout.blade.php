@@ -4,7 +4,6 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Models\Episode;
-use App\Models\Movie;
 use App\Services\CartService;
 use App\Support\CartItemFormatter;
 use Illuminate\Support\Collection;
@@ -33,12 +32,9 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function removeMovie(int $id): void
     {
-        $movie = Movie::find($id);
-        if ($movie) {
-            app(CartService::class)->remove($movie);
-            unset($this->groupedCartItems, $this->cartCount);
-            $this->dispatch('cart-updated');
-        }
+        app(CartService::class)->remove($id);
+        unset($this->groupedCartItems, $this->cartCount);
+        $this->dispatch('cart-updated');
     }
 
     /**
