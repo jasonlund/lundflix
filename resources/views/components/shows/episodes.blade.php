@@ -40,6 +40,10 @@ new class extends Component {
 
     public function dehydrate(): void
     {
+        if ($this->episodes === null) {
+            return;
+        }
+
         $this->episodes = $this->episodes
             ->map(
                 fn ($ep) => is_array($ep)
