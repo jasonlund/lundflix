@@ -64,4 +64,26 @@ class Episode extends Model
     {
         return $this->type === 'significant_special';
     }
+
+    /**
+     * Get the display code for an episode (uppercase).
+     * Supports both Episode models and API arrays.
+     *
+     * @param  self|array<string, mixed>  $episode
+     */
+    public static function displayCode(self|array $episode): string
+    {
+        if ($episode instanceof self) {
+            return strtoupper($episode->code);
+        }
+
+        // API array data
+        $isSpecial = ($episode['type'] ?? 'regular') === 'significant_special';
+
+        return strtoupper(EpisodeCode::generate(
+            $episode['season'],
+            $episode['number'] ?? 1,
+            $isSpecial
+        ));
+    }
 }
