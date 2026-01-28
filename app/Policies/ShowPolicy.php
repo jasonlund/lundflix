@@ -62,4 +62,12 @@ class ShowPolicy
     {
         return false;
     }
+
+    /**
+     * Determine whether the user can fetch episodes for the model.
+     */
+    public function fetchEpisodes(User $user, Show $show): bool
+    {
+        return true;
+    }
 }

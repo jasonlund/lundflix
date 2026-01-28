@@ -37,3 +37,7 @@ it('denies restoring shows', function () {
 it('denies force deleting shows', function () {
     expect($this->policy->forceDelete($this->user, $this->show))->toBeFalse();
 });
+
+it('allows fetching episodes for shows', function () {
+    expect($this->policy->fetchEpisodes($this->user, $this->show))->toBeTrue();
+});
