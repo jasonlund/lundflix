@@ -2,6 +2,7 @@
 
 use App\Jobs\StoreShowEpisodes;
 use App\Models\Show;
+use App\Services\CartService;
 use App\Services\TVMazeService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -96,51 +97,89 @@ new class extends Component {
     }
 
     /**
-     * Map of episode code to airdate for Alpine sorting.
+     * Sync selected episodes to cart in display order (by season and episode number).
      *
-     * @return array<string, string|null>
+     * @param  array<int, string>  $episodeCodes  Unordered codes from Alpine
+     */
+    public function syncToCart(array $episodeCodes): void
+    {
+        $selected = array_flip(array_map('strtoupper', $episodeCodes));
+
+        $orderedCodes = [];
+        foreach ($this->seasons as $season) {
+            foreach ($season['episodes'] as $episode) {
+                $code = \App\Models\Episode::displayCode($episode);
+                if (isset($selected[strtoupper($code)])) {
+                    $orderedCodes[] = $code;
+                }
+            }
+        }
+
+        app(CartService::class)->syncShowEpisodes($this->show->id, $orderedCodes);
+        $this->dispatch('cart-updated');
+    }
+
+    /**
+     * Get initial season selections from cart for this show.
+     *
+     * @return array<string, array<int, string>>
      */
     #[Computed]
-    public function episodeAirdates(): array
+    public function initialSeasonSelections(): array
     {
-        return $this->episodes
-            ->mapWithKeys(
-                fn ($ep) => [
-                    \App\Models\Episode::displayCode($ep) => is_array($ep) ? $ep['airdate'] : $ep->airdate,
-                ],
-            )
-            ->all();
+        $cartEpisodes = app(CartService::class)->episodes();
+
+        $showEpisodes = collect($cartEpisodes)
+            ->filter(fn ($ep) => $ep['show_id'] === $this->show->id)
+            ->pluck('code')
+            ->map(fn ($code) => strtoupper($code));
+
+        $result = [];
+        foreach ($showEpisodes as $code) {
+            if (preg_match('/^S(\d+)[ES]\d+$/i', $code, $matches)) {
+                $season = (string) (int) $matches[1];
+                if (! isset($result[$season])) {
+                    $result[$season] = [];
+                }
+                $result[$season][] = $code;
+            }
+        }
+
+        return $result;
     }
 };
 ?>
 
 <div
     x-data="{
-        seasonSelections: {},
-        airdates: @js($this->episodeAirdates),
+        seasonSelections: @js($this->initialSeasonSelections),
+        syncTimeout: null,
         get selected() {
             return Object.values(this.seasonSelections).flat()
-        },
-        get sortedSelected() {
-            return [...this.selected].sort((a, b) =>
-                (this.airdates[a] || '').localeCompare(this.airdates[b] || ''),
-            )
         },
         initSeason(num) {
             if (! this.seasonSelections[num]) {
                 this.seasonSelections[num] = []
             }
         },
+        scheduleSync() {
+            clearTimeout(this.syncTimeout)
+            window.dispatchEvent(new CustomEvent('cart-syncing'))
+            this.syncTimeout = setTimeout(() => {
+                $wire.syncToCart(this.selected)
+            }, 500)
+        },
     }"
 >
     <flux:heading size="lg" class="mt-8">Episodes</flux:heading>
 
-    {{-- Debug output --}}
-    <pre x-text="JSON.stringify(sortedSelected, null, 2)" class="mt-2 text-xs text-zinc-500"></pre>
-
     @forelse ($this->seasons as $season)
         <div x-init="initSeason('{{ $season['number'] }}')" wire:key="season-{{ $season['number'] }}">
-            <flux:checkbox.group x-model="seasonSelections['{{ $season['number'] }}']" class="mt-4">
+            <flux:checkbox.group
+                x-model="seasonSelections['{{ $season['number'] }}']"
+                @change="scheduleSync()"
+                class="mt-4"
+            >
                 <flux:checkbox.all label="S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}" />
 
                 <div class="mt-2 ml-6 space-y-1">

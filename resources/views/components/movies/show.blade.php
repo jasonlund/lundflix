@@ -36,7 +36,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
 <div class="space-y-6">
     <div class="flex items-center gap-4">
-        <flux:button as="a" href="{{ route('home') }}" variant="ghost" icon="arrow-left" />
+        <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="ghost" icon="arrow-left" />
         <flux:heading size="xl">{{ $this->movie->title }}</flux:heading>
     </div>
 

@@ -61,13 +61,15 @@ new class extends Component {
 };
 ?>
 
-<div>
+<div x-data="{ syncing: false }" @cart-syncing.window="syncing = true" @cart-updated.window="syncing = false">
     <flux:dropdown align="end">
-        <flux:button variant="ghost" icon="shopping-cart">
+        <flux:button variant="ghost" ::disabled="syncing">
+            <flux:icon.loading x-show="syncing" class="size-4" />
+            <flux:icon name="shopping-cart" x-show="!syncing" x-cloak class="size-4" />
             Cart
-            @if ($itemCount > 0)
-                <flux:badge color="red" size="sm" class="ml-1">{{ $itemCount }}</flux:badge>
-            @endif
+            <flux:badge color="red" size="sm" class="ml-1">
+                {{ $itemCount > 0 ? $itemCount : '-' }}
+            </flux:badge>
         </flux:button>
 
         <flux:popover class="w-80">

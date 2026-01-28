@@ -116,3 +116,26 @@ it('displays episode checkboxes', function () {
         ->assertSee('Test Episode')
         ->assertSeeHtml('data-flux-checkbox');
 });
+
+it('syncs episodes to cart in display order', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    // Create episodes out of display order
+    $episodes = collect([
+        Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 1, 'season' => 2, 'number' => 1, 'airdate' => now()->subMonths(6)]),
+        Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 2, 'season' => 1, 'number' => 2, 'airdate' => now()->subYear()]),
+        Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 3, 'season' => 1, 'number' => 1, 'airdate' => now()->subYear()->subWeek()]),
+    ]);
+
+    // Call syncToCart with codes in random order (S02E01, S01E02, S01E01)
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => $episodes])
+        ->call('syncToCart', ['S02E01', 'S01E02', 'S01E01'])
+        ->assertDispatched('cart-updated');
+
+    // Verify cart has episodes in display order (S01E01, S01E02, S02E01)
+    $cartEpisodes = app(\App\Services\CartService::class)->episodes();
+    expect($cartEpisodes)->toHaveCount(3);
+    expect($cartEpisodes[0]['code'])->toBe('s01e01');
+    expect($cartEpisodes[1]['code'])->toBe('s01e02');
+    expect($cartEpisodes[2]['code'])->toBe('s02e01');
+});
