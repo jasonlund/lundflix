@@ -13,7 +13,7 @@ it('displays add to cart button for movies in search results', function () {
     Livewire::actingAs($user)
         ->test('media-search')
         ->set('query', 'tt1111111')
-        ->assertSeeLivewire('cart.add-button');
+        ->assertSeeLivewire('cart.add-movie-button');
 });
 
 it('does not display add to cart button for shows in search results', function () {
@@ -23,7 +23,7 @@ it('does not display add to cart button for shows in search results', function (
     Livewire::actingAs($user)
         ->test('media-search')
         ->set('query', 'tt2222222')
-        ->assertDontSeeLivewire('cart.add-button');
+        ->assertDontSeeLivewire('cart.add-movie-button');
 });
 
 it('shows movie title in search results', function () {
@@ -57,8 +57,8 @@ it('can add movie to cart', function () {
     $movie = Movie::factory()->create(['imdb_id' => 'tt5555555']);
 
     Livewire::actingAs($user)
-        ->test('cart.add-button', ['item' => $movie])
+        ->test('cart.add-movie-button', ['movie' => $movie])
         ->call('toggle');
 
-    expect(app(CartService::class)->has($movie))->toBeTrue();
+    expect(app(CartService::class)->has($movie->id))->toBeTrue();
 });

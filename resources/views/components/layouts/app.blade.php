@@ -5,7 +5,7 @@
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-900">
         <flux:header sticky container class="border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:brand href="{{ route('home') }}" :logo="Vite::image('logo.png')" class="me-4" />
+            <flux:brand href="{{ route('home') }}" wire:navigate :logo="Vite::image('logo.png')" class="me-4" />
 
             <flux:spacer />
 
@@ -13,7 +13,9 @@
                 <flux:button variant="ghost" icon="magnifying-glass" kbd="⌘K">Search</flux:button>
             </flux:modal.trigger>
 
-            <livewire:cart.dropdown />
+            @persist('cart')
+                <livewire:cart.dropdown />
+            @endpersist
 
             <flux:spacer />
 

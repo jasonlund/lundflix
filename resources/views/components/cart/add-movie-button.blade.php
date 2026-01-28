@@ -1,12 +1,11 @@
 <?php
 
+use App\Models\Movie;
 use App\Services\CartService;
-use Illuminate\Database\Eloquent\Model;
 use Livewire\Component;
 
 new class extends Component {
-    /** @var Model|array{id?: int, tvmaze_id?: int, show_id?: int} */
-    public Model|array $item;
+    public Movie $movie;
 
     public bool $showText = true;
 
@@ -14,19 +13,12 @@ new class extends Component {
 
     public function mount(CartService $cart): void
     {
-        $this->inCart = $cart->has($this->item);
+        $this->inCart = $cart->has($this->movie->id);
     }
 
     public function toggle(CartService $cart): void
     {
-        if ($this->inCart) {
-            $cart->remove($this->item);
-            $this->inCart = false;
-        } else {
-            $cart->add($this->item);
-            $this->inCart = true;
-        }
-
+        $this->inCart = $cart->toggleMovie($this->movie->id);
         $this->dispatch('cart-updated');
     }
 };

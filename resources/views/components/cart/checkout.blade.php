@@ -4,7 +4,6 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Models\Episode;
-use App\Models\Movie;
 use App\Services\CartService;
 use App\Support\CartItemFormatter;
 use Illuminate\Support\Collection;
@@ -33,12 +32,9 @@ new #[Layout('components.layouts.app')] class extends Component {
 
     public function removeMovie(int $id): void
     {
-        $movie = Movie::find($id);
-        if ($movie) {
-            app(CartService::class)->remove($movie);
-            unset($this->groupedCartItems, $this->cartCount);
-            $this->dispatch('cart-updated');
-        }
+        app(CartService::class)->remove($id);
+        unset($this->groupedCartItems, $this->cartCount);
+        $this->dispatch('cart-updated');
     }
 
     /**
@@ -128,7 +124,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
 <div class="space-y-6">
     <div class="flex items-center gap-4">
-        <flux:button as="a" href="{{ route('home') }}" variant="ghost" icon="arrow-left" />
+        <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="ghost" icon="arrow-left" />
         <flux:heading size="xl">Checkout</flux:heading>
     </div>
 
@@ -145,7 +141,9 @@ new #[Layout('components.layouts.app')] class extends Component {
             <flux:icon name="shopping-cart" class="mx-auto mb-4 size-12 text-zinc-500" />
             <flux:heading size="lg">Your cart is empty</flux:heading>
             <flux:text class="mt-2 text-zinc-400">Search for movies and shows to add to your request.</flux:text>
-            <flux:button as="a" href="{{ route('home') }}" variant="primary" class="mt-4">Browse Content</flux:button>
+            <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="primary" class="mt-4">
+                Browse Content
+            </flux:button>
         </div>
     @else
         <div class="space-y-3">
