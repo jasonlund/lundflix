@@ -115,6 +115,10 @@ new #[Layout('components.layouts.app')] class extends Component {
         </div>
     </div>
 
+    @if ($show->imdb_id)
+        <livewire:shows.plex-availability :show="$show" lazy />
+    @endif
+
     @if ($this->episodes()->isNotEmpty())
         {{-- Episodes exist in DB - render immediately --}}
         <livewire:shows.episodes :show="$show" :episodes="$this->episodes()" />
