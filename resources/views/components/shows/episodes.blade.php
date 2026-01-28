@@ -5,12 +5,22 @@ use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
     public Show $show;
 
     public Collection $episodes;
+
+    /** @var array<string, array<int, array{name: string, owned: bool}>> */
+    public array $plexAvailability = [];
+
+    #[On('plex-show-loaded')]
+    public function setPlexAvailability(array $availability): void
+    {
+        $this->plexAvailability = $availability;
+    }
 
     public function placeholder(): string
     {
@@ -90,9 +100,6 @@ new class extends Component {
 >
     <flux:heading size="lg" class="mt-8">Episodes</flux:heading>
 
-    {{-- Debug output --}}
-    <pre x-text="JSON.stringify(sortedSelected, null, 2)" class="mt-2 text-xs text-zinc-500"></pre>
-
     @forelse ($this->seasons as $season)
         <flux:checkbox.group x-model="selected" class="mt-4" wire:key="season-{{ $season['number'] }}">
             <flux:checkbox.all label="S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}" />
@@ -104,10 +111,18 @@ new class extends Component {
                         class="flex items-center gap-3"
                     >
                         <flux:checkbox value="{{ \App\Models\Episode::displayCode($episode) }}" />
-                        <span>
+                        <span class="flex-1">
                             {{ \App\Models\Episode::displayCode($episode) }} {{ $episode['name'] }} -
                             {{ $episode['airdate'] }}
                         </span>
+                        @php($epServers = $this->plexAvailability[\App\Models\Episode::displayCode($episode)] ?? [])
+                        @if (count($epServers) > 0)
+                            <div class="flex gap-1">
+                                @foreach ($epServers as $server)
+                                    <flux:badge size="sm" color="green">{{ $server['name'] }}</flux:badge>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>

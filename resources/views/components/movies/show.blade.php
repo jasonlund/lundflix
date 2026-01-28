@@ -73,5 +73,5 @@ new #[Layout('components.layouts.app')] class extends Component {
         <livewire:cart.add-button :item="$movie" />
     </div>
 
-    <livewire:plex.availability :movie="$movie" lazy />
+    <livewire:movies.plex-availability :movie="$movie" lazy />
 </div>

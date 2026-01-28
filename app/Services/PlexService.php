@@ -142,8 +142,9 @@ class PlexService
 
         // Prefer direct connections (not plex.direct relay)
         $direct = $nonLocal->first(fn (array $c): bool => ! str_contains($c['uri'], 'plex.direct'));
+        $fallback = $nonLocal->first();
 
-        return $direct['uri'] ?? $nonLocal->first()['uri'] ?? null;
+        return $direct['uri'] ?? $fallback['uri'] ?? null;
     }
 
     /**
