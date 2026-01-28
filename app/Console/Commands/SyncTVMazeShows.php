@@ -73,6 +73,7 @@ class SyncTVMazeShows extends Command
     {
         return [
             'imdb_id' => $show['externals']['imdb'] ?? null,
+            'thetvdb_id' => $show['externals']['thetvdb'] ?? null,
             'name' => $show['name'],
             'type' => $show['type'],
             'language' => $show['language'],
