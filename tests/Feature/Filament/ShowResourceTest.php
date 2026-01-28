@@ -2,8 +2,11 @@
 
 use App\Filament\Resources\Shows\Pages\ListShows;
 use App\Filament\Resources\Shows\Pages\ViewShow;
+use App\Models\Episode;
 use App\Models\Show;
 use App\Models\User;
+use App\Services\TVMazeService;
+use Illuminate\Http\Client\RequestException;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -58,4 +61,78 @@ it('does not show edit action due to policy', function () {
 
     Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
         ->assertDontSee('Edit');
+});
+
+it('shows fetch episodes action on view page', function () {
+    $show = Show::factory()->create();
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->assertActionExists('fetchEpisodes')
+        ->assertActionVisible('fetchEpisodes');
+});
+
+it('shows "Fetch Episodes" label when show has no episodes', function () {
+    $show = Show::factory()->create();
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->assertActionExists('fetchEpisodes', fn ($action) => $action->getLabel() === 'Fetch Episodes');
+});
+
+it('shows "Refresh Episodes" label when show has episodes', function () {
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create();
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->assertActionExists('fetchEpisodes', fn ($action) => $action->getLabel() === 'Refresh Episodes');
+});
+
+it('imports episodes synchronously when fetch episodes action is called', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 123]);
+
+    $mockEpisodes = [
+        ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1],
+        ['id' => 2, 'name' => 'Episode 2', 'season' => 1, 'number' => 2],
+    ];
+
+    $this->mock(TVMazeService::class)
+        ->shouldReceive('episodes')
+        ->with(123)
+        ->once()
+        ->andReturn($mockEpisodes);
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->callAction('fetchEpisodes')
+        ->assertNotified('Episodes imported');
+
+    expect(Episode::where('show_id', $show->id)->count())->toBe(2)
+        ->and(Episode::where('tvmaze_id', 1)->first()->name)->toBe('Pilot')
+        ->and(Episode::where('tvmaze_id', 2)->first()->name)->toBe('Episode 2');
+});
+
+it('shows warning when API returns no episodes', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 456]);
+
+    $this->mock(TVMazeService::class)
+        ->shouldReceive('episodes')
+        ->with(456)
+        ->once()
+        ->andReturn(null);
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->callAction('fetchEpisodes')
+        ->assertNotified('No episodes found');
+});
+
+it('shows error when API request fails', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 789]);
+
+    $this->mock(TVMazeService::class)
+        ->shouldReceive('episodes')
+        ->with(789)
+        ->once()
+        ->andThrow(new RequestException(new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(500))));
+
+    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
+        ->callAction('fetchEpisodes')
+        ->assertNotified('Failed to fetch episodes');
 });
