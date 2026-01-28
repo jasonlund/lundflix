@@ -50,7 +50,7 @@ class ViewShow extends ViewRecord
                         return;
                     }
 
-                    if ($episodes === null || empty($episodes)) {
+                    if (empty($episodes)) {
                         Notification::make()
                             ->title('No episodes found')
                             ->body('TVMaze has no episode data for this show.')
