@@ -1,5 +1,11 @@
 # Lundflix Project Rules
 
+## NO HALF MEASURES
+
+When given a task, do it completely and properly. Don't take shortcuts, don't suggest lazy alternatives, don't skip steps. If something needs to be done, do it right the first time.
+
+---
+
 ## Code Formatting & Quality
 
 **Always run formatters before committing code:**

@@ -28,16 +28,9 @@ class ShowFactory extends Factory
             'runtime' => fake()->randomElement([30, 45, 60]),
             'premiered' => fake()->date(),
             'ended' => null,
-            'official_site' => fake()->url(),
             'schedule' => ['time' => '21:00', 'days' => ['Monday']],
-            'rating' => ['average' => fake()->randomFloat(1, 5, 9)],
-            'weight' => fake()->numberBetween(50, 100),
             'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States']],
             'web_channel' => null,
-            'externals' => ['tvrage' => null, 'thetvdb' => fake()->numberBetween(100000, 999999), 'imdb' => 'tt'.fake()->numerify('#######')],
-            'image' => ['medium' => fake()->imageUrl(), 'original' => fake()->imageUrl()],
-            'summary' => '<p>'.fake()->paragraph().'</p>',
-            'updated_at_tvmaze' => now()->timestamp,
         ];
     }
 }

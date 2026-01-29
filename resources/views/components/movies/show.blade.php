@@ -13,15 +13,6 @@ new #[Layout('components.layouts.app')] class extends Component {
         $this->movie = $movie;
     }
 
-    public function genresArray(): array
-    {
-        if (! $this->movie->genres) {
-            return [];
-        }
-
-        return array_map('trim', explode(',', $this->movie->genres));
-    }
-
     public function formattedVotes(): string
     {
         return number_format($this->movie->num_votes ?? 0);
@@ -57,10 +48,9 @@ new #[Layout('components.layouts.app')] class extends Component {
         @endif
     </div>
 
-    @php($genres = $this->genresArray())
-    @if (count($genres) > 0)
+    @if ($this->movie->genres && count($this->movie->genres) > 0)
         <div class="flex flex-wrap gap-2">
-            @foreach ($genres as $genre)
+            @foreach ($this->movie->genres as $genre)
                 <flux:badge>{{ $genre }}</flux:badge>
             @endforeach
         </div>

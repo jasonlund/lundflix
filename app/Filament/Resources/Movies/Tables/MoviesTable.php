@@ -25,7 +25,9 @@ class MoviesTable
                 TextColumn::make('runtime')
                     ->suffix(' min')
                     ->sortable(),
-                TextColumn::make('genres'),
+                TextColumn::make('genres')
+                    ->badge()
+                    ->separator(','),
                 TextColumn::make('num_votes')
                     ->label('Votes')
                     ->numeric()

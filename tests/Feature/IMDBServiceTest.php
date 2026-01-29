@@ -30,7 +30,7 @@ it('parses tsv export file correctly', function () {
         ->and($movies[0]['title'])->toBe('The Matrix')
         ->and($movies[0]['year'])->toBe(1999)
         ->and($movies[0]['runtime'])->toBe(136)
-        ->and($movies[0]['genres'])->toBe('Action,Sci-Fi')
+        ->and($movies[0]['genres'])->toBe(['Action', 'Sci-Fi'])
         ->and($movies[1]['imdb_id'])->toBe('tt0137523')
         ->and($movies[2]['imdb_id'])->toBe('tt0068646');
 

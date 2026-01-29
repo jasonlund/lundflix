@@ -70,9 +70,9 @@ DROP TABLE IF EXISTS `features`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `features` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `scope` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `value` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -116,17 +116,17 @@ DROP TABLE IF EXISTS `media`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `media` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `mediable_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `mediable_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `mediable_id` bigint unsigned NOT NULL,
-  `fanart_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `url` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `lang` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fanart_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `lang` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `likes` int unsigned NOT NULL DEFAULT '0',
   `season` smallint unsigned DEFAULT NULL,
-  `disc` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `disc_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `disc` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `disc_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -154,7 +154,7 @@ CREATE TABLE `movies` (
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `year` smallint unsigned DEFAULT NULL,
   `runtime` smallint unsigned DEFAULT NULL,
-  `genres` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `genres` json DEFAULT NULL,
   `num_votes` int unsigned DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -237,17 +237,10 @@ CREATE TABLE `shows` (
   `runtime` smallint unsigned DEFAULT NULL,
   `premiered` date DEFAULT NULL,
   `ended` date DEFAULT NULL,
-  `official_site` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `schedule` json DEFAULT NULL,
-  `rating` json DEFAULT NULL,
-  `weight` smallint unsigned DEFAULT NULL,
   `num_votes` int unsigned DEFAULT NULL,
   `network` json DEFAULT NULL,
   `web_channel` json DEFAULT NULL,
-  `externals` json DEFAULT NULL,
-  `image` json DEFAULT NULL,
-  `summary` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `updated_at_tvmaze` int unsigned DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -309,3 +302,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2026_01_17_023
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2026_01_20_050507_create_features_table',3);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_01_22_051358_create_media_table',3);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2026_01_23_035327_add_thetvdb_id_to_shows_table',3);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2026_01_29_050704_convert_movie_genres_to_json',4);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2026_01_29_050704_remove_unused_show_columns',4);

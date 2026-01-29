@@ -24,7 +24,7 @@ new class extends Component {
                     'id' => $item->id,
                     'title' => $item instanceof Show ? $item->name : $item->title,
                     'year' => $item instanceof Show ? $item->premiered?->year : $item->year,
-                    'genres' => is_array($item->genres) ? implode(', ', $item->genres) : $item->genres,
+                    'genres' => $item->genres ? implode(', ', $item->genres) : null,
                     'model' => $item instanceof Show ? null : $item,
                 ],
             );

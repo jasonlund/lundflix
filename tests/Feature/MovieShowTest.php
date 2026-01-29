@@ -21,7 +21,7 @@ it('displays movie page for authenticated users', function () {
         'title' => 'The Matrix',
         'year' => 1999,
         'runtime' => 136,
-        'genres' => 'Action,Sci-Fi',
+        'genres' => ['Action', 'Sci-Fi'],
         'num_votes' => 1500000,
         'imdb_id' => 'tt0133093',
     ]);
@@ -70,7 +70,7 @@ it('displays vote count formatted with commas', function () {
 it('displays genres as badges', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
-        'genres' => 'Action,Drama,Thriller',
+        'genres' => ['Action', 'Drama', 'Thriller'],
     ]);
 
     Livewire::actingAs($user)

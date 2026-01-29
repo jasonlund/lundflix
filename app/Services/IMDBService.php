@@ -70,7 +70,7 @@ class IMDBService
                 'title' => $primaryTitle,
                 'year' => $startYear !== '\\N' ? (int) $startYear : null,
                 'runtime' => $runtime,
-                'genres' => $genres !== '\\N' ? $genres : null,
+                'genres' => $genres !== '\\N' ? explode(',', $genres) : null,
             ];
         }
 

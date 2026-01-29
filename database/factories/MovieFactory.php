@@ -21,7 +21,7 @@ class MovieFactory extends Factory
             'title' => fake()->sentence(3),
             'year' => fake()->year(),
             'runtime' => fake()->numberBetween(80, 180),
-            'genres' => fake()->randomElement(['Action', 'Comedy', 'Drama', 'Action,Thriller', 'Comedy,Romance']),
+            'genres' => fake()->randomElements(['Action', 'Comedy', 'Drama', 'Thriller', 'Romance'], fake()->numberBetween(1, 3)),
         ];
     }
 }

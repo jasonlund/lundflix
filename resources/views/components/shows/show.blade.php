@@ -48,16 +48,6 @@ new #[Layout('components.layouts.app')] class extends Component {
         return "{$this->show->runtime} min";
     }
 
-    #[Computed]
-    public function synopsisText(): ?string
-    {
-        if (! $this->show->summary) {
-            return null;
-        }
-
-        return trim(strip_tags($this->show->summary));
-    }
-
     /**
      * @return array<int, array{type: string, value: string}>
      */
@@ -71,10 +61,6 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         if ($runtime = $this->runtimeText()) {
             $items[] = ['type' => 'text', 'value' => $runtime];
-        }
-
-        if ($this->show->rating && ($this->show->rating['average'] ?? null)) {
-            $items[] = ['type' => 'rating', 'value' => (string) $this->show->rating['average']];
         }
 
         return $items;
@@ -163,14 +149,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                         <span class="text-zinc-600">&middot;</span>
                     @endif
 
-                    @if ($item['type'] === 'rating')
-                        <span class="flex items-center gap-1 text-zinc-100">
-                            <flux:icon name="star" variant="solid" class="size-4 text-yellow-500" />
-                            <span>{{ $item['value'] }}/10</span>
-                        </span>
-                    @else
-                        <span>{{ $item['value'] }}</span>
-                    @endif
+                    <span>{{ $item['value'] }}</span>
                 @endforeach
 
                 <flux:badge
@@ -198,23 +177,6 @@ new #[Layout('components.layouts.app')] class extends Component {
                     @foreach ($show->genres as $genre)
                         <flux:badge>{{ $genre }}</flux:badge>
                     @endforeach
-                </div>
-            @endif
-
-            @if ($this->synopsisText())
-                <div class="flex max-w-3xl flex-col gap-2">
-                    <div class="prose prose-zinc dark:prose-invert max-w-none text-zinc-100">
-                        <p class="line-clamp-2">{{ $this->synopsisText() }}</p>
-                    </div>
-
-                    <flux:modal.trigger name="show-summary">
-                        <button
-                            type="button"
-                            class="w-fit text-sm font-semibold tracking-wide text-zinc-300 uppercase transition hover:text-white"
-                        >
-                            Show more
-                        </button>
-                    </flux:modal.trigger>
                 </div>
             @endif
 
@@ -253,15 +215,4 @@ new #[Layout('components.layouts.app')] class extends Component {
             <livewire:shows.episodes :show="$show" lazy />
         @endif
     </div>
-
-    @if ($this->synopsisText())
-        <flux:modal name="show-summary" class="w-full max-w-2xl">
-            <div class="space-y-4">
-                <flux:heading size="lg">{{ $show->name }}</flux:heading>
-                <div class="prose prose-zinc dark:prose-invert max-w-none">
-                    {!! $show->summary !!}
-                </div>
-            </div>
-        </flux:modal>
-    @endif
 </div>
