@@ -24,7 +24,9 @@ class MovieInfolist
                         TextEntry::make('year'),
                         TextEntry::make('runtime')
                             ->suffix(' minutes'),
-                        TextEntry::make('genres'),
+                        TextEntry::make('genres')
+                            ->badge()
+                            ->separator(','),
                         TextEntry::make('num_votes')
                             ->label('Votes')
                             ->numeric(),

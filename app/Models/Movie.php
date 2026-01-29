@@ -21,6 +21,7 @@ class Movie extends Model
             'year' => 'integer',
             'runtime' => 'integer',
             'num_votes' => 'integer',
+            'genres' => 'array',
         ];
     }
 

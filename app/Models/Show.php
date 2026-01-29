@@ -21,11 +21,8 @@ class Show extends Model
         return [
             'genres' => 'array',
             'schedule' => 'array',
-            'rating' => 'array',
             'network' => 'array',
             'web_channel' => 'array',
-            'externals' => 'array',
-            'image' => 'array',
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',

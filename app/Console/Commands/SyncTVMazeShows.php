@@ -82,16 +82,9 @@ class SyncTVMazeShows extends Command
             'runtime' => $show['runtime'],
             'premiered' => $show['premiered'],
             'ended' => $show['ended'],
-            'official_site' => $show['officialSite'],
             'schedule' => json_encode($show['schedule']),
-            'rating' => json_encode($show['rating']),
-            'weight' => $show['weight'],
             'network' => json_encode($show['network']),
             'web_channel' => json_encode($show['webChannel']),
-            'externals' => json_encode($show['externals']),
-            'image' => json_encode($show['image']),
-            'summary' => $show['summary'],
-            'updated_at_tvmaze' => $show['updated'],
         ];
     }
 }

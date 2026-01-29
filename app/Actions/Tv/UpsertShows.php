@@ -16,9 +16,8 @@ class UpsertShows
             ['tvmaze_id'],
             [
                 'name', 'type', 'language', 'genres', 'status', 'runtime',
-                'premiered', 'ended', 'official_site', 'schedule', 'rating',
-                'weight', 'network', 'web_channel', 'externals', 'image',
-                'summary', 'updated_at_tvmaze', 'thetvdb_id',
+                'premiered', 'ended', 'schedule', 'network', 'web_channel',
+                'thetvdb_id',
             ]
         );
     }

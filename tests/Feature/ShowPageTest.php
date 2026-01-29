@@ -30,20 +30,13 @@ it('displays show with all details', function () {
     $show = Show::factory()->create([
         'name' => 'Game of Thrones',
         'genres' => ['Drama', 'Fantasy'],
-        'rating' => ['average' => 9.3],
         'network' => ['name' => 'HBO', 'country' => ['name' => 'United States']],
-        'summary' => '<p>Seven noble families fight for control.</p>',
     ]);
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Game of Thrones')
         ->assertSee('Drama')
         ->assertSee('Fantasy')
-        ->assertSee('9.3')
         ->assertSee('HBO')
-        ->assertSee('Seven noble families fight for control.')
-        ->assertSee('Show more');
-
-    Livewire::test('shows.show', ['show' => $show])
         ->assertSee('IMDB');
 });

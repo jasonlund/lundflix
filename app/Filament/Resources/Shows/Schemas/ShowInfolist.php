@@ -41,21 +41,12 @@ class ShowInfolist
                             ->date(),
                         TextEntry::make('ended')
                             ->date(),
-                        TextEntry::make('official_site')
-                            ->url(fn ($record) => $record->official_site)
-                            ->openUrlInNewTab(),
                         TextEntry::make('genres')
                             ->badge()
                             ->separator(','),
                         TextEntry::make('num_votes')
                             ->label('Votes')
                             ->numeric(),
-                    ]),
-                Section::make('Summary')
-                    ->schema([
-                        TextEntry::make('summary')
-                            ->html()
-                            ->columnSpanFull(),
                     ]),
                 Section::make('Metadata')
                     ->columns(2)
@@ -64,15 +55,9 @@ class ShowInfolist
                         TextEntry::make('schedule')
                             ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state)
                             ->columnSpanFull(),
-                        TextEntry::make('rating')
-                            ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state),
                         TextEntry::make('network')
                             ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state),
                         TextEntry::make('web_channel')
-                            ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state),
-                        TextEntry::make('externals')
-                            ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state),
-                        TextEntry::make('image')
                             ->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state, JSON_PRETTY_PRINT) : $state),
                         TextEntry::make('created_at')
                             ->dateTime(),
