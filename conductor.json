@@ -2,6 +2,6 @@
     "scripts": {
         "setup": ".conductor/setup.sh",
         "run": "npm run dev",
-        "teardown": "FOLDER=$(basename $PWD) && herd unsecure \"${FOLDER}.test\" --silent && mysql -uroot -e \"DROP DATABASE IF EXISTS \\`${FOLDER}\\`\""
+        "teardown": "FOLDER=$(basename $PWD) && herd unsecure \"${FOLDER}.test\" --silent && herd unlink && mysql -uroot -e \"DROP DATABASE IF EXISTS \\`${FOLDER}\\`\""
     }
 }
