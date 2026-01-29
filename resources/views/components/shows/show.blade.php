@@ -2,12 +2,14 @@
 
 use App\Models\Show;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
     public Show $show;
 
+    #[Computed]
     public function episodes(): Collection
     {
         return $this->show->episodes;
@@ -46,6 +48,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         return "{$this->show->runtime} min";
     }
 
+    #[Computed]
     public function synopsisText(): ?string
     {
         if (! $this->show->summary) {
@@ -77,11 +80,13 @@ new #[Layout('components.layouts.app')] class extends Component {
         return $items;
     }
 
+    #[Computed]
     public function backgroundUrl(): ?string
     {
         return $this->show->artUrl('showbackground');
     }
 
+    #[Computed]
     public function clearartUrl(): ?string
     {
         return $this->show->artUrl('hdtvlogo');
@@ -90,6 +95,7 @@ new #[Layout('components.layouts.app')] class extends Component {
     /**
      * @return array{prefix: string, label: string}|null
      */
+    #[Computed]
     public function networkInfo(): ?array
     {
         if ($this->show->network) {
@@ -108,6 +114,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         return null;
     }
 
+    #[Computed]
     public function scheduleLabel(): ?string
     {
         if (! $this->show->schedule || ! ($this->show->schedule['days'] ?? false)) {
@@ -125,7 +132,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 ?>
 
 <div class="flex flex-col gap-8">
-    <div class="relative h-[33vh] max-h-80 min-h-56 overflow-hidden bg-zinc-900">
+    <div class="relative aspect-video min-h-56 overflow-hidden bg-zinc-900">
         @if ($this->backgroundUrl())
             <img
                 src="{{ $this->backgroundUrl() }}"
@@ -144,12 +151,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                         src="{{ $this->clearartUrl() }}"
                         alt="{{ $show->name }} logo"
                         class="h-12 w-auto max-w-full drop-shadow sm:h-14 md:h-20"
-                        onerror="
-                            this.classList.add('hidden')
-                            this.nextElementSibling.classList.remove('hidden')
-                        "
                     />
-                    <flux:heading size="xl" class="hidden" data-fallback>{{ $show->name }}</flux:heading>
                 @else
                     <flux:heading size="xl">{{ $show->name }}</flux:heading>
                 @endif

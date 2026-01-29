@@ -22,7 +22,8 @@ it('displays show details', function () {
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Breaking Bad')
         ->assertSee('Ended')
-        ->assertSee('60 min');
+        ->assertSee('60 min')
+        ->assertSeeHtml('class="relative aspect-video min-h-56 overflow-hidden bg-zinc-900"');
 });
 
 it('displays show with all details', function () {

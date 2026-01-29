@@ -353,6 +353,25 @@ accordion, autocomplete, avatar, badge, brand, breadcrumbs, button, calendar, ca
 
 - Livewire components require a single root element.
 - Avoid `@php` blocks in Livewire Blade templates. Since Livewire SFCs have PHP and Blade in the same file, put all PHP logic in the class section and call methods from the template (e.g., `{{ $this->getEpisodeCode($episode) }}`).
+
+### Convention: Use `#[Computed]` for Repeated Template Calls
+
+When a method is called 2+ times in a Livewire Blade template, use the `#[Computed]` attribute to cache the result for the duration of the request:
+
+```php
+use Livewire\Attributes\Computed;
+
+#[Computed]
+public function networkInfo(): ?array
+{
+    // Called multiple times in template - cached after first call
+    return $this->show->network ? [...] : null;
+}
+```
+
+- Methods called once don't need `#[Computed]` - the overhead is unnecessary
+- Since `@php` blocks are discouraged, `#[Computed]` is the preferred way to avoid redundant method calls
+- Import: `use Livewire\Attributes\Computed;`
 - Use `wire:loading` and `wire:dirty` for delightful loading states.
 - Add `wire:key` in loops:
 
@@ -576,6 +595,21 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | overflow-ellipsis | text-ellipsis |
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
+
+## Tailwind Important Modifier
+
+**NEVER use Tailwind's `!` (important) modifier unless absolutely unavoidable.** Using `!important` is a code smell that indicates a deeper problem with CSS specificity or component design.
+
+When you encounter a situation where `!` seems necessary:
+
+1. **Prefer publishing Flux components** - Use `php artisan flux:publish` to customize components with proper props or variants
+2. **Create a custom component** - Build a new component for your specific use case
+3. **Use CSS custom properties** - Override design tokens in `@theme` instead of fighting specificity
+
+If `!important` is truly unavoidable (extremely rare), document why in a code comment explaining:
+- What you tried instead
+- Why those alternatives didn't work
+- What would need to change to remove the `!important`
 
 === scout/core rules ===
 
