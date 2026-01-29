@@ -132,6 +132,36 @@ it('updates existing media on re-run', function () {
     Storage::assertExists("fanart/movie/{$movie->id}/hdmovielogo/12345.png");
 });
 
+it('stores all-season artwork with season value of zero', function () {
+    $show = Show::factory()->create();
+
+    Http::fake([
+        'assets.fanart.tv/*' => Http::response('fake-image-content'),
+    ]);
+
+    $response = [
+        'showbackground' => [
+            ['id' => '44444', 'url' => 'https://assets.fanart.tv/bg.jpg', 'lang' => 'en', 'likes' => '5', 'season' => 'all'],
+        ],
+        'seasonposter' => [
+            ['id' => '55555', 'url' => 'https://assets.fanart.tv/season1.jpg', 'lang' => 'en', 'likes' => '3', 'season' => '1'],
+        ],
+        'hdtvlogo' => [
+            ['id' => '66666', 'url' => 'https://assets.fanart.tv/logo.png', 'lang' => 'en', 'likes' => '2'],
+        ],
+    ];
+
+    StoreFanart::dispatchSync($show, $response);
+
+    $background = $show->media()->where('type', 'showbackground')->first();
+    $seasonPoster = $show->media()->where('type', 'seasonposter')->first();
+    $logo = $show->media()->where('type', 'hdtvlogo')->first();
+
+    expect($background->season)->toBe(0) // 'all' converted to 0
+        ->and($seasonPoster->season)->toBe(1) // numeric string converted to int
+        ->and($logo->season)->toBeNull(); // null remains null
+});
+
 it('cleans up stored files on failure', function () {
     $movie = Movie::factory()->create();
 

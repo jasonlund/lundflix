@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\FanartTVService;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
-class StoreFanart implements ShouldQueue
+class StoreFanart implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -24,6 +25,11 @@ class StoreFanart implements ShouldQueue
         public Movie|Show $model,
         public array $response
     ) {}
+
+    public function uniqueId(): string
+    {
+        return $this->model->getMorphClass().':'.$this->model->id;
+    }
 
     public function handle(FanartTVService $fanart): void
     {
@@ -45,7 +51,11 @@ class StoreFanart implements ShouldQueue
                     'path' => null,
                     'lang' => $image['lang'] ?? null,
                     'likes' => (int) ($image['likes'] ?? 0),
-                    'season' => $image['season'] ?? null,
+                    'season' => match ($image['season'] ?? null) {
+                        null => null,
+                        'all' => 0,
+                        default => (int) $image['season'],
+                    },
                     'disc' => $image['disc'] ?? null,
                     'disc_type' => $image['disc_type'] ?? null,
                 ];

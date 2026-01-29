@@ -66,7 +66,7 @@ new class extends Component {
         <flux:button variant="ghost" ::disabled="syncing">
             <flux:icon.loading x-show="syncing" class="size-4" />
             <flux:icon name="shopping-cart" x-show="!syncing" x-cloak class="size-4" />
-            Cart
+            <span class="sr-only sm:not-sr-only">Cart</span>
             <flux:badge color="red" size="sm" class="ml-1">
                 {{ $itemCount > 0 ? $itemCount : '-' }}
             </flux:badge>

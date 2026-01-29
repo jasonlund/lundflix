@@ -91,7 +91,9 @@ new class extends Component {
     #[Computed]
     public function seasons(): Collection
     {
-        return $this->episodes
+        $episodes = $this->episodes instanceof Collection ? $this->episodes : collect($this->episodes ?? []);
+
+        return $episodes
             ->groupBy(fn ($ep) => is_array($ep) ? $ep['season'] : $ep->season)
             ->sortKeys()
             ->map(

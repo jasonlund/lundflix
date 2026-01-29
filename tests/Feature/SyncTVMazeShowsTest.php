@@ -46,7 +46,8 @@ it('extracts imdb_id from externals when syncing shows', function () {
 
     expect($show)->not->toBeNull()
         ->and($show->name)->toBe('South Park')
-        ->and($show->imdb_id)->toBe('tt0121955');
+        ->and($show->imdb_id)->toBe('tt0121955')
+        ->and($show->thetvdb_id)->toBe(75897);
 });
 
 it('handles shows without imdb_id in externals', function () {
@@ -88,5 +89,6 @@ it('handles shows without imdb_id in externals', function () {
 
     expect($show)->not->toBeNull()
         ->and($show->name)->toBe('Mystery Show')
-        ->and($show->imdb_id)->toBeNull();
+        ->and($show->imdb_id)->toBeNull()
+        ->and($show->thetvdb_id)->toBe(12345);
 });

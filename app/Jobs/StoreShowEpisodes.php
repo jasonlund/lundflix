@@ -4,10 +4,11 @@ namespace App\Jobs;
 
 use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class StoreShowEpisodes implements ShouldQueue
+class StoreShowEpisodes implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -18,6 +19,11 @@ class StoreShowEpisodes implements ShouldQueue
         public Show $show,
         public array $episodes
     ) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->show->id;
+    }
 
     public function handle(UpsertEpisodes $upsertEpisodes): void
     {

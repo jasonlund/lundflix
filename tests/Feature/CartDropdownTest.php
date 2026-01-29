@@ -15,6 +15,7 @@ it('shows empty cart message when no items', function () {
     Livewire::actingAs($user)
         ->test('cart.dropdown')
         ->assertSet('itemCount', 0)
+        ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Cart</span>')
         ->assertSee('Your cart is empty');
 });
 
