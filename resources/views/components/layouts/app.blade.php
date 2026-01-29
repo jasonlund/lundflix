@@ -15,11 +15,7 @@
                 <flux:spacer />
 
                 <flux:modal.trigger name="search" shortcut="cmd.k">
-                    <flux:button
-                        variant="ghost"
-                        icon="magnifying-glass"
-                        kbd="⌘K"
-                    >
+                    <flux:button variant="ghost" icon="magnifying-glass" kbd="⌘K">
                         <span class="sr-only sm:not-sr-only">Search</span>
                     </flux:button>
                 </flux:modal.trigger>

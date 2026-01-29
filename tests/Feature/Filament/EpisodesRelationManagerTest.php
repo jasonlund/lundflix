@@ -59,8 +59,8 @@ it('displays special episodes with correct code', function () {
 
 it('can filter episodes by season', function () {
     $show = Show::factory()->create();
-    $s1Episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 1]);
-    $s2Episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 2]);
+    $s1Episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 1, 'number' => 1]);
+    $s2Episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 2, 'number' => 1]);
 
     Livewire::test(EpisodesRelationManager::class, [
         'ownerRecord' => $show,
@@ -73,8 +73,8 @@ it('can filter episodes by season', function () {
 
 it('can filter episodes by type', function () {
     $show = Show::factory()->create();
-    $regular = Episode::factory()->create(['show_id' => $show->id, 'type' => 'regular']);
-    $special = Episode::factory()->special()->create(['show_id' => $show->id]);
+    $regular = Episode::factory()->create(['show_id' => $show->id, 'season' => 1, 'number' => 1, 'type' => 'regular']);
+    $special = Episode::factory()->special()->create(['show_id' => $show->id, 'season' => 1, 'number' => 2]);
 
     Livewire::test(EpisodesRelationManager::class, [
         'ownerRecord' => $show,
@@ -89,10 +89,14 @@ it('can search episodes by name', function () {
     $show = Show::factory()->create();
     $matchingEpisode = Episode::factory()->create([
         'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
         'name' => 'The Pilot Episode',
     ]);
     $otherEpisode = Episode::factory()->create([
         'show_id' => $show->id,
+        'season' => 9,
+        'number' => 15,
         'name' => 'The Finale',
     ]);
 
