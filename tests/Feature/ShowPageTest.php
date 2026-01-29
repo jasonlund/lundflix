@@ -14,21 +14,20 @@ it('displays show details', function () {
     $show = Show::factory()->create([
         'name' => 'Breaking Bad',
         'status' => 'Ended',
-        'type' => 'Scripted',
         'runtime' => 60,
+        'premiered' => now()->subYears(10),
+        'ended' => now()->subYears(7),
     ]);
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Breaking Bad')
         ->assertSee('Ended')
-        ->assertSee('Scripted')
         ->assertSee('60 min');
 });
 
 it('displays show with all details', function () {
     $show = Show::factory()->create([
         'name' => 'Game of Thrones',
-        'type' => 'Scripted',
         'genres' => ['Drama', 'Fantasy'],
         'rating' => ['average' => 9.3],
         'network' => ['name' => 'HBO', 'country' => ['name' => 'United States']],
@@ -37,10 +36,13 @@ it('displays show with all details', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Game of Thrones')
-        ->assertSee('Scripted')
         ->assertSee('Drama')
         ->assertSee('Fantasy')
         ->assertSee('9.3')
         ->assertSee('HBO')
-        ->assertSee('Seven noble families fight for control.');
+        ->assertSee('Seven noble families fight for control.')
+        ->assertSee('Show more');
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('IMDB');
 });

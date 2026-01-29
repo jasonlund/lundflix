@@ -86,6 +86,21 @@ it('handles show with no episodes from API', function () {
     Queue::assertNothingPushed();
 });
 
+it('handles null episodes state gracefully', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'season' => 1,
+        'number' => 1,
+    ]);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
+        ->set('episodes', null)
+        ->assertSee('No episodes available.');
+});
+
 it('does not dispatch job when no episodes returned from API', function () {
     Queue::fake();
 

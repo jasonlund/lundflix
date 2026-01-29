@@ -113,3 +113,26 @@ describe('most_recent_season attribute', function () {
         expect($show->most_recent_season)->toBe(1);
     });
 });
+
+describe('art helpers', function () {
+    it('returns null art url when missing thetvdb id', function () {
+        $show = Show::factory()->create(['thetvdb_id' => null]);
+
+        expect($show->artUrl('showbackground'))->toBeNull();
+    });
+
+    it('builds an art url when thetvdb id is present', function () {
+        $show = Show::factory()->create(['thetvdb_id' => 123456]);
+
+        expect($show->artUrl('hdtvlogo'))
+            ->toBe(route('art', ['mediable' => 'show', 'id' => $show->id, 'type' => 'hdtvlogo']));
+    });
+
+    it('reports whether art can be fetched', function () {
+        $showWithTvdbId = Show::factory()->create(['thetvdb_id' => 123456]);
+        $showWithoutTvdbId = Show::factory()->create(['thetvdb_id' => null]);
+
+        expect($showWithTvdbId->canHaveArt())->toBeTrue()
+            ->and($showWithoutTvdbId->canHaveArt())->toBeFalse();
+    });
+});

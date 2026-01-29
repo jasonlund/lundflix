@@ -101,4 +101,21 @@ class Show extends Model
     {
         return $this->morphMany(Media::class, 'mediable');
     }
+
+    public function artUrl(string $type): ?string
+    {
+        if (! $this->canHaveArt()) {
+            return null;
+        }
+
+        return route('art', ['mediable' => 'show', 'id' => $this->id, 'type' => $type]);
+    }
+
+    /**
+     * Check if the show has a TheTVDB ID, enabling art to be fetched from FanartTV.
+     */
+    public function canHaveArt(): bool
+    {
+        return $this->thetvdb_id !== null;
+    }
 }
