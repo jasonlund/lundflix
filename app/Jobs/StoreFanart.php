@@ -35,6 +35,8 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
     {
         /** @var list<string> $storedPaths */
         $storedPaths = [];
+        /** @var list<string> $activeIds */
+        $activeIds = [];
         $modelType = Str::lower(class_basename($this->model));
         $imageTypes = array_filter($this->response, fn ($value) => is_array($value));
 
@@ -58,28 +60,40 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
                     },
                     'disc' => $image['disc'] ?? null,
                     'disc_type' => $image['disc_type'] ?? null,
+                    'is_active' => false,
                 ];
             }
         }
 
         try {
-            // 2. Find best images and download them
+            // 2. Find best images per type+season and download them
             foreach ($imageTypes as $type => $images) {
-                $bestImage = $fanart->bestImage($images);
+                // Group images by season
+                $imagesBySeason = collect($images)->groupBy(fn ($img) => match ($img['season'] ?? null) {
+                    null => 'null',
+                    'all' => '0',
+                    default => (string) $img['season'],
+                });
 
-                if ($bestImage) {
-                    $contents = Http::get($bestImage['url'])->throw()->body();
-                    $extension = pathinfo((string) parse_url($bestImage['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-                    $path = "fanart/{$modelType}/{$this->model->id}/{$type}/{$bestImage['id']}.{$extension}";
+                foreach ($imagesBySeason as $seasonKey => $seasonImages) {
+                    $bestImage = $fanart->bestImage($seasonImages->all());
 
-                    Storage::put($path, $contents);
-                    $storedPaths[] = $path;
+                    if ($bestImage) {
+                        $contents = Http::get($bestImage['url'])->throw()->body();
+                        $extension = pathinfo((string) parse_url($bestImage['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                        $path = "fanart/{$modelType}/{$this->model->id}/{$type}/{$bestImage['id']}.{$extension}";
 
-                    // Update the record's path
-                    foreach ($records as &$record) {
-                        if ($record['fanart_id'] === $bestImage['id'] && $record['type'] === $type) {
-                            $record['path'] = $path;
-                            break;
+                        Storage::put($path, $contents);
+                        $storedPaths[] = $path;
+                        $activeIds[] = $bestImage['id'];
+
+                        // Update the record's path
+                        foreach ($records as &$record) {
+                            if ($record['fanart_id'] === $bestImage['id'] && $record['type'] === $type) {
+                                $record['path'] = $path;
+                                $record['is_active'] = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -90,7 +104,7 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
                 Media::upsert(
                     $records,
                     ['mediable_type', 'mediable_id', 'fanart_id'],
-                    ['type', 'url', 'path', 'lang', 'likes', 'season', 'disc', 'disc_type']
+                    ['type', 'url', 'path', 'lang', 'likes', 'season', 'disc', 'disc_type', 'is_active']
                 );
             }
         } catch (Throwable $e) {

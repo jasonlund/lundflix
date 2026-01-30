@@ -30,7 +30,15 @@ class MediaFactory extends Factory
             'season' => null,
             'disc' => null,
             'disc_type' => null,
+            'is_active' => false,
         ];
+    }
+
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => true,
+        ]);
     }
 
     public function forShow(): static

@@ -2,16 +2,18 @@
 
 namespace App\Filament\Tables;
 
+use App\Enums\MovieArtwork;
+use App\Enums\TvArtwork;
 use App\Models\Media;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
 
 class MediaTable
 {
@@ -19,16 +21,23 @@ class MediaTable
     {
         return $table
             ->columns([
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon(Heroicon::CheckCircle)
+                    ->falseIcon(Heroicon::OutlinedMinusCircle)
+                    ->trueColor('success')
+                    ->falseColor('gray'),
+                IconColumn::make('path')
+                    ->label('Stored')
+                    ->icon(fn (?string $state): Heroicon => $state
+                        ? Heroicon::CheckCircle
+                        : Heroicon::OutlinedMinusCircle)
+                    ->color(fn (?string $state): string => $state ? 'success' : 'gray'),
                 TextColumn::make('type')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => Str::headline($state))
-                    ->color(fn (string $state): string => match ($state) {
-                        'hdmovielogo', 'hdtvlogo', 'hdclearlogo' => 'info',
-                        'movieposter', 'tvposter' => 'success',
-                        'moviebackground', 'showbackground' => 'warning',
-                        'moviedisc', 'cdart' => 'gray',
-                        default => 'primary',
-                    }),
+                    ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
+                    ->color(fn (string $state): string => self::getTypeColor($state)),
                 TextColumn::make('url')
                     ->label('URL')
                     ->limit(50)
@@ -54,7 +63,7 @@ class MediaTable
                         ->distinct()
                         ->orderBy('type')
                         ->pluck('type', 'type')
-                        ->mapWithKeys(fn ($type) => [$type => Str::headline($type)])
+                        ->mapWithKeys(fn ($type) => [$type => self::getTypeLabel($type)])
                         ->toArray()
                     ),
                 SelectFilter::make('lang')
@@ -70,11 +79,17 @@ class MediaTable
             ])
             ->defaultSort('likes', 'desc')
             ->recordActions([
+                Action::make('setActive')
+                    ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
+                    ->icon(fn (Media $record) => $record->is_active ? Heroicon::CheckCircle : Heroicon::OutlinedCheckCircle)
+                    ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
+                    ->action(fn (Media $record) => $record->activate())
+                    ->disabled(fn (Media $record): bool => $record->is_active),
                 Action::make('preview')
                     ->label('Preview')
                     ->color('gray')
                     ->icon(Heroicon::Eye)
-                    ->modalHeading(fn (Media $record): string => Str::headline($record->type))
+                    ->modalHeading(fn (Media $record): string => $record->getTypeLabel())
                     ->schema([
                         Section::make()
                             ->schema([
@@ -94,5 +109,27 @@ class MediaTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
+    }
+
+    private static function getTypeLabel(string $type): string
+    {
+        return TvArtwork::tryFrom($type)?->getLabel()
+            ?? MovieArtwork::tryFrom($type)?->getLabel()
+            ?? $type;
+    }
+
+    private static function getTypeColor(string $type): string
+    {
+        $artwork = TvArtwork::tryFrom($type) ?? MovieArtwork::tryFrom($type);
+
+        return match ($artwork) {
+            TvArtwork::HdClearLogo, MovieArtwork::HdClearLogo,
+            TvArtwork::HdClearArt, MovieArtwork::HdClearArt => 'info',
+            TvArtwork::Poster, TvArtwork::SeasonPoster, MovieArtwork::Poster => 'success',
+            TvArtwork::Background, TvArtwork::Background4k,
+            MovieArtwork::Background, MovieArtwork::Background4k => 'warning',
+            MovieArtwork::CdArt => 'gray',
+            default => 'primary',
+        };
     }
 }

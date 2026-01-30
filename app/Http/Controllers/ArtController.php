@@ -30,7 +30,7 @@ class ArtController extends Controller
             abort(404);
         }
 
-        $media = $model->media()->where('type', $type)->first();
+        $media = $model->media()->where('type', $type)->where('is_active', true)->first();
 
         if ($media?->path && Storage::exists($media->path)) {
             return $this->imageResponse(Storage::get($media->path), $media->path);
