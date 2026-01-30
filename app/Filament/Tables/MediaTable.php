@@ -28,6 +28,12 @@ class MediaTable
                     ->falseIcon(Heroicon::OutlinedMinusCircle)
                     ->trueColor('success')
                     ->falseColor('gray'),
+                IconColumn::make('path')
+                    ->label('Stored')
+                    ->icon(fn (?string $state): Heroicon => $state
+                        ? Heroicon::CheckCircle
+                        : Heroicon::OutlinedMinusCircle)
+                    ->color(fn (?string $state): string => $state ? 'success' : 'gray'),
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())

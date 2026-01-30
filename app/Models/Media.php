@@ -7,6 +7,9 @@ use App\Enums\TvArtwork;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Media extends Model
 {
@@ -50,6 +53,7 @@ class Media extends Model
 
     /**
      * Activate this media item, deactivating any siblings with the same type and season.
+     * Downloads and stores the image if not already stored.
      */
     public function activate(): void
     {
@@ -62,7 +66,18 @@ class Media extends Model
             ->where('id', '!=', $this->id)
             ->update(['is_active' => false]);
 
-        $this->update(['is_active' => true]);
+        // Download image if not already stored
+        if ($this->path === null && $this->url) {
+            $contents = Http::get($this->url)->throw()->body();
+            $extension = pathinfo((string) parse_url($this->url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+            $modelType = Str::lower(class_basename($this->mediable_type));
+            $path = "fanart/{$modelType}/{$this->mediable_id}/{$this->type}/{$this->fanart_id}.{$extension}";
+
+            Storage::put($path, $contents);
+            $this->path = $path;
+        }
+
+        $this->update(['is_active' => true, 'path' => $this->path]);
     }
 
     /**
