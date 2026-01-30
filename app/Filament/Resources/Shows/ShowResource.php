@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Shows;
 
+use App\Filament\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\Shows\Pages\ListShows;
 use App\Filament\Resources\Shows\Pages\ViewShow;
 use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
@@ -37,6 +38,7 @@ class ShowResource extends Resource
     {
         return [
             EpisodesRelationManager::class,
+            MediaRelationManager::class,
         ];
     }
 

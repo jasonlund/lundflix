@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Movies;
 
+use App\Filament\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\Movies\Pages\ListMovies;
 use App\Filament\Resources\Movies\Pages\ViewMovie;
 use App\Filament\Resources\Movies\Schemas\MovieInfolist;
 use App\Filament\Resources\Movies\Tables\MoviesTable;
 use App\Models\Movie;
 use BackedEnum;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -27,6 +29,16 @@ class MovieResource extends Resource
     public static function table(Table $table): Table
     {
         return MoviesTable::configure($table);
+    }
+
+    /**
+     * @return array<class-string<RelationManager>>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            MediaRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
