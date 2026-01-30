@@ -145,3 +145,62 @@ it('shows error when API request fails', function () {
         ->callAction(TestAction::make('fetchEpisodes')->table())
         ->assertNotified('Failed to fetch episodes');
 });
+
+it('can search shows by name using Scout', function () {
+    $matchingShow = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'imdb_id' => 'tt0903747',
+    ]);
+    $otherShow = Show::factory()->create([
+        'name' => 'Better Call Saul',
+        'imdb_id' => 'tt3032476',
+    ]);
+
+    Livewire::test(ListShows::class)
+        ->searchTable('Breaking')
+        ->assertCanSeeTableRecords([$matchingShow])
+        ->assertCanNotSeeTableRecords([$otherShow]);
+});
+
+it('can search shows by imdb_id using Scout', function () {
+    $matchingShow = Show::factory()->create([
+        'name' => 'The Wire',
+        'imdb_id' => 'tt0306414',
+    ]);
+    $otherShow = Show::factory()->create([
+        'name' => 'The Sopranos',
+        'imdb_id' => 'tt0141842',
+    ]);
+
+    Livewire::test(ListShows::class)
+        ->searchTable('tt0306414')
+        ->assertCanSeeTableRecords([$matchingShow])
+        ->assertCanNotSeeTableRecords([$otherShow]);
+});
+
+it('can search shows by year using Scout', function () {
+    $matchingShow = Show::factory()->create([
+        'name' => 'Show From 2020',
+        'premiered' => '2020-05-15',
+    ]);
+    $otherShow = Show::factory()->create([
+        'name' => 'Show From 2010',
+        'premiered' => '2010-03-20',
+    ]);
+
+    Livewire::test(ListShows::class)
+        ->searchTable('2020')
+        ->assertCanSeeTableRecords([$matchingShow])
+        ->assertCanNotSeeTableRecords([$otherShow]);
+});
+
+it('returns no show results for non-matching search', function () {
+    $show = Show::factory()->create([
+        'name' => 'Game of Thrones',
+        'imdb_id' => 'tt0944947',
+    ]);
+
+    Livewire::test(ListShows::class)
+        ->searchTable('NonExistentShowXYZ123')
+        ->assertCanNotSeeTableRecords([$show]);
+});
