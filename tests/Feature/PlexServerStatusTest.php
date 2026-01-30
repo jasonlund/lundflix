@@ -2,16 +2,10 @@
 
 use App\Models\PlexMediaServer;
 use App\Models\User;
-use Illuminate\Foundation\Console\QueuedCommand;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    Queue::fake();
-});
 
 it('displays online plex servers from database', function () {
     $user = User::factory()->withPlex()->create();
@@ -53,31 +47,6 @@ it('only displays online servers', function () {
     Livewire::test('plex.server-status')
         ->assertSee('Online Server')
         ->assertDontSee('Offline Server');
-});
-
-it('queues sync command when no servers exist', function () {
-    $user = User::factory()->withPlex()->create();
-
-    $this->actingAs($user);
-
-    Livewire::test('plex.server-status')
-        ->assertSee('No servers available');
-
-    Queue::assertPushed(QueuedCommand::class, function (QueuedCommand $job) {
-        return $job->displayName() === 'plex:sync-servers';
-    });
-});
-
-it('does not queue sync command when servers exist', function () {
-    $user = User::factory()->withPlex()->create();
-
-    PlexMediaServer::factory()->create(['is_online' => true]);
-
-    $this->actingAs($user);
-
-    Livewire::test('plex.server-status');
-
-    Queue::assertNotPushed(QueuedCommand::class);
 });
 
 it('shows empty state when all servers are offline', function () {

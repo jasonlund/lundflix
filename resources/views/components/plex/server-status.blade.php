@@ -2,7 +2,6 @@
 
 use App\Models\PlexMediaServer;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Artisan;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -24,10 +23,6 @@ new class extends Component
     #[Computed]
     public function servers(): Collection
     {
-        if (! PlexMediaServer::exists()) {
-            Artisan::queue('plex:sync-servers');
-        }
-
         return PlexMediaServer::where('is_online', true)->get();
     }
 };
