@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\PlexMediaServer;
 use App\Services\PlexService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class SyncPlexServers extends Command
 {
@@ -38,6 +39,8 @@ class SyncPlexServers extends Command
                 ]
             );
         }
+
+        Cache::forget('plex:visible-servers');
 
         $this->info("Synced {$servers->count()} servers.");
 
