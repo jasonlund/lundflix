@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public function placeholder(): string
     {
         return <<<'HTML'
@@ -25,10 +24,14 @@ new class extends Component
     #[Computed]
     public function serverData(): array
     {
-        return Cache::remember('plex:visible-servers', now()->addMinutes(10), fn () => [
-            'servers' => PlexMediaServer::where('visible', true)->get(),
-            'cached_at' => now(),
-        ]);
+        return Cache::remember(
+            'plex:visible-servers',
+            now()->addMinutes(10),
+            fn () => [
+                'servers' => PlexMediaServer::where('visible', true)->get(),
+                'cached_at' => now(),
+            ],
+        );
     }
 
     /**
