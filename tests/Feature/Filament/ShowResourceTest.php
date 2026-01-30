@@ -2,10 +2,12 @@
 
 use App\Filament\Resources\Shows\Pages\ListShows;
 use App\Filament\Resources\Shows\Pages\ViewShow;
+use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\User;
 use App\Services\TVMazeService;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\RequestException;
 use Livewire\Livewire;
 
@@ -63,27 +65,25 @@ it('does not show edit action due to policy', function () {
         ->assertDontSee('Edit');
 });
 
-it('shows fetch episodes action on view page', function () {
+it('shows "Fetch Episodes" button when show has no episodes', function () {
     $show = Show::factory()->create();
 
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->assertActionExists('fetchEpisodes')
-        ->assertActionVisible('fetchEpisodes');
+    Livewire::test(EpisodesRelationManager::class, [
+        'ownerRecord' => $show,
+        'pageClass' => ViewShow::class,
+    ])
+        ->assertSee('Fetch Episodes');
 });
 
-it('shows "Fetch Episodes" label when show has no episodes', function () {
-    $show = Show::factory()->create();
-
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->assertActionExists('fetchEpisodes', fn ($action) => $action->getLabel() === 'Fetch Episodes');
-});
-
-it('shows "Refresh Episodes" label when show has episodes', function () {
+it('shows "Refresh Episodes" button when show has episodes', function () {
     $show = Show::factory()->create();
     Episode::factory()->for($show)->create();
 
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->assertActionExists('fetchEpisodes', fn ($action) => $action->getLabel() === 'Refresh Episodes');
+    Livewire::test(EpisodesRelationManager::class, [
+        'ownerRecord' => $show,
+        'pageClass' => ViewShow::class,
+    ])
+        ->assertSee('Refresh Episodes');
 });
 
 it('imports episodes synchronously when fetch episodes action is called', function () {
@@ -100,8 +100,11 @@ it('imports episodes synchronously when fetch episodes action is called', functi
         ->once()
         ->andReturn($mockEpisodes);
 
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->callAction('fetchEpisodes')
+    Livewire::test(EpisodesRelationManager::class, [
+        'ownerRecord' => $show,
+        'pageClass' => ViewShow::class,
+    ])
+        ->callAction(TestAction::make('fetchEpisodes')->table())
         ->assertNotified('Episodes imported');
 
     expect(Episode::where('show_id', $show->id)->count())->toBe(2)
@@ -118,8 +121,11 @@ it('shows warning when API returns no episodes', function () {
         ->once()
         ->andReturn(null);
 
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->callAction('fetchEpisodes')
+    Livewire::test(EpisodesRelationManager::class, [
+        'ownerRecord' => $show,
+        'pageClass' => ViewShow::class,
+    ])
+        ->callAction(TestAction::make('fetchEpisodes')->table())
         ->assertNotified('No episodes found');
 });
 
@@ -132,7 +138,10 @@ it('shows error when API request fails', function () {
         ->once()
         ->andThrow(new RequestException(new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(500))));
 
-    Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->callAction('fetchEpisodes')
+    Livewire::test(EpisodesRelationManager::class, [
+        'ownerRecord' => $show,
+        'pageClass' => ViewShow::class,
+    ])
+        ->callAction(TestAction::make('fetchEpisodes')->table())
         ->assertNotified('Failed to fetch episodes');
 });
