@@ -86,4 +86,52 @@ enum Genre: string
             ->title()
             ->toString();
     }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Action => 'swords',
+            self::Adult => 'circle-alert',
+            self::Adventure => 'compass',
+            self::Animation => 'clapperboard',
+            self::Anime => 'sparkles',
+            self::Biography => 'book-user',
+            self::Children => 'baby',
+            self::Comedy => 'laugh',
+            self::Crime => 'shield-alert',
+            self::DIY => 'hammer',
+            self::Documentary => 'video',
+            self::Drama => 'drama',
+            self::Espionage => 'eye',
+            self::Family => 'users',
+            self::Fantasy => 'wand-sparkles',
+            self::FilmNoir => 'moon',
+            self::Food => 'utensils',
+            self::GameShow => 'gamepad-2',
+            self::History => 'landmark',
+            self::Horror => 'skull',
+            self::Legal => 'gavel',
+            self::Medical => 'stethoscope',
+            self::Music => 'music',
+            self::Musical => 'mic-vocal',
+            self::Mystery => 'search',
+            self::Nature => 'tree-deciduous',
+            self::News => 'newspaper',
+            self::RealityTV => 'tv',
+            self::Romance => 'heart',
+            self::SciFi => 'rocket',
+            self::Sport => 'trophy',
+            self::Supernatural => 'ghost',
+            self::TalkShow => 'mic',
+            self::Thriller => 'zap',
+            self::Travel => 'plane',
+            self::War => 'bomb',
+            self::Western => 'sunset',
+        };
+    }
+
+    public static function iconFor(string $value): ?string
+    {
+        return self::tryFromString($value)?->icon();
+    }
 }
