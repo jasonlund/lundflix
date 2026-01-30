@@ -5,7 +5,7 @@ use App\Models\User;
 it('redirects unauthenticated users to login', function () {
     $response = $this->get('/admin');
 
-    $response->assertRedirect('/admin/login');
+    $response->assertRedirect('/login');
 });
 
 it('denies access to users without matching plex token', function () {
