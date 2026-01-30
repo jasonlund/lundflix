@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Shows;
 
-use App\Filament\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\Shows\Pages\ListShows;
 use App\Filament\Resources\Shows\Pages\ViewShow;
 use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
+use App\Filament\Resources\Shows\RelationManagers\SeasonArtworkRelationManager;
+use App\Filament\Resources\Shows\RelationManagers\ShowArtworkRelationManager;
 use App\Filament\Resources\Shows\Schemas\ShowInfolist;
 use App\Filament\Resources\Shows\Tables\ShowsTable;
 use App\Models\Show;
@@ -38,7 +39,8 @@ class ShowResource extends Resource
     {
         return [
             EpisodesRelationManager::class,
-            MediaRelationManager::class,
+            ShowArtworkRelationManager::class,
+            SeasonArtworkRelationManager::class,
         ];
     }
 

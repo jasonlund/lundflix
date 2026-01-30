@@ -38,4 +38,30 @@ enum TvArtwork: string
             default => Str::headline($this->name),
         };
     }
+
+    /**
+     * Get all artwork types for a given level.
+     *
+     * @return list<self>
+     */
+    public static function forLevel(TvArtworkLevel $level): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $artwork) => $artwork->level() === $level
+        ));
+    }
+
+    /**
+     * Get the API values for all artwork types at a given level.
+     *
+     * @return list<string>
+     */
+    public static function valuesForLevel(TvArtworkLevel $level): array
+    {
+        return array_map(
+            fn (self $artwork) => $artwork->value,
+            self::forLevel($level)
+        );
+    }
 }
