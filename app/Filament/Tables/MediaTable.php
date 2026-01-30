@@ -2,6 +2,8 @@
 
 namespace App\Filament\Tables;
 
+use App\Enums\MovieArtwork;
+use App\Enums\TvArtwork;
 use App\Models\Media;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\ImageEntry;
@@ -11,7 +13,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
 
 class MediaTable
 {
@@ -21,14 +22,8 @@ class MediaTable
             ->columns([
                 TextColumn::make('type')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => Str::headline($state))
-                    ->color(fn (string $state): string => match ($state) {
-                        'hdmovielogo', 'hdtvlogo', 'hdclearlogo' => 'info',
-                        'movieposter', 'tvposter' => 'success',
-                        'moviebackground', 'showbackground' => 'warning',
-                        'moviedisc', 'cdart' => 'gray',
-                        default => 'primary',
-                    }),
+                    ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
+                    ->color(fn (string $state): string => self::getTypeColor($state)),
                 TextColumn::make('url')
                     ->label('URL')
                     ->limit(50)
@@ -54,7 +49,7 @@ class MediaTable
                         ->distinct()
                         ->orderBy('type')
                         ->pluck('type', 'type')
-                        ->mapWithKeys(fn ($type) => [$type => Str::headline($type)])
+                        ->mapWithKeys(fn ($type) => [$type => self::getTypeLabel($type)])
                         ->toArray()
                     ),
                 SelectFilter::make('lang')
@@ -74,7 +69,7 @@ class MediaTable
                     ->label('Preview')
                     ->color('gray')
                     ->icon(Heroicon::Eye)
-                    ->modalHeading(fn (Media $record): string => Str::headline($record->type))
+                    ->modalHeading(fn (Media $record): string => $record->getTypeLabel())
                     ->schema([
                         Section::make()
                             ->schema([
@@ -94,5 +89,27 @@ class MediaTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
+    }
+
+    private static function getTypeLabel(string $type): string
+    {
+        return TvArtwork::tryFrom($type)?->getLabel()
+            ?? MovieArtwork::tryFrom($type)?->getLabel()
+            ?? $type;
+    }
+
+    private static function getTypeColor(string $type): string
+    {
+        $artwork = TvArtwork::tryFrom($type) ?? MovieArtwork::tryFrom($type);
+
+        return match ($artwork) {
+            TvArtwork::HdClearLogo, MovieArtwork::HdClearLogo,
+            TvArtwork::HdClearArt, MovieArtwork::HdClearArt => 'info',
+            TvArtwork::Poster, TvArtwork::SeasonPoster, MovieArtwork::Poster => 'success',
+            TvArtwork::Background, TvArtwork::Background4k,
+            MovieArtwork::Background, MovieArtwork::Background4k => 'warning',
+            MovieArtwork::CdArt => 'gray',
+            default => 'primary',
+        };
     }
 }
