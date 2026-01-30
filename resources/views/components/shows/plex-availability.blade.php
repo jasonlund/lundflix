@@ -4,6 +4,7 @@ use App\Models\Show;
 use App\Services\PlexService;
 use App\Support\EpisodeCode;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -34,10 +35,14 @@ new class extends Component {
             return collect();
         }
 
-        $plex = app(PlexService::class);
-        $externalGuid = "imdb://{$this->show->imdb_id}";
+        return Cache::remember("plex:show:{$user->id}:{$this->show->id}", now()->addMinutes(10), function () use (
+            $user,
+        ) {
+            $plex = app(PlexService::class);
+            $externalGuid = "imdb://{$this->show->imdb_id}";
 
-        return $plex->searchShowWithEpisodes($user->plex_token, $externalGuid);
+            return $plex->searchShowWithEpisodes($user->plex_token, $externalGuid);
+        });
     }
 
     /**
