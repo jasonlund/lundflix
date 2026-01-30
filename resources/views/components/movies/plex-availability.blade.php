@@ -3,6 +3,7 @@
 use App\Models\Movie;
 use App\Services\PlexService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -27,10 +28,16 @@ new class extends Component {
             return collect();
         }
 
-        $plex = app(PlexService::class);
-        $externalGuid = "imdb://{$this->movie->imdb_id}";
+        return Cache::remember(
+            "plex:movie:{$user->id}:{$this->movie->id}",
+            now()->addMinutes(10),
+            function () use ($user) {
+                $plex = app(PlexService::class);
+                $externalGuid = "imdb://{$this->movie->imdb_id}";
 
-        return $plex->searchByExternalId($user->plex_token, $externalGuid, 1);
+                return $plex->searchByExternalId($user->plex_token, $externalGuid, 1);
+            }
+        );
     }
 };
 ?>
