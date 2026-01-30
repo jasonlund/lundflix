@@ -25,6 +25,7 @@ it('serves cached media from storage when media exists', function () {
         'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/cached.png',
         'path' => "fanart/movie/{$movie->id}/hdmovielogo/12345.png",
         'likes' => 5,
+        'is_active' => true,
     ]);
 
     $response = $this->get("/art/movie/{$movie->id}/hdmovielogo");
