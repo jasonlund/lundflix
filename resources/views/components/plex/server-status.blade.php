@@ -23,9 +23,7 @@ new class extends Component
     #[Computed]
     public function servers(): Collection
     {
-        return PlexMediaServer::where('is_online', true)
-            ->where('visible', true)
-            ->get();
+        return PlexMediaServer::where('visible', true)->get();
     }
 };
 ?>
@@ -39,7 +37,11 @@ new class extends Component
         <div class="mt-3 space-y-2">
             @foreach ($this->servers as $server)
                 <div wire:key="server-{{ $server->client_identifier }}" class="flex items-center gap-2">
-                    <flux:icon.check-circle variant="mini" class="text-green-500" />
+                    @if ($server->is_online)
+                        <flux:icon.check-circle variant="mini" class="text-green-500" />
+                    @else
+                        <flux:icon.x-circle variant="mini" class="text-red-500" />
+                    @endif
                     <flux:text>{{ $server->name }}</flux:text>
                     @if ($server->owned)
                         <flux:badge size="sm" color="zinc">Owned</flux:badge>

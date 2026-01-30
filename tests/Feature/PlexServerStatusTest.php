@@ -7,7 +7,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-it('displays online and visible plex servers from database', function () {
+it('displays visible plex servers from database', function () {
     $user = User::factory()->withPlex()->create();
 
     PlexMediaServer::factory()->create([
@@ -32,7 +32,7 @@ it('displays online and visible plex servers from database', function () {
         ->assertSee('Owned');
 });
 
-it('only displays online servers', function () {
+it('shows both online and offline visible servers', function () {
     $user = User::factory()->withPlex()->create();
 
     PlexMediaServer::factory()->create([
@@ -50,7 +50,7 @@ it('only displays online servers', function () {
 
     Livewire::test('plex.server-status')
         ->assertSee('Online Server')
-        ->assertDontSee('Offline Server');
+        ->assertSee('Offline Server');
 });
 
 it('only displays visible servers', function () {
@@ -73,20 +73,6 @@ it('only displays visible servers', function () {
     Livewire::test('plex.server-status')
         ->assertSee('Visible Server')
         ->assertDontSee('Hidden Server');
-});
-
-it('shows empty state when all servers are offline', function () {
-    $user = User::factory()->withPlex()->create();
-
-    PlexMediaServer::factory()->offline()->create([
-        'name' => 'Offline Server',
-        'visible' => true,
-    ]);
-
-    $this->actingAs($user);
-
-    Livewire::test('plex.server-status')
-        ->assertSee('No servers available');
 });
 
 it('shows empty state when no servers are visible', function () {
