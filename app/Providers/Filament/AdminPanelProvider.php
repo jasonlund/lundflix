@@ -28,7 +28,6 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName('lundflix admin')
-            ->login()
             ->colors([
                 'primary' => Color::Amber,
             ])
