@@ -40,9 +40,14 @@ it('stores movie artwork from api response', function () {
     Storage::assertMissing("fanart/movie/{$movie->id}/hdmovielogo/12346.png"); // German, not downloaded
     Storage::assertExists("fanart/movie/{$movie->id}/movieposter/67890.jpg");
 
-    // Non-downloaded images have null path
-    expect($movie->media()->where('fanart_id', '12345')->first()->path)->not->toBeNull()
-        ->and($movie->media()->where('fanart_id', '12346')->first()->path)->toBeNull();
+    // Non-downloaded images have null path and are not active
+    $bestLogo = $movie->media()->where('fanart_id', '12345')->first();
+    $otherLogo = $movie->media()->where('fanart_id', '12346')->first();
+
+    expect($bestLogo->path)->not->toBeNull()
+        ->and($bestLogo->is_active)->toBeTrue()
+        ->and($otherLogo->path)->toBeNull()
+        ->and($otherLogo->is_active)->toBeFalse();
 });
 
 it('stores show artwork with season information', function () {
@@ -72,10 +77,14 @@ it('stores show artwork with season information', function () {
         ->and($seasonPosters->firstWhere('fanart_id', '22222')->season)->toBe(1)
         ->and($seasonPosters->firstWhere('fanart_id', '22223')->season)->toBe(2);
 
-    // Only best image per type downloaded (highest likes)
+    // Best image per type per season downloaded and marked active
     Storage::assertExists("fanart/show/{$show->id}/tvposter/11111.jpg");
-    Storage::assertExists("fanart/show/{$show->id}/seasonposter/22222.jpg"); // Highest likes
-    Storage::assertMissing("fanart/show/{$show->id}/seasonposter/22223.jpg"); // Not downloaded
+    Storage::assertExists("fanart/show/{$show->id}/seasonposter/22222.jpg"); // Best for season 1
+    Storage::assertExists("fanart/show/{$show->id}/seasonposter/22223.jpg"); // Best for season 2
+
+    // Best images are marked as active
+    expect($seasonPosters->firstWhere('fanart_id', '22222')->is_active)->toBeTrue()
+        ->and($seasonPosters->firstWhere('fanart_id', '22223')->is_active)->toBeTrue();
 });
 
 it('stores movie disc artwork with disc metadata', function () {
