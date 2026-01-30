@@ -23,7 +23,9 @@ new class extends Component
     #[Computed]
     public function servers(): Collection
     {
-        return PlexMediaServer::where('is_online', true)->get();
+        return PlexMediaServer::where('is_online', true)
+            ->where('visible', true)
+            ->get();
     }
 };
 ?>

@@ -7,18 +7,20 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-it('displays online plex servers from database', function () {
+it('displays online and visible plex servers from database', function () {
     $user = User::factory()->withPlex()->create();
 
     PlexMediaServer::factory()->create([
         'name' => 'Home Server',
         'is_online' => true,
+        'visible' => true,
         'owned' => true,
     ]);
 
     PlexMediaServer::factory()->create([
         'name' => 'Friend Server',
         'is_online' => true,
+        'visible' => true,
         'owned' => false,
     ]);
 
@@ -36,10 +38,12 @@ it('only displays online servers', function () {
     PlexMediaServer::factory()->create([
         'name' => 'Online Server',
         'is_online' => true,
+        'visible' => true,
     ]);
 
     PlexMediaServer::factory()->offline()->create([
         'name' => 'Offline Server',
+        'visible' => true,
     ]);
 
     $this->actingAs($user);
@@ -49,11 +53,49 @@ it('only displays online servers', function () {
         ->assertDontSee('Offline Server');
 });
 
+it('only displays visible servers', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create([
+        'name' => 'Visible Server',
+        'is_online' => true,
+        'visible' => true,
+    ]);
+
+    PlexMediaServer::factory()->create([
+        'name' => 'Hidden Server',
+        'is_online' => true,
+        'visible' => false,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertSee('Visible Server')
+        ->assertDontSee('Hidden Server');
+});
+
 it('shows empty state when all servers are offline', function () {
     $user = User::factory()->withPlex()->create();
 
     PlexMediaServer::factory()->offline()->create([
         'name' => 'Offline Server',
+        'visible' => true,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertSee('No servers available');
+});
+
+it('shows empty state when no servers are visible', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create([
+        'name' => 'Hidden Server',
+        'is_online' => true,
+        'visible' => false,
     ]);
 
     $this->actingAs($user);
@@ -65,7 +107,10 @@ it('shows empty state when all servers are offline', function () {
 it('is displayed on the dashboard', function () {
     $user = User::factory()->withPlex()->create();
 
-    PlexMediaServer::factory()->create(['is_online' => true]);
+    PlexMediaServer::factory()->create([
+        'is_online' => true,
+        'visible' => true,
+    ]);
 
     $this->actingAs($user);
 
