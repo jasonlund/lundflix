@@ -130,8 +130,8 @@ enum Genre: string
         };
     }
 
-    public static function iconFor(string $value): ?string
+    public static function iconFor(string $value): string
     {
-        return self::tryFromString($value)?->icon();
+        return self::tryFromString($value)?->icon() ?? 'tag';
     }
 }

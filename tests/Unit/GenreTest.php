@@ -132,8 +132,8 @@ it('returns icon for known genres via iconFor', function (string $input, string 
     ['Sports', 'trophy'],
 ]);
 
-it('returns null for unknown genres via iconFor', function (string $input) {
-    expect(Genre::iconFor($input))->toBeNull();
+it('returns tag icon for unknown genres via iconFor', function (string $input) {
+    expect(Genre::iconFor($input))->toBe('tag');
 })->with([
     'empty string' => '',
     'unknown genre' => 'unknown-genre',

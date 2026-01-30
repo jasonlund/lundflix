@@ -15,7 +15,7 @@
                 <flux:spacer />
 
                 <flux:modal.trigger name="search" shortcut="cmd.k">
-                    <flux:button variant="ghost" icon="magnifying-glass" kbd="⌘K">
+                    <flux:button variant="ghost" icon="search" kbd="⌘K">
                         <span class="sr-only sm:not-sr-only">Search</span>
                     </flux:button>
                 </flux:modal.trigger>
@@ -28,7 +28,7 @@
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <flux:button type="submit" variant="ghost" icon="arrow-right-start-on-rectangle">
+                    <flux:button type="submit" variant="ghost" icon="log-out">
                         <span class="sr-only sm:not-sr-only">Logout</span>
                     </flux:button>
                 </form>

@@ -51,13 +51,13 @@ new #[Layout('components.layouts.app')] class extends Component {
     @if ($this->movie->genres && count($this->movie->genres) > 0)
         <div class="flex flex-wrap gap-2">
             @foreach ($this->movie->genres as $genre)
-                <flux:badge>{{ $genre }}</flux:badge>
+                <x-genre-badge :$genre />
             @endforeach
         </div>
     @endif
 
     <div class="flex gap-3 pt-4">
-        <flux:button as="a" href="{{ $this->imdbUrl() }}" target="_blank" icon="arrow-top-right-on-square">
+        <flux:button as="a" href="{{ $this->imdbUrl() }}" target="_blank" icon="external-link">
             View on IMDB
         </flux:button>
         <livewire:cart.add-movie-button :movie="$movie" />
