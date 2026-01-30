@@ -162,7 +162,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                             @endif
                         </flux:text>
                     </div>
-                    <flux:button wire:click="removeMovie({{ $movie->id }})" variant="ghost" icon="x-mark" size="sm" />
+                    <flux:button wire:click="removeMovie({{ $movie->id }})" variant="ghost" icon="x" size="sm" />
                 </div>
             @endforeach
 
@@ -191,7 +191,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                                     <flux:button
                                         wire:click="removeEpisodes({{ json_encode($seasonData['episodes']->pluck('id')->all()) }})"
                                         variant="ghost"
-                                        icon="x-mark"
+                                        icon="x"
                                         size="xs"
                                     />
                                 </div>
@@ -211,7 +211,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                                         <flux:button
                                             wire:click="removeEpisodes({{ json_encode($run->pluck('id')->all()) }})"
                                             variant="ghost"
-                                            icon="x-mark"
+                                            icon="x"
                                             size="xs"
                                         />
                                     </div>

@@ -78,7 +78,7 @@ new class extends Component {
         <div class="mt-3 space-y-2">
             @foreach ($this->servers as $server)
                 <div wire:key="server-{{ $server['clientIdentifier'] }}" class="flex items-center gap-2">
-                    <flux:icon.check-circle variant="mini" class="text-green-500" />
+                    <flux:icon.circle-check variant="mini" class="text-green-500" />
                     <flux:text>{{ $server['name'] }}</flux:text>
                     <flux:badge size="sm" color="zinc">{{ count($server['episodes']) }} episodes</flux:badge>
                     @if ($server['owned'])

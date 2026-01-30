@@ -163,7 +163,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                         as="a"
                         href="{{ $this->imdbUrl() }}"
                         target="_blank"
-                        icon="arrow-top-right-on-square"
+                        icon="external-link"
                         size="sm"
                         variant="ghost"
                     >
@@ -175,7 +175,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             @if ($show->genres && count($show->genres))
                 <div class="flex flex-wrap gap-2">
                     @foreach ($show->genres as $genre)
-                        <flux:badge>{{ $genre }}</flux:badge>
+                        <x-genre-badge :$genre />
                     @endforeach
                 </div>
             @endif
