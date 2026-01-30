@@ -60,3 +60,62 @@ it('does not show edit action due to policy', function () {
     Livewire::test(ViewMovie::class, ['record' => $movie->getRouteKey()])
         ->assertDontSee('Edit');
 });
+
+it('can search movies by title using Scout', function () {
+    $matchingMovie = Movie::factory()->create([
+        'title' => 'The Matrix Reloaded',
+        'imdb_id' => 'tt0234215',
+    ]);
+    $otherMovie = Movie::factory()->create([
+        'title' => 'Inception',
+        'imdb_id' => 'tt1375666',
+    ]);
+
+    Livewire::test(ListMovies::class)
+        ->searchTable('Matrix')
+        ->assertCanSeeTableRecords([$matchingMovie])
+        ->assertCanNotSeeTableRecords([$otherMovie]);
+});
+
+it('can search movies by imdb_id using Scout', function () {
+    $matchingMovie = Movie::factory()->create([
+        'title' => 'The Dark Knight',
+        'imdb_id' => 'tt0468569',
+    ]);
+    $otherMovie = Movie::factory()->create([
+        'title' => 'Interstellar',
+        'imdb_id' => 'tt0816692',
+    ]);
+
+    Livewire::test(ListMovies::class)
+        ->searchTable('tt0468569')
+        ->assertCanSeeTableRecords([$matchingMovie])
+        ->assertCanNotSeeTableRecords([$otherMovie]);
+});
+
+it('can search movies by year using Scout', function () {
+    $matchingMovie = Movie::factory()->create([
+        'title' => 'Movie From 2024',
+        'year' => 2024,
+    ]);
+    $otherMovie = Movie::factory()->create([
+        'title' => 'Movie From 1999',
+        'year' => 1999,
+    ]);
+
+    Livewire::test(ListMovies::class)
+        ->searchTable('2024')
+        ->assertCanSeeTableRecords([$matchingMovie])
+        ->assertCanNotSeeTableRecords([$otherMovie]);
+});
+
+it('returns no movie results for non-matching search', function () {
+    $movie = Movie::factory()->create([
+        'title' => 'The Godfather',
+        'imdb_id' => 'tt0068646',
+    ]);
+
+    Livewire::test(ListMovies::class)
+        ->searchTable('NonExistentMovieXYZ123')
+        ->assertCanNotSeeTableRecords([$movie]);
+});

@@ -2,15 +2,19 @@
 
 namespace App\Filament\Resources\Shows\Tables;
 
+use App\Models\Show;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ShowsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->searchUsing(fn (Builder $query, string $search): Builder => $query->whereKey(Show::search($search)->keys()))
+            ->searchable()
             ->columns([
                 TextColumn::make('id')
                     ->sortable(),
@@ -18,10 +22,8 @@ class ShowsTable
                     ->label('TVMaze ID')
                     ->sortable(),
                 TextColumn::make('imdb_id')
-                    ->label('IMDb ID')
-                    ->searchable(),
+                    ->label('IMDb ID'),
                 TextColumn::make('name')
-                    ->searchable()
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
