@@ -10,6 +10,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -20,6 +21,13 @@ class MediaTable
     {
         return $table
             ->columns([
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon(Heroicon::CheckCircle)
+                    ->falseIcon(Heroicon::OutlinedMinusCircle)
+                    ->trueColor('success')
+                    ->falseColor('gray'),
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
@@ -65,6 +73,12 @@ class MediaTable
             ])
             ->defaultSort('likes', 'desc')
             ->recordActions([
+                Action::make('setActive')
+                    ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
+                    ->icon(fn (Media $record) => $record->is_active ? Heroicon::CheckCircle : Heroicon::OutlinedCheckCircle)
+                    ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
+                    ->action(fn (Media $record) => $record->activate())
+                    ->disabled(fn (Media $record): bool => $record->is_active),
                 Action::make('preview')
                     ->label('Preview')
                     ->color('gray')
