@@ -5,11 +5,17 @@ namespace App\Filament\Resources\Shows\RelationManagers;
 use App\Enums\TvArtwork;
 use App\Enums\TvArtworkLevel;
 use App\Filament\Tables\MediaTable;
+use App\Jobs\StoreFanart;
 use App\Models\Show;
+use App\Services\FanartTVService;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Client\RequestException;
 
 class SeasonArtworkRelationManager extends RelationManager
 {
@@ -24,6 +30,60 @@ class SeasonArtworkRelationManager extends RelationManager
                 'type',
                 TvArtwork::valuesForLevel(TvArtworkLevel::Season)
             ))
+            ->headerActions([
+                Action::make('syncArtwork')
+                    ->label(fn () => $this->getShow()->media()->exists()
+                        ? 'Refresh Artwork'
+                        : 'Fetch Artwork')
+                    ->icon(Heroicon::ArrowPathRoundedSquare)
+                    ->action(function (FanartTVService $fanart): void {
+                        $show = $this->getShow();
+
+                        if (! $show->thetvdb_id) {
+                            Notification::make()
+                                ->title('Missing TVDB ID')
+                                ->body('This show has no TVDB ID configured.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        try {
+                            $response = $fanart->show($show->thetvdb_id);
+                        } catch (RequestException $e) {
+                            Notification::make()
+                                ->title('Failed to fetch artwork')
+                                ->body('Could not connect to FanArt API.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        if ($response === null) {
+                            Notification::make()
+                                ->title('No artwork found')
+                                ->body('FanArt has no artwork for this title.')
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
+                        StoreFanart::dispatchSync($show, $response);
+
+                        $this->dispatch('$refresh')->self();
+
+                        $count = $show->media()->count();
+
+                        Notification::make()
+                            ->title('Artwork synced')
+                            ->body("{$count} artwork items available.")
+                            ->success()
+                            ->send();
+                    }),
+            ])
             ->filters([
                 SelectFilter::make('season')
                     ->options(fn () => $this->getSeasonOptions()),
