@@ -1,12 +1,13 @@
 <?php
 
-use App\Services\PlexService;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
+use App\Models\PlexMediaServer;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component {
+new class extends Component
+{
     public function placeholder(): string
     {
         return <<<'HTML'
@@ -17,19 +18,17 @@ new class extends Component {
         HTML;
     }
 
+    /**
+     * @return Collection<int, PlexMediaServer>
+     */
     #[Computed]
     public function servers(): Collection
     {
-        $adminToken = config('services.plex.seed_token');
-        if (! $adminToken) {
-            return collect();
+        if (! PlexMediaServer::exists()) {
+            Artisan::queue('plex:sync-servers');
         }
 
-        return Cache::remember('plex:server-status', now()->addMinutes(5), function () use ($adminToken) {
-            $plex = app(PlexService::class);
-
-            return $plex->getOnlineServers($adminToken);
-        });
+        return PlexMediaServer::where('is_online', true)->get();
     }
 };
 ?>
@@ -42,10 +41,10 @@ new class extends Component {
     @else
         <div class="mt-3 space-y-2">
             @foreach ($this->servers as $server)
-                <div wire:key="server-{{ $server['clientIdentifier'] }}" class="flex items-center gap-2">
+                <div wire:key="server-{{ $server->client_identifier }}" class="flex items-center gap-2">
                     <flux:icon.check-circle variant="mini" class="text-green-500" />
-                    <flux:text>{{ $server['name'] }}</flux:text>
-                    @if ($server['owned'])
+                    <flux:text>{{ $server->name }}</flux:text>
+                    @if ($server->owned)
                         <flux:badge size="sm" color="zinc">Owned</flux:badge>
                     @endif
                 </div>

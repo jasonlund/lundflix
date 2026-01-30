@@ -35,16 +35,14 @@ new class extends Component {
             return collect();
         }
 
-        return Cache::remember(
-            "plex:show:{$user->id}:{$this->show->id}",
-            now()->addMinutes(10),
-            function () use ($user) {
-                $plex = app(PlexService::class);
-                $externalGuid = "imdb://{$this->show->imdb_id}";
+        return Cache::remember("plex:show:{$user->id}:{$this->show->id}", now()->addMinutes(10), function () use (
+            $user,
+        ) {
+            $plex = app(PlexService::class);
+            $externalGuid = "imdb://{$this->show->imdb_id}";
 
-                return $plex->searchShowWithEpisodes($user->plex_token, $externalGuid);
-            }
-        );
+            return $plex->searchShowWithEpisodes($user->plex_token, $externalGuid);
+        });
     }
 
     /**

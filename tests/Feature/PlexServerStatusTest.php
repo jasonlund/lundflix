@@ -1,49 +1,31 @@
 <?php
 
+use App\Models\PlexMediaServer;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Foundation\Console\QueuedCommand;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
-beforeEach(function () {
-    Http::preventStrayRequests();
+uses(RefreshDatabase::class);
 
-    config([
-        'services.plex.client_identifier' => 'test-client-id',
-        'services.plex.product_name' => 'Lund',
-        'services.plex.server_identifier' => 'test-server-123',
-        'services.plex.seed_token' => 'admin-seed-token',
-    ]);
+beforeEach(function () {
+    Queue::fake();
 });
 
-it('displays online plex servers', function () {
+it('displays online plex servers from database', function () {
     $user = User::factory()->withPlex()->create();
 
-    Http::fake([
-        'clients.plex.tv/api/v2/resources*' => Http::response([
-            [
-                'name' => 'Home Server',
-                'clientIdentifier' => 'server-home',
-                'accessToken' => 'token-home',
-                'owned' => true,
-                'provides' => 'server',
-                'presence' => true,
-                'connections' => [
-                    ['uri' => 'http://home.example.com:32400', 'local' => false],
-                ],
-            ],
-            [
-                'name' => 'Friend Server',
-                'clientIdentifier' => 'server-friend',
-                'accessToken' => 'token-friend',
-                'owned' => false,
-                'provides' => 'server',
-                'presence' => true,
-                'connections' => [
-                    ['uri' => 'http://friend.example.com:32400', 'local' => false],
-                ],
-            ],
-        ]),
+    PlexMediaServer::factory()->create([
+        'name' => 'Home Server',
+        'is_online' => true,
+        'owned' => true,
+    ]);
+
+    PlexMediaServer::factory()->create([
+        'name' => 'Friend Server',
+        'is_online' => true,
+        'owned' => false,
     ]);
 
     $this->actingAs($user);
@@ -54,72 +36,26 @@ it('displays online plex servers', function () {
         ->assertSee('Owned');
 });
 
-it('caches server status for 5 minutes', function () {
+it('only displays online servers', function () {
     $user = User::factory()->withPlex()->create();
 
-    Http::fake([
-        'clients.plex.tv/api/v2/resources*' => Http::response([
-            [
-                'name' => 'Cached Server',
-                'clientIdentifier' => 'server-cached',
-                'accessToken' => 'token-cached',
-                'owned' => true,
-                'provides' => 'server',
-                'presence' => true,
-                'connections' => [
-                    ['uri' => 'http://cached.example.com:32400', 'local' => false],
-                ],
-            ],
-        ]),
+    PlexMediaServer::factory()->create([
+        'name' => 'Online Server',
+        'is_online' => true,
     ]);
 
-    $this->actingAs($user);
-
-    // First load
-    Livewire::test('plex.server-status')
-        ->assertSee('Cached Server');
-
-    // Verify cache was populated
-    expect(Cache::has('plex:server-status'))->toBeTrue();
-});
-
-it('returns cached data without making http requests', function () {
-    $user = User::factory()->withPlex()->create();
-
-    // Pre-populate the cache
-    Cache::put('plex:server-status', collect([
-        [
-            'name' => 'Pre-Cached Server',
-            'clientIdentifier' => 'server-precached',
-            'owned' => false,
-        ],
-    ]), now()->addMinutes(5));
-
-    $this->actingAs($user);
-
-    Livewire::test('plex.server-status')
-        ->assertSee('Pre-Cached Server');
-
-    // Verify no HTTP requests were made
-    Http::assertNothingSent();
-});
-
-it('shows empty state when no servers available', function () {
-    $user = User::factory()->withPlex()->create();
-
-    Http::fake([
-        'clients.plex.tv/api/v2/resources*' => Http::response([]),
+    PlexMediaServer::factory()->offline()->create([
+        'name' => 'Offline Server',
     ]);
 
     $this->actingAs($user);
 
     Livewire::test('plex.server-status')
-        ->assertSee('No servers available');
+        ->assertSee('Online Server')
+        ->assertDontSee('Offline Server');
 });
 
-it('shows empty state when seed token is not configured', function () {
-    config(['services.plex.seed_token' => null]);
-
+it('queues sync command when no servers exist', function () {
     $user = User::factory()->withPlex()->create();
 
     $this->actingAs($user);
@@ -127,11 +63,40 @@ it('shows empty state when seed token is not configured', function () {
     Livewire::test('plex.server-status')
         ->assertSee('No servers available');
 
-    Http::assertNothingSent();
+    Queue::assertPushed(QueuedCommand::class, function (QueuedCommand $job) {
+        return $job->displayName() === 'plex:sync-servers';
+    });
+});
+
+it('does not queue sync command when servers exist', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create(['is_online' => true]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status');
+
+    Queue::assertNotPushed(QueuedCommand::class);
+});
+
+it('shows empty state when all servers are offline', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->offline()->create([
+        'name' => 'Offline Server',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertSee('No servers available');
 });
 
 it('is displayed on the dashboard', function () {
     $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create(['is_online' => true]);
 
     $this->actingAs($user);
 

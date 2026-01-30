@@ -9,6 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+Schedule::command('plex:sync-servers')->everyFifteenMinutes();
 
 // Sync TV shows and movies daily at 2:00 AM Pacific, then ratings (which depend on both existing)
 Schedule::command('tvmaze:sync-shows')
