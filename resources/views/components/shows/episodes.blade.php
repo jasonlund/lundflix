@@ -46,9 +46,7 @@ new class extends Component {
             try {
                 $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
             } catch (RequestException $e) {
-                $this->error = $e->response->status() === 404
-                    ? null
-                    : 'Failed to load episodes from TVMaze.';
+                $this->error = $e->response->status() === 404 ? null : 'Failed to load episodes from TVMaze.';
                 $apiEpisodes = [];
             }
 
