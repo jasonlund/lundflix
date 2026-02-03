@@ -4,6 +4,7 @@ use App\Jobs\StoreShowEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -14,6 +15,8 @@ new class extends Component {
 
     /** @var Collection<int, mixed> */
     public $episodes;
+
+    public ?string $error = null;
 
     /** @var array<string, array<int, array{name: string, owned: bool}>> */
     public array $plexAvailability = [];
@@ -39,7 +42,13 @@ new class extends Component {
             $this->episodes = $episodes;
         } else {
             $tvMaze = app(TVMazeService::class);
-            $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id) ?? [];
+
+            try {
+                $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
+            } catch (RequestException $e) {
+                $this->error = $e->response->status() === 404 ? null : 'Failed to load episodes from TVMaze.';
+                $apiEpisodes = [];
+            }
 
             if (! empty($apiEpisodes)) {
                 StoreShowEpisodes::dispatch($this->show, $apiEpisodes);
@@ -219,6 +228,13 @@ new class extends Component {
             </flux:checkbox.group>
         </div>
     @empty
-        <p>No episodes available.</p>
+        @if ($error)
+            <flux:callout variant="danger" class="mt-4">
+                <flux:callout.heading>Error</flux:callout.heading>
+                <flux:callout.text>{{ $error }}</flux:callout.text>
+            </flux:callout>
+        @else
+            <p>No episodes available.</p>
+        @endif
     @endforelse
 </div>
