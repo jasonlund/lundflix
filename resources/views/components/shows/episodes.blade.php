@@ -4,6 +4,7 @@ use App\Jobs\StoreShowEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -39,7 +40,12 @@ new class extends Component {
             $this->episodes = $episodes;
         } else {
             $tvMaze = app(TVMazeService::class);
-            $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id) ?? [];
+
+            try {
+                $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
+            } catch (RequestException) {
+                $apiEpisodes = [];
+            }
 
             if (! empty($apiEpisodes)) {
                 StoreShowEpisodes::dispatch($this->show, $apiEpisodes);

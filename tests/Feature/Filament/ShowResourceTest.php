@@ -119,7 +119,7 @@ it('shows warning when API returns no episodes', function () {
         ->shouldReceive('episodes')
         ->with(456)
         ->once()
-        ->andReturn(null);
+        ->andReturn([]);
 
     Livewire::test(EpisodesRelationManager::class, [
         'ownerRecord' => $show,
