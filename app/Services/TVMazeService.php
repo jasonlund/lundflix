@@ -69,6 +69,45 @@ class TVMazeService
         return $response->json();
     }
 
+    /**
+     * Get a single show by ID.
+     * Returns null if the show doesn't exist (404).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function show(int $id): ?array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL."/shows/{$id}");
+
+        if ($response->notFound()) {
+            return null;
+        }
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * Get recently updated show IDs with their update timestamps.
+     * Returns null on failure.
+     *
+     * @param  string  $since  Time period: 'day', 'week', or 'month'
+     * @return array<int, int>|null Map of show ID => Unix timestamp
+     */
+    public function showUpdates(string $since = 'day'): ?array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL.'/updates/shows', ['since' => $since]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        return $response->json();
+    }
+
     private function client(): PendingRequest
     {
         return Http::accept('application/json')
