@@ -59,9 +59,11 @@ new #[Layout('components.layouts.app')] class extends Component {
                     <flux:label>Email</flux:label>
                     <flux:input wire:model.blur="email" type="email" required autofocus />
                     <flux:error name="email" />
-                    <x-lundbergh-bubble>
-                        {{ __('lundbergh.form.email_description') }}
-                    </x-lundbergh-bubble>
+                    @unless ($errors->has('password'))
+                        <x-lundbergh-bubble>
+                            {{ __('lundbergh.form.email_description') }}
+                        </x-lundbergh-bubble>
+                    @endunless
                 </flux:field>
 
                 <flux:field>
