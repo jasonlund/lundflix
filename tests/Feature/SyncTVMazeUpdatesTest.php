@@ -104,15 +104,13 @@ it('handles no tracked shows needing updates', function () {
         ->expectsOutput('No tracked shows need updating.');
 });
 
-it('reports failure when updates endpoint fails', function () {
+it('throws exception when updates endpoint fails', function () {
     Http::fake([
         'api.tvmaze.com/updates/shows?since=day' => Http::response(null, 500),
     ]);
 
-    $this->artisan('tvmaze:sync-updates')
-        ->assertFailed()
-        ->expectsOutput('Failed to fetch updates from TVMaze.');
-});
+    $this->artisan('tvmaze:sync-updates');
+})->throws(\Illuminate\Http\Client\RequestException::class);
 
 it('accepts since option for time period', function () {
     Show::factory()->create(['tvmaze_id' => 100]);

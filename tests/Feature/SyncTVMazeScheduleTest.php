@@ -129,7 +129,7 @@ it('skips API call when no shows have episodes', function () {
     Http::assertNothingSent();
 });
 
-it('handles API failure gracefully', function () {
+it('throws exception on API failure', function () {
     $show = Show::factory()->create(['tvmaze_id' => 100]);
     Episode::factory()->create(['show_id' => $show->id]);
 
@@ -137,10 +137,8 @@ it('handles API failure gracefully', function () {
         'api.tvmaze.com/schedule/full' => Http::response([], 500),
     ]);
 
-    $this->artisan('tvmaze:sync-schedule')
-        ->assertFailed()
-        ->expectsOutputToContain('Failed to fetch schedule from TVMaze.');
-});
+    $this->artisan('tvmaze:sync-schedule');
+})->throws(\Illuminate\Http\Client\RequestException::class);
 
 it('syncs multiple episodes for the same show', function () {
     $show = Show::factory()->create(['tvmaze_id' => 100]);

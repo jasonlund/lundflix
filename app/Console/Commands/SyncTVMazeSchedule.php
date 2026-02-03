@@ -41,12 +41,6 @@ class SyncTVMazeSchedule extends Command
             'Fetching full schedule from TVMaze...'
         );
 
-        if ($schedule === null) {
-            $this->error('Failed to fetch schedule from TVMaze.');
-
-            return Command::FAILURE;
-        }
-
         $this->info(sprintf('Processing %d episodes from schedule...', count($schedule)));
 
         // Create lookup of tvmaze_id => show_id for fast filtering
