@@ -5,6 +5,7 @@ use App\Enums\TvArtwork;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\SearchService;
+use App\Support\Formatters;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -36,13 +37,79 @@ new class extends Component {
                     'type' => $item instanceof Show ? 'show' : 'movie',
                     'id' => $item->id,
                     'title' => $item instanceof Show ? $item->name : $item->title,
-                    'year' => $item instanceof Show ? $item->premiered?->year : $item->year,
-                    'genres' => $item->genres ? implode(', ', $item->genres) : null,
+                    'yearLabel' => $this->yearLabelFor($item),
+                    'status' => $item instanceof Show ? $item->status : null,
+                    'runtime' => $this->runtimeLabelFor($item),
+                    'genres' => $item->genres ?? [],
+                    'network' => $item instanceof Show ? $this->networkLabelFor($item) : null,
                     'icon' => $item instanceof Show ? 'tv' : 'film',
                     'posterUrl' => $item instanceof Show ? $defaultShowLogoUrl : $defaultMovieLogoUrl,
                     'model' => $item instanceof Show ? null : $item,
                 ],
             );
+    }
+
+    private function yearLabelFor(Show|Movie $item): ?string
+    {
+        if ($item instanceof Show) {
+            return $this->showYearRange($item);
+        }
+
+        if (! $item->year) {
+            return null;
+        }
+
+        return (string) $item->year;
+    }
+
+    private function showYearRange(Show $show): ?string
+    {
+        if (! $show->premiered) {
+            return null;
+        }
+
+        $startYear = $show->premiered->year;
+
+        if ($show->ended) {
+            return $startYear.'-'.$show->ended->year;
+        }
+
+        if ($show->status === 'Running') {
+            return $startYear.'-';
+        }
+
+        return (string) $startYear;
+    }
+
+    private function runtimeLabelFor(Show|Movie $item): ?string
+    {
+        if (! $item->runtime) {
+            return null;
+        }
+
+        if ($item instanceof Show) {
+            return $item->runtime.' min';
+        }
+
+        return Formatters::runtime($item->runtime);
+    }
+
+    private function networkLabelFor(Show $show): ?string
+    {
+        if (is_array($show->network) && isset($show->network['name'])) {
+            $label = $show->network['name'];
+            if (isset($show->network['country']['name'])) {
+                $label .= " ({$show->network['country']['name']})";
+            }
+
+            return $label;
+        }
+
+        if (is_array($show->web_channel) && isset($show->web_channel['name'])) {
+            return $show->web_channel['name'];
+        }
+
+        return null;
     }
 
     public function clearSearch(): void
@@ -82,7 +149,7 @@ new class extends Component {
                             Flux.close('search')
                             $wire.clearSearch()
                         "
-                        class="hover:bg-white/60 dark:hover:bg-zinc-800/60"
+                        class="hover:bg-white/60 dark:hover:bg-zinc-800/60 data-active:!bg-black"
                     >
                         <div class="flex w-full items-stretch gap-3">
                             <div class="flex w-32 shrink-0">
@@ -110,15 +177,40 @@ new class extends Component {
                                 </div>
                             </div>
                             <div class="flex min-w-0 flex-1 items-center gap-3 py-4 pe-3">
-                                <div class="flex min-w-0 flex-1 flex-col">
-                                    <span class="truncate">
-                                        {{ $result['title'] }}
-                                        @if ($result['year'])
-                                            <span class="text-zinc-400">({{ $result['year'] }})</span>
+                                <div class="flex min-w-0 flex-1 flex-col gap-2">
+                                    <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 group-data-active/item:text-zinc-400">
+                                        @if ($result['yearLabel'])
+                                            <span>{{ $result['yearLabel'] }}</span>
                                         @endif
-                                    </span>
-                                    @if ($result['genres'])
-                                        <span class="truncate text-xs text-zinc-500">{{ $result['genres'] }}</span>
+
+                                        @if ($result['status'])
+                                            <flux:badge
+                                                size="sm"
+                                                :color="$result['status'] === 'Running' ? 'green' : ($result['status'] === 'Ended' ? 'red' : 'zinc')"
+                                            >
+                                                {{ $result['status'] }}
+                                            </flux:badge>
+                                        @endif
+
+                                        @if ($result['runtime'])
+                                            <span>{{ $result['runtime'] }}</span>
+                                        @endif
+                                    </div>
+
+                                    @if ($result['genres'] || $result['network'])
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            @if ($result['genres'])
+                                                @foreach ($result['genres'] as $genre)
+                                                    <x-genre-badge :$genre size="sm" />
+                                                @endforeach
+                                            @endif
+
+                                            @if ($result['network'])
+                                                <span class="text-xs text-zinc-500 group-data-active/item:text-zinc-400">
+                                                    {{ $result['network'] }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     @endif
                                 </div>
                                 <div @click.stop class="flex shrink-0 gap-1">
