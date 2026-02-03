@@ -16,6 +16,8 @@ new class extends Component {
     /** @var Collection<int, mixed> */
     public $episodes;
 
+    public ?string $error = null;
+
     /** @var array<string, array<int, array{name: string, owned: bool}>> */
     public array $plexAvailability = [];
 
@@ -43,7 +45,10 @@ new class extends Component {
 
             try {
                 $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
-            } catch (RequestException) {
+            } catch (RequestException $e) {
+                $this->error = $e->response->status() === 404
+                    ? null
+                    : 'Failed to load episodes from TVMaze.';
                 $apiEpisodes = [];
             }
 
@@ -225,6 +230,13 @@ new class extends Component {
             </flux:checkbox.group>
         </div>
     @empty
-        <p>No episodes available.</p>
+        @if ($error)
+            <flux:callout variant="danger" class="mt-4">
+                <flux:callout.heading>Error</flux:callout.heading>
+                <flux:callout.text>{{ $error }}</flux:callout.text>
+            </flux:callout>
+        @else
+            <p>No episodes available.</p>
+        @endif
     @endforelse
 </div>
