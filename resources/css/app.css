@@ -52,14 +52,28 @@
     @apply grid gap-2;
 }
 
-[data-flux-label] {
-    @apply !mb-0 !leading-tight;
+[data-flux-field] [data-flux-label] {
+    @apply mb-0 leading-tight;
 }
 
 input:focus[data-flux-control],
 textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
     @apply ring-accent ring-offset-accent-foreground ring-2 ring-offset-2 outline-hidden;
+}
+
+@layer components {
+    dialog[data-modal='search'] [data-flux-command] {
+        @apply rounded-none border-0 shadow-none;
+    }
+
+    dialog[data-modal='search'] [data-flux-command-items] {
+        padding: 0;
+    }
+
+    dialog[data-modal='search'] [data-flux-command-items] > [data-flux-command-item] {
+        @apply h-auto rounded-none p-0;
+    }
 }
 
 /* \[:where(&)\]:size-4 {

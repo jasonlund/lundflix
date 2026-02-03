@@ -4,18 +4,33 @@ use App\Models\Movie;
 use App\Models\Show;
 use Livewire\Livewire;
 
-it('navigates to show page when show result is selected', function () {
-    $show = Show::factory()->create();
+it('displays show results in search', function () {
+    $show = Show::factory()->create(['name' => 'Breaking Bad']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'show', $show->id)
-        ->assertRedirect(route('shows.show', $show));
+        ->set('query', 'Breaking')
+        ->assertSee('Breaking Bad')
+        ->assertSee(route('shows.show', $show));
 });
 
-it('navigates to movie page when movie result is selected', function () {
-    $movie = Movie::factory()->create();
+it('displays movie results in search', function () {
+    $movie = Movie::factory()->create(['title' => 'The Matrix']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'movie', $movie->id)
-        ->assertRedirect(route('movies.show', $movie));
+        ->set('query', 'Matrix')
+        ->assertSee('The Matrix')
+        ->assertSee(route('movies.show', $movie));
+});
+
+it('clears search query when clearSearch is called', function () {
+    Livewire::test('media-search')
+        ->set('query', 'test query')
+        ->assertSet('query', 'test query')
+        ->call('clearSearch')
+        ->assertSet('query', '');
+});
+
+it('renders the search modal component', function () {
+    Livewire::test('media-search')
+        ->assertStatus(200);
 });
