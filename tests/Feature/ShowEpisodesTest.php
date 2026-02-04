@@ -82,7 +82,7 @@ it('handles show with no episodes from API', function () {
 
     Livewire::test('shows.episodes', ['show' => $show])
         ->assertSet('error', null)
-        ->assertSee('No episodes available.');
+        ->assertSee(__('lundbergh.empty.episodes'));
 
     Queue::assertNothingPushed();
 });
@@ -115,7 +115,7 @@ it('handles null episodes state gracefully', function () {
 
     Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
         ->set('episodes', null)
-        ->assertSee('No episodes available.');
+        ->assertSee(__('lundbergh.empty.episodes'));
 });
 
 it('does not dispatch job when no episodes returned from API', function () {

@@ -74,9 +74,10 @@ new class extends Component {
 
         <flux:popover class="w-80">
             @if ($itemCount === 0)
-                <div class="p-4 text-center text-zinc-500">
-                    <flux:icon name="shopping-cart" class="mx-auto mb-2 size-8 text-zinc-400" />
-                    <flux:text>Your cart is empty</flux:text>
+                <div class="p-4">
+                    <x-lundbergh-bubble size="sm" :with-margin="false">
+                        {{ __('lundbergh.empty.cart_dropdown') }}
+                    </x-lundbergh-bubble>
                 </div>
             @else
                 <div class="max-h-64 space-y-2 overflow-y-auto p-2">

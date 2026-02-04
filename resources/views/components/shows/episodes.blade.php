@@ -234,7 +234,11 @@ new class extends Component {
                 <flux:callout.text>{{ $error }}</flux:callout.text>
             </flux:callout>
         @else
-            <p>No episodes available.</p>
+            <div class="mt-4">
+                <x-lundbergh-bubble size="sm" :with-margin="false">
+                    {{ __('lundbergh.empty.episodes') }}
+                </x-lundbergh-bubble>
+            </div>
         @endif
     @endforelse
 </div>

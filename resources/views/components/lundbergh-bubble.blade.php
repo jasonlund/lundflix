@@ -3,10 +3,15 @@
     'imageSrc' => Vite::image('lundbergh-head.png'),
     'message' => null,
     'variant' => 'info',
+    'contentTag' => 'p',
+    'withMargin' => true,
+    'bubbleClass' => '',
 ])
 
 @php
 $variant = $variant === 'error' ? 'error' : 'info';
+
+$bubbleClass = is_array($bubbleClass) ? implode(' ', $bubbleClass) : $bubbleClass;
 
 $avatarClasses = match ($variant) {
     'error' => 'size-8 shrink-0 overflow-hidden rounded-full border border-red-200 bg-red-50 shadow-sm ring-1 ring-red-100/70 dark:border-red-500/30 dark:bg-red-950/20 dark:ring-red-500/15',
@@ -19,9 +24,13 @@ $bubbleClasses = match ($variant) {
     'error' => $bubbleBaseClasses.' border-red-200 bg-zinc-50 text-zinc-600 before:border-r-red-200 after:border-r-zinc-50 dark:border-red-500/30 dark:bg-zinc-900 dark:text-zinc-300 dark:before:border-r-red-500/30 dark:after:border-r-zinc-900',
     default => $bubbleBaseClasses.' border-zinc-200 bg-zinc-50 text-zinc-600 before:border-r-zinc-200 after:border-r-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:before:border-r-zinc-700 dark:after:border-r-zinc-900',
 };
+
+$bubbleClasses = trim($bubbleClasses.' '.$bubbleClass);
+
+$wrapperClasses = ($withMargin ? 'mt-3' : 'mt-0').' flex items-start gap-3';
 @endphp
 
-<div {{ $attributes->class('mt-3 flex items-start gap-3') }}>
+<div {{ $attributes->class($wrapperClasses) }}>
     <div class="{{ $avatarClasses }}">
         <img
             src="{{ $imageSrc }}"
@@ -30,6 +39,10 @@ $bubbleClasses = match ($variant) {
         />
     </div>
     <div class="{{ $bubbleClasses }}">
-        <p class="leading-6">{{ $message ?? $slot }}</p>
+        @if ($contentTag === 'div')
+            <div class="leading-6">{{ $message ?? $slot }}</div>
+        @else
+            <p class="leading-6">{{ $message ?? $slot }}</p>
+        @endif
     </div>
 </div>
