@@ -16,7 +16,7 @@ it('shows empty cart message when no items', function () {
         ->test('cart.dropdown')
         ->assertSet('itemCount', 0)
         ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Cart</span>')
-        ->assertSee('Your cart is empty');
+        ->assertSee(__('lundbergh.empty.cart_dropdown'));
 });
 
 it('shows cart count when items present', function () {

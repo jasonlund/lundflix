@@ -7,6 +7,10 @@
         <div
             class="min-h-screen bg-white md:mx-auto md:max-w-screen-md md:border md:border-zinc-800/70 dark:bg-zinc-900"
         >
+            <flux:toast.group>
+                <flux:toast />
+            </flux:toast.group>
+
             <flux:header
                 class="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
             >

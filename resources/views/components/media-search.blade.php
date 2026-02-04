@@ -49,7 +49,11 @@ new class extends Component {
                 closable
             />
             <flux:command.items class="max-h-[60vh] overflow-y-auto">
-                @forelse ($this->results() as $result)
+                <x-slot:empty>
+                    {{ strlen($query) >= 2 ? __('lundbergh.empty.search_no_results') : __('lundbergh.empty.search_prompt') }}
+                </x-slot>
+
+                @foreach ($this->results() as $result)
                     <flux:command.item
                         wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
                         icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
@@ -85,13 +89,7 @@ new class extends Component {
                             </div>
                         </div>
                     </flux:command.item>
-                @empty
-                    @if (strlen($query) >= 2)
-                        <div class="px-4 py-8 text-center text-sm text-zinc-500">No results found</div>
-                    @else
-                        <div class="px-4 py-8 text-center text-sm text-zinc-500">Type to search shows & movies...</div>
-                    @endif
-                @endforelse
+                @endforeach
             </flux:command.items>
         </flux:command>
     </flux:modal>

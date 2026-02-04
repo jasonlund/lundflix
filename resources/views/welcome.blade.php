@@ -121,7 +121,7 @@
                     </ul>
                 </div>
                 <div
-                    class="relative -mb-px aspect-[335/376] w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:-ms-px lg:mb-0 lg:aspect-auto lg:w-[438px] lg:rounded-e-lg! lg:rounded-t-none dark:bg-[#1D0002]"
+                    class="relative -mb-px aspect-[335/376] w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:-ms-px lg:mb-0 lg:aspect-auto lg:w-[438px] lg:rounded-s-none lg:rounded-e-lg dark:bg-[#1D0002]"
                 >
                     {{-- Laravel Logo --}}
                     <svg

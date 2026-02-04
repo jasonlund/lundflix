@@ -137,13 +137,22 @@ new #[Layout('components.layouts.app')] class extends Component {
     @enderror
 
     @if ($this->cartCount === 0)
-        <div class="rounded-lg bg-zinc-800 p-8 text-center">
-            <flux:icon name="shopping-cart" class="mx-auto mb-4 size-12 text-zinc-500" />
-            <flux:heading size="lg">Your cart is empty</flux:heading>
-            <flux:text class="mt-2 text-zinc-400">Search for movies and shows to add to your request.</flux:text>
-            <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="primary" class="mt-4">
-                Browse Content
-            </flux:button>
+        <div class="rounded-lg bg-zinc-800 p-8">
+            <div class="flex justify-center">
+                <x-lundbergh-bubble
+                    :with-margin="false"
+                    class="justify-center"
+                    bubbleClass="text-center"
+                    contentTag="div"
+                >
+                    {{ __('lundbergh.empty.cart_checkout') }}
+                </x-lundbergh-bubble>
+            </div>
+            <div class="mt-4 flex justify-center">
+                <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="primary">
+                    Browse Content
+                </flux:button>
+            </div>
         </div>
     @else
         <div class="space-y-3">
