@@ -42,14 +42,19 @@
     data-flux-skeleton-bubble
     {{ $attributes->class($containerClasses) }}
 >
-    <?php if ($slot->isEmpty()) { ?>
+    <?php if ($slot->isEmpty()) {
+        $loadingMessages = [
+            __('lundbergh.loading.skeleton'),
+            __('lundbergh.loading.please_wait'),
+            __('lundbergh.loading.fetching'),
+        ];
+        $randomMessage = $loadingMessages[array_rand($loadingMessages)];
+    ?>
         <flux:skeleton.group
             class="relative isolate overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[flux-shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent before:opacity-70 dark:before:via-zinc-900/60"
             data-flux-skeleton-text
         >
-            <flux:text class="text-zinc-400/80 dark:text-zinc-500/70">{{ __('lundbergh.loading.skeleton') }}</flux:text>
-            <flux:text class="text-zinc-400/80 dark:text-zinc-500/70">{{ __('lundbergh.loading.please_wait') }}</flux:text>
-            <flux:text class="text-zinc-400/80 dark:text-zinc-500/70">{{ __('lundbergh.loading.fetching') }}</flux:text>
+            <flux:text class="text-zinc-400/80 dark:text-zinc-500/70">{{ $randomMessage }}</flux:text>
         </flux:skeleton.group>
     <?php } else { ?>
         {{ $slot }}

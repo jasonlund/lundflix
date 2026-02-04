@@ -9,7 +9,9 @@ Route::get('/', function () {
     return view('dashboard');
 })->middleware('auth')->name('home');
 
-Route::livewire('/demo', 'demo')->middleware('auth')->name('demo');
+if (app()->environment(['local', 'staging', 'testing'])) {
+    Route::livewire('/demo', 'demo')->middleware('auth')->name('demo');
+}
 
 Route::livewire('/shows/{show}', 'shows.show')->middleware('auth')->name('shows.show');
 Route::livewire('/movies/{movie}', 'movies.show')->middleware('auth')->name('movies.show');

@@ -11,8 +11,6 @@
 @php
 $variant = $variant === 'error' ? 'error' : 'info';
 
-$bubbleClass = is_array($bubbleClass) ? implode(' ', $bubbleClass) : $bubbleClass;
-
 $avatarClasses = match ($variant) {
     'error' => 'size-8 shrink-0 overflow-hidden rounded-full border border-red-200 bg-red-50 shadow-sm ring-1 ring-red-100/70 dark:border-red-500/30 dark:bg-red-950/20 dark:ring-red-500/15',
     default => 'size-8 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/60',
