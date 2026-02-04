@@ -142,3 +142,124 @@ it('returns null when no english or null language images exist', function () {
 
     expect($best)->toBeNull();
 });
+
+it('fetches latest movies since timestamp', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/latest*' => Http::response([
+            ['imdb_id' => 'tt0111161'],
+            ['imdb_id' => 'tt0068646'],
+            ['imdb_id' => 'tt0071562'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestMovies(1704067200);
+
+    expect($ids)
+        ->toBeArray()
+        ->toHaveCount(3)
+        ->toContain('tt0111161', 'tt0068646', 'tt0071562');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'date=1704067200'));
+});
+
+it('fetches latest movies without timestamp', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/latest' => Http::response([
+            ['imdb_id' => 'tt0111161'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestMovies();
+
+    expect($ids)->toHaveCount(1);
+
+    Http::assertSent(fn ($request) => ! str_contains($request->url(), 'date='));
+});
+
+it('returns empty array when latest movies fails', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/latest*' => Http::response([], 500),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestMovies();
+
+    expect($ids)->toBeArray()->toBeEmpty();
+});
+
+it('filters out null imdb ids from latest movies', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/latest*' => Http::response([
+            ['imdb_id' => 'tt0111161'],
+            ['imdb_id' => null],
+            ['imdb_id' => 'tt0068646'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestMovies();
+
+    expect($ids)->toHaveCount(2)->not->toContain(null);
+});
+
+it('fetches latest shows since timestamp', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/tv/latest*' => Http::response([
+            ['thetvdb_id' => '264492'],
+            ['thetvdb_id' => '121361'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestShows(1704067200);
+
+    expect($ids)
+        ->toBeArray()
+        ->toHaveCount(2)
+        ->toContain(264492, 121361);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'date=1704067200'));
+});
+
+it('fetches latest shows without timestamp', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/tv/latest' => Http::response([
+            ['thetvdb_id' => '264492'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestShows();
+
+    expect($ids)->toHaveCount(1);
+
+    Http::assertSent(fn ($request) => ! str_contains($request->url(), 'date='));
+});
+
+it('returns empty array when latest shows fails', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/tv/latest*' => Http::response([], 500),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestShows();
+
+    expect($ids)->toBeArray()->toBeEmpty();
+});
+
+it('filters out null tvdb ids from latest shows', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/tv/latest*' => Http::response([
+            ['thetvdb_id' => '264492'],
+            ['thetvdb_id' => null],
+            ['thetvdb_id' => '121361'],
+        ]),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestShows();
+
+    expect($ids)->toHaveCount(2)->not->toContain(null);
+});

@@ -22,7 +22,7 @@ it('shows empty cart message when no items', function () {
     $this->actingAs($user)
         ->get(route('cart.checkout'))
         ->assertSeeLivewire('cart.checkout')
-        ->assertSee('Your cart is empty');
+        ->assertSee(__('lundbergh.empty.cart_checkout'));
 });
 
 it('displays cart items', function () {

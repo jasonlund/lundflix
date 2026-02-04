@@ -50,6 +50,53 @@ class FanartTVService
     }
 
     /**
+     * Get recently updated movies from fanart.tv.
+     * Returns a list of IMDB IDs that have new/updated artwork.
+     *
+     * @param  int|null  $since  Unix timestamp to get updates since (null = last 2-3 days)
+     * @return array<int, string>
+     */
+    public function latestMovies(?int $since = null): array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL.'/movies/latest', $since ? ['date' => $since] : []);
+
+        if ($response->failed()) {
+            return [];
+        }
+
+        return collect($response->json())
+            ->pluck('imdb_id')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Get recently updated TV shows from fanart.tv.
+     * Returns a list of TVDB IDs that have new/updated artwork.
+     *
+     * @param  int|null  $since  Unix timestamp to get updates since (null = last 2-3 days)
+     * @return array<int, int>
+     */
+    public function latestShows(?int $since = null): array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL.'/tv/latest', $since ? ['date' => $since] : []);
+
+        if ($response->failed()) {
+            return [];
+        }
+
+        return collect($response->json())
+            ->pluck('thetvdb_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Find the best image from a list of images.
      * Prefers English or language-neutral images with the most likes.
      *

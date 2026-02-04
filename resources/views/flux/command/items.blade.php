@@ -11,5 +11,9 @@ $classes = Flux::classes()
 <ui-options {{ $attributes->class($classes) }} data-flux-command-items>
     {{ $slot }}
 
-    <flux:command.empty>{!! __('No results found') !!}</flux:command.empty>
+    @if (isset($empty))
+        <flux:command.empty>{!! $empty !!}</flux:command.empty>
+    @else
+        <flux:command.empty>{{ __('lundbergh.empty.search_no_results') }}</flux:command.empty>
+    @endif
 </ui-options>

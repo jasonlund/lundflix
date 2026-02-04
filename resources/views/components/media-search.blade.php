@@ -140,7 +140,11 @@ new class extends Component {
             <flux:command.items
                 class="min-h-0 flex-1 overflow-y-auto bg-white/75 p-0 backdrop-blur-sm dark:bg-zinc-900/75 divide-y divide-zinc-200/70 dark:divide-zinc-700/70"
             >
-                @forelse ($this->results() as $result)
+                <x-slot:empty>
+                    {{ strlen($query) >= 2 ? __('lundbergh.empty.search_no_results') : __('lundbergh.empty.search_prompt') }}
+                </x-slot>
+
+                @foreach ($this->results() as $result)
                     <flux:command.item
                         as="a"
                         href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
@@ -237,13 +241,7 @@ new class extends Component {
                             </div>
                         </div>
                     </flux:command.item>
-                @empty
-                    @if (strlen($query) >= 2)
-                        <div class="px-4 py-8 text-center text-sm text-zinc-500">No results found</div>
-                    @else
-                        <div class="px-4 py-8 text-center text-sm text-zinc-500">Type to search shows & movies...</div>
-                    @endif
-                @endforelse
+                @endforeach
             </flux:command.items>
         </flux:command>
     </flux:modal>

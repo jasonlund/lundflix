@@ -12,18 +12,13 @@ class TVMazeService
 
     /**
      * Get a paginated list of all shows.
-     * Returns null when no more pages exist (404).
      *
-     * @return Collection<int, array>|null
+     * @return Collection<int, array>
      */
-    public function shows(int $page = 0): ?Collection
+    public function shows(int $page = 0): Collection
     {
         $response = $this->client()
             ->get(self::BASE_URL.'/shows', ['page' => $page]);
-
-        if ($response->notFound()) {
-            return null;
-        }
 
         $response->throw();
 
@@ -32,18 +27,13 @@ class TVMazeService
 
     /**
      * Get all episodes for a show.
-     * Returns null if the show doesn't exist (404).
      *
-     * @return array<int, array>|null
+     * @return array<int, array>
      */
-    public function episodes(int $showId): ?array
+    public function episodes(int $showId): array
     {
         $response = $this->client()
             ->get(self::BASE_URL."/shows/{$showId}/episodes", ['specials' => 1]);
-
-        if ($response->notFound()) {
-            return null;
-        }
 
         $response->throw();
 
@@ -52,19 +42,47 @@ class TVMazeService
 
     /**
      * Get the full schedule of all future episodes globally.
-     * Returns null on failure.
      *
-     * @return array<int, array>|null
+     * @return array<int, array>
      */
-    public function fullSchedule(): ?array
+    public function fullSchedule(): array
     {
         $response = $this->client()
             ->timeout(60)
             ->get(self::BASE_URL.'/schedule/full');
 
-        if ($response->failed()) {
-            return null;
-        }
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * Get a single show by ID.
+     *
+     * @return array<string, mixed>
+     */
+    public function show(int $id): array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL."/shows/{$id}");
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * Get recently updated show IDs with their update timestamps.
+     *
+     * @param  string  $since  Time period: 'day', 'week', or 'month'
+     * @return array<int, int> Map of show ID => Unix timestamp
+     */
+    public function showUpdates(string $since = 'day'): array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL.'/updates/shows', ['since' => $since]);
+
+        $response->throw();
 
         return $response->json();
     }
