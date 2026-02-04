@@ -51,7 +51,7 @@ new class extends Component {
             <flux:command.items class="max-h-[60vh] overflow-y-auto">
                 <x-slot:empty>
                     {{ strlen($query) >= 2 ? __('lundbergh.empty.search_no_results') : __('lundbergh.empty.search_prompt') }}
-                </x-slot:empty>
+                </x-slot>
 
                 @foreach ($this->results() as $result)
                     <flux:command.item

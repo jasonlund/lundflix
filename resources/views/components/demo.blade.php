@@ -65,9 +65,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             <div class="space-y-6">
                 <div>
                     <flux:heading size="lg">Lundbergh confirmation</flux:heading>
-                    <flux:text class="mt-2">
-                        Lundbergh wants to make sure you are ready to proceed.
-                    </flux:text>
+                    <flux:text class="mt-2">Lundbergh wants to make sure you are ready to proceed.</flux:text>
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2">
                     <flux:modal.close>
