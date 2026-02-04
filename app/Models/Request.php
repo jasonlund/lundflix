@@ -74,4 +74,89 @@ class Request extends Model
     {
         return $this->hasMany(RequestItem::class);
     }
+
+    public function markItemsAs(
+        array $itemIds,
+        RequestItemStatus $status,
+        ?int $userId = null
+    ): int {
+        $updates = ['status' => $status];
+
+        // Only track user/time for final statuses
+        if (in_array($status, [
+            RequestItemStatus::Fulfilled,
+            RequestItemStatus::Rejected,
+            RequestItemStatus::NotFound,
+        ])) {
+            $updates['actioned_by'] = $userId ?? auth()->id();
+            $updates['actioned_at'] = now();
+        } else {
+            // Pending status clears tracking
+            $updates['actioned_by'] = null;
+            $updates['actioned_at'] = null;
+        }
+
+        $count = $this->items()
+            ->whereIn('id', $itemIds)
+            ->update($updates);
+
+        $this->refresh();
+
+        return $count;
+    }
+
+    public function markItemsFulfilled(array $itemIds, ?int $userId = null): int
+    {
+        return $this->markItemsAs($itemIds, RequestItemStatus::Fulfilled, $userId);
+    }
+
+    public function markItemsRejected(array $itemIds, ?int $userId = null): int
+    {
+        return $this->markItemsAs($itemIds, RequestItemStatus::Rejected, $userId);
+    }
+
+    public function markItemsNotFound(array $itemIds, ?int $userId = null): int
+    {
+        return $this->markItemsAs($itemIds, RequestItemStatus::NotFound, $userId);
+    }
+
+    public function markItemsPending(array $itemIds): int
+    {
+        return $this->markItemsAs($itemIds, RequestItemStatus::Pending);
+    }
+
+    public function markAllItemsFulfilled(?int $userId = null): int
+    {
+        return $this->markItemsAs(
+            $this->items->pluck('id')->toArray(),
+            RequestItemStatus::Fulfilled,
+            $userId
+        );
+    }
+
+    public function markAllItemsRejected(?int $userId = null): int
+    {
+        return $this->markItemsAs(
+            $this->items->pluck('id')->toArray(),
+            RequestItemStatus::Rejected,
+            $userId
+        );
+    }
+
+    public function markAllItemsNotFound(?int $userId = null): int
+    {
+        return $this->markItemsAs(
+            $this->items->pluck('id')->toArray(),
+            RequestItemStatus::NotFound,
+            $userId
+        );
+    }
+
+    public function markAllItemsPending(): int
+    {
+        return $this->markItemsAs(
+            $this->items->pluck('id')->toArray(),
+            RequestItemStatus::Pending
+        );
+    }
 }

@@ -2,61 +2,6 @@
 
 use App\Enums\RequestItemStatus;
 use App\Models\RequestItem;
-use App\Models\User;
-
-it('marks item as fulfilled with user tracking', function () {
-    $user = User::factory()->create();
-    $item = RequestItem::factory()->create();
-
-    $item->markFulfilled($user->id);
-
-    expect($item->status)->toBe(RequestItemStatus::Fulfilled);
-    expect($item->actioned_by)->toBe($user->id);
-    expect($item->actionedBy->id)->toBe($user->id);
-    expect($item->actioned_at)->not->toBeNull();
-});
-
-it('marks item as fulfilled using authenticated user when no user provided', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
-
-    $item = RequestItem::factory()->create();
-    $item->markFulfilled();
-
-    expect($item->status)->toBe(RequestItemStatus::Fulfilled);
-    expect($item->actioned_by)->toBe($user->id);
-    expect($item->actioned_at)->not->toBeNull();
-});
-
-it('marks item as rejected', function () {
-    $item = RequestItem::factory()->fulfilled()->create();
-
-    $item->markRejected();
-
-    expect($item->status)->toBe(RequestItemStatus::Rejected);
-    expect($item->actioned_by)->toBeNull();
-    expect($item->actioned_at)->toBeNull();
-});
-
-it('marks item as not found', function () {
-    $item = RequestItem::factory()->fulfilled()->create();
-
-    $item->markNotFound();
-
-    expect($item->status)->toBe(RequestItemStatus::NotFound);
-    expect($item->actioned_by)->toBeNull();
-    expect($item->actioned_at)->toBeNull();
-});
-
-it('marks item as pending', function () {
-    $item = RequestItem::factory()->fulfilled()->create();
-
-    $item->markPending();
-
-    expect($item->status)->toBe(RequestItemStatus::Pending);
-    expect($item->actioned_by)->toBeNull();
-    expect($item->actioned_at)->toBeNull();
-});
 
 it('scopes fulfilled items', function () {
     RequestItem::factory()->count(2)->fulfilled()->create();

@@ -38,42 +38,6 @@ class RequestItem extends Model
         return $this->belongsTo(User::class, 'actioned_by');
     }
 
-    public function markFulfilled(?int $userId = null): bool
-    {
-        return $this->update([
-            'status' => RequestItemStatus::Fulfilled,
-            'actioned_by' => $userId ?? auth()->id(),
-            'actioned_at' => now(),
-        ]);
-    }
-
-    public function markRejected(): bool
-    {
-        return $this->update([
-            'status' => RequestItemStatus::Rejected,
-            'actioned_by' => null,
-            'actioned_at' => null,
-        ]);
-    }
-
-    public function markNotFound(): bool
-    {
-        return $this->update([
-            'status' => RequestItemStatus::NotFound,
-            'actioned_by' => null,
-            'actioned_at' => null,
-        ]);
-    }
-
-    public function markPending(): bool
-    {
-        return $this->update([
-            'status' => RequestItemStatus::Pending,
-            'actioned_by' => null,
-            'actioned_at' => null,
-        ]);
-    }
-
     public function scopeFulfilled($query)
     {
         return $query->where('status', RequestItemStatus::Fulfilled);
