@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Requests\Tables;
 
+use App\Enums\RequestItemStatus;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\RequestItem;
@@ -42,10 +43,44 @@ class RequestItemsTable
 
                         return 'Unknown';
                     }),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn (RequestItemStatus $state): string => match ($state) {
+                        RequestItemStatus::Pending => 'Pending',
+                        RequestItemStatus::Fulfilled => 'Fulfilled',
+                        RequestItemStatus::Rejected => 'Rejected',
+                        RequestItemStatus::NotFound => 'Not Found',
+                    })
+                    ->color(fn (RequestItemStatus $state): string => match ($state) {
+                        RequestItemStatus::Pending => 'gray',
+                        RequestItemStatus::Fulfilled => 'success',
+                        RequestItemStatus::Rejected => 'danger',
+                        RequestItemStatus::NotFound => 'warning',
+                    })
+                    ->sortable(),
+                TextColumn::make('actionedBy.name')
+                    ->label('Actioned By')
+                    ->placeholder('—')
+                    ->sortable(),
+                TextColumn::make('actioned_at')
+                    ->label('Actioned At')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
             ])
+            ->checkIfRecordIsSelectableUsing(function (RequestItem $record): bool {
+                $user = auth()->user();
+
+                if (! $user) {
+                    return false;
+                }
+
+                return $user->can('update', [$record, RequestItemStatus::Fulfilled]);
+            })
             ->defaultSort('created_at', 'desc');
     }
 }
