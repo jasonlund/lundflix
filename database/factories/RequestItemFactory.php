@@ -78,24 +78,24 @@ class RequestItemFactory extends Factory
     /**
      * Indicate that the request item has been rejected.
      */
-    public function rejected(): static
+    public function rejected(?int $userId = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => RequestItemStatus::Rejected,
-            'actioned_by' => null,
-            'actioned_at' => null,
+            'actioned_by' => $userId ?? User::factory(),
+            'actioned_at' => now(),
         ]);
     }
 
     /**
      * Indicate that the request item was not found.
      */
-    public function notFound(): static
+    public function notFound(?int $userId = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => RequestItemStatus::NotFound,
-            'actioned_by' => null,
-            'actioned_at' => null,
+            'actioned_by' => $userId ?? User::factory(),
+            'actioned_at' => now(),
         ]);
     }
 }
