@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\RequestItemStatus;
 use App\Models\RequestItem;
 use App\Models\User;
 
@@ -34,9 +35,21 @@ class RequestItemPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, RequestItem $requestItem): bool
+    public function update(User $user, RequestItem $requestItem, ?RequestItemStatus $newStatus = null): bool
     {
-        return false;
+        if ($user->plex_token === config('services.plex.seed_token')) {
+            return true;
+        }
+
+        if ($newStatus === RequestItemStatus::Pending) {
+            return $requestItem->actioned_by === $user->id;
+        }
+
+        if ($requestItem->actioned_by === null) {
+            return true;
+        }
+
+        return $requestItem->actioned_by === $user->id;
     }
 
     /**
