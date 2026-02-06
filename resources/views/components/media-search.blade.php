@@ -18,17 +18,6 @@ new class extends Component {
             return collect();
         }
 
-        $defaultShowLogoUrl = route('art', [
-            'mediable' => 'show',
-            'id' => 171,
-            'type' => TvArtwork::HdClearLogo->value,
-        ]);
-        $defaultMovieLogoUrl = route('art', [
-            'mediable' => 'movie',
-            'id' => 75506,
-            'type' => MovieArtwork::HdClearLogo->value,
-        ]);
-
         return app(SearchService::class)
             ->search($this->query)
             ->take(10)
@@ -38,17 +27,17 @@ new class extends Component {
                 return [
                     'type' => $isShow ? 'show' : 'movie',
                     'id' => $item->id,
-                    'title' => $item instanceof Show ? $item->name : $item->title,
+                    'title' => $isShow ? $item->name : $item->title,
                     'yearLabel' => $this->yearLabelFor($item),
-                    'status' => $item instanceof Show ? $item->status : null,
+                    'status' => $isShow ? $item->status : null,
                     'runtime' => $this->runtimeLabelFor($item),
                     'genres' => $item->genres ?? [],
-                    'network' => $item instanceof Show ? $this->networkLabelFor($item) : null,
-                    'icon' => $item instanceof Show ? 'tv' : 'film',
-                    'posterUrl' => $item instanceof Show ? $defaultShowLogoUrl : $defaultMovieLogoUrl,
-                    'model' => $item instanceof Show ? null : $item,
-                ],
-            );
+                    'network' => $isShow ? $this->networkLabelFor($item) : null,
+                    'icon' => $isShow ? 'tv' : 'film',
+                    'posterUrl' => $item->artUrl($isShow ? TvArtwork::HdClearLogo->value : MovieArtwork::HdClearLogo->value),
+                    'model' => $isShow ? null : $item,
+                ];
+            });
     }
 
     private function yearLabelFor(Show|Movie $item): ?string
