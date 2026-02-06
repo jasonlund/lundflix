@@ -1,11 +1,12 @@
 <?php
 
-use App\Jobs\StoreShowEpisodes;
+use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -39,23 +40,50 @@ new class extends Component {
     public function mount(?Collection $episodes = null): void
     {
         if ($episodes !== null && $episodes->isNotEmpty()) {
-            $this->episodes = $episodes;
-        } else {
-            $tvMaze = app(TVMazeService::class);
+            $this->episodes = $episodes->map(fn ($ep) => is_array($ep) ? $ep : [
+                'id' => $ep->id,
+                'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
+                'season' => $ep->season,
+                'number' => $ep->number,
+                'name' => $ep->name,
+                'type' => $ep->type ?? 'regular',
+                'airdate' => $ep->airdate?->format('Y-m-d'),
+            ]);
 
-            try {
-                $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
-            } catch (RequestException $e) {
-                $this->error = $e->response->status() === 404 ? null : 'Failed to load episodes from TVMaze.';
-                $apiEpisodes = [];
-            }
-
-            if (! empty($apiEpisodes)) {
-                StoreShowEpisodes::dispatch($this->show, $apiEpisodes);
-            }
-
-            $this->episodes = collect($apiEpisodes);
+            return;
         }
+
+        $cacheKey = "tvmaze:episodes-failure:{$this->show->tvmaze_id}";
+
+        if (Cache::has($cacheKey)) {
+            $this->error = __('lundbergh.error.episodes_backoff');
+            $this->episodes = collect();
+
+            return;
+        }
+
+        $tvMaze = app(TVMazeService::class);
+
+        try {
+            $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
+        } catch (RequestException $e) {
+            if ($e->response->status() === 404) {
+                $this->error = null;
+            } else {
+                $this->error = __('lundbergh.error.episodes_backoff');
+                Cache::put($cacheKey, true, now()->addHour());
+            }
+
+            $this->episodes = collect();
+
+            return;
+        }
+
+        if (! empty($apiEpisodes)) {
+            app(UpsertEpisodes::class)->fromApi($this->show, $apiEpisodes);
+        }
+
+        $this->episodes = collect($apiEpisodes);
     }
 
     public function dehydrate(): void
@@ -230,7 +258,6 @@ new class extends Component {
     @empty
         @if ($error)
             <flux:callout variant="danger" class="mt-4">
-                <flux:callout.heading>Error</flux:callout.heading>
                 <flux:callout.text>{{ $error }}</flux:callout.text>
             </flux:callout>
         @else
