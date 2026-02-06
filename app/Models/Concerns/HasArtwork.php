@@ -5,6 +5,7 @@ namespace App\Models\Concerns;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Cache;
 
+/** @property string|int|null $artwork_external_id */
 trait HasArtwork
 {
     public function artUrl(string $type, bool $preview = false): ?string
