@@ -4,7 +4,6 @@ use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 it('can activate a media item', function () {
     $movie = Movie::factory()->create();
@@ -160,13 +159,8 @@ it('treats all seasons as separate from specific seasons', function () {
         ->and($season1Poster->fresh()->is_active)->toBeTrue();
 });
 
-it('downloads and stores image when activating media without path', function () {
+it('activates media without downloading when path is missing', function () {
     Http::preventStrayRequests();
-    Storage::fake();
-
-    Http::fake([
-        'assets.fanart.tv/*' => Http::response('fake-image-content'),
-    ]);
 
     $movie = Movie::factory()->create();
     $media = Media::factory()->for($movie, 'mediable')->create([
@@ -179,22 +173,16 @@ it('downloads and stores image when activating media without path', function () 
 
     $media->activate();
 
-    $expectedPath = "fanart/movie/{$movie->id}/movieposter/12345.jpg";
-
-    expect($media->fresh()->path)->toBe($expectedPath)
+    expect($media->fresh()->path)->toBeNull()
         ->and($media->fresh()->is_active)->toBeTrue();
-
-    Storage::assertExists($expectedPath);
+    Http::assertNothingSent();
 });
 
-it('does not re-download image when activating media with existing path', function () {
+it('keeps existing path when activating media with a stored path', function () {
     Http::preventStrayRequests();
-    Storage::fake();
 
     $movie = Movie::factory()->create();
     $existingPath = "fanart/movie/{$movie->id}/movieposter/12345.jpg";
-
-    Storage::put($existingPath, 'existing-content');
 
     $media = Media::factory()->for($movie, 'mediable')->create([
         'fanart_id' => '12345',

@@ -1,6 +1,9 @@
 <?php
 
 use App\Services\FanartTVService;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -178,7 +181,9 @@ it('fetches latest movies without timestamp', function () {
     Http::assertSent(fn ($request) => ! str_contains($request->url(), 'date='));
 });
 
-it('returns empty array when latest movies fails', function () {
+it('reports exception and returns empty array when latest movies fails', function () {
+    Exceptions::fake();
+
     Http::fake([
         'webservice.fanart.tv/v3/movies/latest*' => Http::response([], 500),
     ]);
@@ -187,6 +192,7 @@ it('returns empty array when latest movies fails', function () {
     $ids = $service->latestMovies();
 
     expect($ids)->toBeArray()->toBeEmpty();
+    Exceptions::assertReported(RequestException::class);
 });
 
 it('filters out null imdb ids from latest movies', function () {
@@ -238,7 +244,9 @@ it('fetches latest shows without timestamp', function () {
     Http::assertSent(fn ($request) => ! str_contains($request->url(), 'date='));
 });
 
-it('returns empty array when latest shows fails', function () {
+it('reports exception and returns empty array when latest shows fails', function () {
+    Exceptions::fake();
+
     Http::fake([
         'webservice.fanart.tv/v3/tv/latest*' => Http::response([], 500),
     ]);
@@ -247,6 +255,7 @@ it('returns empty array when latest shows fails', function () {
     $ids = $service->latestShows();
 
     expect($ids)->toBeArray()->toBeEmpty();
+    Exceptions::assertReported(RequestException::class);
 });
 
 it('filters out null tvdb ids from latest shows', function () {
@@ -262,4 +271,18 @@ it('filters out null tvdb ids from latest shows', function () {
     $ids = $service->latestShows();
 
     expect($ids)->toHaveCount(2)->not->toContain(null);
+});
+
+it('reports connection exception and returns empty array when latest movies times out', function () {
+    Exceptions::fake();
+
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/latest*' => fn () => throw new ConnectionException('Connection timed out'),
+    ]);
+
+    $service = new FanartTVService;
+    $ids = $service->latestMovies();
+
+    expect($ids)->toBeArray()->toBeEmpty();
+    Exceptions::assertReported(ConnectionException::class);
 });

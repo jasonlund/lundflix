@@ -77,7 +77,7 @@ class MediaRelationManager extends RelationManager
                             return;
                         }
 
-                        StoreFanart::dispatchSync($owner, $response);
+                        StoreFanart::dispatchSync($owner);
 
                         $this->dispatch('$refresh')->self();
 

@@ -118,14 +118,14 @@ describe('art helpers', function () {
     it('returns null art url when missing thetvdb id', function () {
         $show = Show::factory()->create(['thetvdb_id' => null]);
 
-        expect($show->artUrl('showbackground'))->toBeNull();
+        expect($show->artUrl('background'))->toBeNull();
     });
 
     it('builds an art url when thetvdb id is present', function () {
         $show = Show::factory()->create(['thetvdb_id' => 123456]);
 
-        expect($show->artUrl('hdtvlogo'))
-            ->toBe(route('art', ['mediable' => 'show', 'id' => $show->id, 'type' => 'hdtvlogo']));
+        expect($show->artUrl('logo'))
+            ->toBe(route('art', ['mediable' => 'show', 'id' => $show->id, 'type' => 'logo']));
     });
 
     it('reports whether art can be fetched', function () {
