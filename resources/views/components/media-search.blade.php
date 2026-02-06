@@ -18,16 +18,19 @@ new class extends Component {
         return app(SearchService::class)
             ->search($this->query)
             ->take(10)
-            ->map(
-                fn ($item) => [
-                    'type' => $item instanceof Show ? 'show' : 'movie',
+            ->map(function (Movie|Show $item): array {
+                $isShow = $item instanceof Show;
+
+                return [
+                    'type' => $isShow ? 'show' : 'movie',
                     'id' => $item->id,
-                    'title' => $item instanceof Show ? $item->name : $item->title,
-                    'year' => $item instanceof Show ? $item->premiered?->year : $item->year,
+                    'title' => $isShow ? $item->name : $item->title,
+                    'year' => $isShow ? $item->premiered?->year : $item->year,
                     'genres' => $item->genres ? implode(', ', $item->genres) : null,
-                    'model' => $item instanceof Show ? null : $item,
-                ],
-            );
+                    'poster_url' => $item->artUrl('poster', true),
+                    'model' => $isShow ? null : $item,
+                ];
+            });
     }
 
     public function selectResult(string $type, int $id): void
@@ -55,37 +58,57 @@ new class extends Component {
 
                 @foreach ($this->results() as $result)
                     <flux:command.item
+                        wire:key="search-result-{{ $result['type'] }}-{{ $result['id'] }}"
                         wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
-                        icon="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
                     >
-                        <div class="flex w-full items-center justify-between gap-2">
-                            <div class="flex min-w-0 flex-col">
-                                <span>
-                                    {{ $result['title'] }}
-                                    @if ($result['year'])
-                                        <span class="text-zinc-400">({{ $result['year'] }})</span>
-                                    @endif
-                                </span>
-                                @if ($result['genres'])
-                                    <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+                        <div class="flex w-full items-center gap-3">
+                            <div class="h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-700">
+                                @if ($result['poster_url'])
+                                    <img
+                                        src="{{ $result['poster_url'] }}"
+                                        alt="{{ $result['title'] }} poster"
+                                        class="h-full w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                @else
+                                    <div class="flex h-full w-full items-center justify-center text-zinc-500">
+                                        <flux:icon
+                                            name="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
+                                            class="size-5"
+                                        />
+                                    </div>
                                 @endif
                             </div>
-                            <div @click.stop class="flex shrink-0 gap-1">
-                                @if ($result['type'] === 'movie')
-                                    <livewire:cart.add-movie-button
-                                        :movie="$result['model']"
-                                        :show-text="false"
-                                        :wire:key="'search-cart-'.$result['id']"
-                                    />
-                                @endif
 
-                                <flux:button
-                                    as="a"
-                                    href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
-                                    wire:navigate
-                                    icon="arrow-right"
-                                    size="sm"
-                                />
+                            <div class="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                <div class="flex min-w-0 flex-col">
+                                    <span>
+                                        {{ $result['title'] }}
+                                        @if ($result['year'])
+                                            <span class="text-zinc-400">({{ $result['year'] }})</span>
+                                        @endif
+                                    </span>
+                                    @if ($result['genres'])
+                                        <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+                                    @endif
+                                </div>
+                                <div @click.stop class="flex shrink-0 gap-1">
+                                    @if ($result['type'] === 'movie')
+                                        <livewire:cart.add-movie-button
+                                            :movie="$result['model']"
+                                            :show-text="false"
+                                            :wire:key="'search-cart-'.$result['id']"
+                                        />
+                                    @endif
+
+                                    <flux:button
+                                        as="a"
+                                        href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
+                                        wire:navigate
+                                        icon="arrow-right"
+                                        size="sm"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </flux:command.item>

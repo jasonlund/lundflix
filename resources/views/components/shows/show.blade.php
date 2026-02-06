@@ -69,13 +69,13 @@ new #[Layout('components.layouts.app')] class extends Component {
     #[Computed]
     public function backgroundUrl(): ?string
     {
-        return $this->show->artUrl('showbackground');
+        return $this->show->artUrl('background');
     }
 
     #[Computed]
-    public function clearartUrl(): ?string
+    public function logoUrl(): ?string
     {
-        return $this->show->artUrl('hdtvlogo');
+        return $this->show->artUrl('logo');
     }
 
     /**
@@ -132,9 +132,9 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
             <div class="max-w-4xl">
-                @if ($this->clearartUrl())
+                @if ($this->logoUrl())
                     <img
-                        src="{{ $this->clearartUrl() }}"
+                        src="{{ $this->logoUrl() }}"
                         alt="{{ $show->name }} logo"
                         class="h-12 w-auto max-w-full drop-shadow sm:h-14 md:h-20"
                     />

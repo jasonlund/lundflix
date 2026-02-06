@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Laravel\Scout\Searchable;
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasFactory, Searchable;
+    use HasArtwork, HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -99,20 +100,13 @@ class Show extends Model
         return $this->morphMany(Media::class, 'mediable');
     }
 
-    public function artUrl(string $type): ?string
+    protected function artworkExternalIdValue(): string|int|null
     {
-        if (! $this->canHaveArt()) {
-            return null;
-        }
-
-        return route('art', ['mediable' => 'show', 'id' => $this->id, 'type' => $type]);
+        return $this->thetvdb_id;
     }
 
-    /**
-     * Check if the show has a TheTVDB ID, enabling art to be fetched from FanartTV.
-     */
-    public function canHaveArt(): bool
+    protected function artworkMediableType(): string
     {
-        return $this->thetvdb_id !== null;
+        return 'show';
     }
 }

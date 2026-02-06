@@ -70,7 +70,7 @@ class ShowArtworkRelationManager extends RelationManager
                             return;
                         }
 
-                        StoreFanart::dispatchSync($show, $response);
+                        StoreFanart::dispatchSync($show);
 
                         $this->dispatch('$refresh')->self();
 

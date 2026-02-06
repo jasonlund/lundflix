@@ -3,85 +3,160 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\StoreFanart;
+use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\FanartTVService;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Throwable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Uri;
+use Symfony\Component\HttpFoundation\Response;
 
 class ArtController extends Controller
 {
+    private const MISSING_CACHE_TTL_HOURS = 24 * 7;
+
+    private const ERROR_CACHE_TTL_HOURS = 12;
+
+    private const TYPE_MAP = [
+        'logo' => [
+            'movie' => [
+                \App\Enums\MovieArtwork::HdClearLogo->value,
+                \App\Enums\MovieArtwork::HdClearArt->value,
+                \App\Enums\MovieArtwork::MovieThumbs->value,
+            ],
+            'show' => [
+                \App\Enums\TvArtwork::HdClearLogo->value,
+                \App\Enums\TvArtwork::HdClearArt->value,
+                \App\Enums\TvArtwork::TvThumbs->value,
+            ],
+        ],
+        'poster' => [
+            'movie' => [\App\Enums\MovieArtwork::Poster->value],
+            'show' => [\App\Enums\TvArtwork::Poster->value],
+        ],
+        'background' => [
+            'movie' => [\App\Enums\MovieArtwork::Background->value],
+            'show' => [\App\Enums\TvArtwork::Background->value],
+        ],
+    ];
+
     public function __invoke(
         string $mediable,
         int $id,
         string $type,
         FanartTVService $fanart
     ): Response {
+        $usePreview = request()->boolean('preview');
+        $fanartTypes = self::TYPE_MAP[$type][$mediable] ?? [];
+
+        if ($fanartTypes === []) {
+            abort(404);
+        }
+
         $model = match ($mediable) {
             'movie' => Movie::findOrFail($id),
             'show' => Show::findOrFail($id),
             default => abort(404),
         };
 
-        if ($model instanceof Show && ! $model->thetvdb_id) {
+        if (! $model->canHaveArt()) {
             abort(404);
         }
 
-        $media = $model->media()->where('type', $type)->where('is_active', true)->first();
+        $missingCacheKey = $model->artMissingCacheKey();
+        $missingTypeCacheKey = $model->artMissingTypeCacheKey($type);
+        $media = $this->findActiveMedia($model, $fanartTypes);
 
-        if ($media?->path && Storage::exists($media->path)) {
-            return $this->imageResponse(Storage::get($media->path), $media->path);
+        if ($media?->url) {
+            return redirect()->away($this->resolveFanartUrl($media->url, $usePreview));
         }
 
-        $response = match (true) {
-            $model instanceof Movie => $fanart->movie($model->imdb_id),
-            $model instanceof Show => $fanart->show($model->thetvdb_id),
-        };
-
-        if (! $response || ! isset($response[$type]) || empty($response[$type])) {
+        if (! $model->canFetchArt($type)) {
             abort(404);
         }
-
-        StoreFanart::dispatch($model, $response);
-
-        $bestImage = $fanart->bestImage($response[$type]) ?? $response[$type][0];
-        $imageUrl = $bestImage['url'];
 
         try {
-            $contents = Http::get($imageUrl)->throw()->body();
-        } catch (Throwable $e) {
-            Log::error('Failed to fetch fanart image', [
-                'url' => $imageUrl,
-                'model' => $model::class,
-                'model_id' => $model->id,
-                'exception' => $e->getMessage(),
-            ]);
+            $response = match (true) {
+                $model instanceof Movie => $fanart->movie($model->imdb_id),
+                $model instanceof Show => $fanart->show($model->thetvdb_id),
+            };
+        } catch (\Throwable $e) {
+            report($e);
+            Cache::put($missingCacheKey, true, now()->addHours(self::ERROR_CACHE_TTL_HOURS));
             abort(404);
         }
 
-        return $this->imageResponse($contents, $imageUrl);
+        if (! $response) {
+            Cache::put($missingCacheKey, true, now()->addHours(self::MISSING_CACHE_TTL_HOURS));
+            abort(404);
+        }
+
+        $bestImage = $this->findBestImage($response, $fanartTypes, $fanart);
+
+        if (! $bestImage) {
+            Cache::put($missingTypeCacheKey, true, now()->addHours(self::MISSING_CACHE_TTL_HOURS));
+            abort(404);
+        }
+
+        StoreFanart::dispatch($model);
+        $imageUrl = $bestImage['url'] ?? null;
+
+        if (! $imageUrl) {
+            Cache::put($missingTypeCacheKey, true, now()->addHours(self::MISSING_CACHE_TTL_HOURS));
+            abort(404);
+        }
+
+        return redirect()->away($this->resolveFanartUrl($imageUrl, $usePreview));
     }
 
-    private function imageResponse(string $contents, string $path): Response
+    /**
+     * @param  list<string>  $fanartTypes
+     */
+    private function findActiveMedia(Movie|Show $model, array $fanartTypes): ?Media
     {
-        return response($contents)
-            ->header('Content-Type', $this->getMimeType($path))
-            ->header('Cache-Control', 'private, max-age=604800');
+        $priority = array_flip($fanartTypes);
+
+        return $model->media()
+            ->whereIn('type', $fanartTypes)
+            ->where('is_active', true)
+            ->get()
+            ->sortBy(fn (Media $media): int => $priority[$media->type] ?? PHP_INT_MAX)
+            ->first();
     }
 
-    private function getMimeType(string $path): string
+    /**
+     * @param  array<string, mixed>  $response
+     * @param  list<string>  $fanartTypes
+     * @return array<string, mixed>|null
+     */
+    private function findBestImage(array $response, array $fanartTypes, FanartTVService $fanart): ?array
     {
-        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        foreach ($fanartTypes as $fanartType) {
+            $images = $response[$fanartType] ?? null;
 
-        return match ($extension) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            default => 'image/jpeg',
-        };
+            if (! is_array($images) || $images === []) {
+                continue;
+            }
+
+            return $fanart->bestImage($images) ?? $images[0];
+        }
+
+        return null;
+    }
+
+    private function resolveFanartUrl(string $url, bool $usePreview): string
+    {
+        if (! $usePreview) {
+            return $url;
+        }
+
+        $uri = Uri::of($url);
+        $path = $uri->getUri()->getPath();
+
+        if (! str_contains($path, '/fanart/')) {
+            return $url;
+        }
+
+        return (string) $uri->withPath(str_replace('/fanart/', '/preview/', $path));
     }
 }

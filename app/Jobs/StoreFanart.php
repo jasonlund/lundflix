@@ -9,21 +9,13 @@ use App\Services\FanartTVService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Throwable;
 
 class StoreFanart implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    /**
-     * @param  array<string, mixed>  $response
-     */
     public function __construct(
         public Movie|Show $model,
-        public array $response
     ) {}
 
     public function uniqueId(): string
@@ -33,12 +25,16 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
 
     public function handle(FanartTVService $fanart): void
     {
-        /** @var list<string> $storedPaths */
-        $storedPaths = [];
-        /** @var list<string> $activeIds */
-        $activeIds = [];
-        $modelType = Str::lower(class_basename($this->model));
-        $imageTypes = array_filter($this->response, fn ($value) => is_array($value));
+        $response = match (true) {
+            $this->model instanceof Movie => $fanart->movie($this->model->imdb_id),
+            $this->model instanceof Show => $fanart->show($this->model->thetvdb_id),
+        };
+
+        if (! $response) {
+            return;
+        }
+
+        $imageTypes = array_filter($response, fn ($value) => is_array($value));
 
         // 1. Build records array
         $records = [];
@@ -65,55 +61,43 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
             }
         }
 
-        try {
-            // 2. Find best images per type+season and download them
-            foreach ($imageTypes as $type => $images) {
-                // Group images by season
-                $imagesBySeason = collect($images)->groupBy(fn ($img) => match ($img['season'] ?? null) {
-                    null => 'null',
-                    'all' => '0',
-                    default => (string) $img['season'],
-                });
+        // 2. Find best images per type+season and mark them active
+        $bestIdsByType = [];
+        foreach ($imageTypes as $type => $images) {
+            $imagesBySeason = collect($images)->groupBy(fn ($img) => match ($img['season'] ?? null) {
+                null => 'null',
+                'all' => '0',
+                default => (string) $img['season'],
+            });
 
-                foreach ($imagesBySeason as $seasonKey => $seasonImages) {
-                    $bestImage = $fanart->bestImage($seasonImages->all());
+            foreach ($imagesBySeason as $seasonKey => $seasonImages) {
+                $bestImage = $fanart->bestImage($seasonImages->all());
 
-                    if ($bestImage) {
-                        $contents = Http::get($bestImage['url'])->throw()->body();
-                        $extension = pathinfo((string) parse_url($bestImage['url'], PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-                        $path = "fanart/{$modelType}/{$this->model->id}/{$type}/{$bestImage['id']}.{$extension}";
-
-                        Storage::put($path, $contents);
-                        $storedPaths[] = $path;
-                        $activeIds[] = $bestImage['id'];
-
-                        // Update the record's path
-                        foreach ($records as &$record) {
-                            if ($record['fanart_id'] === $bestImage['id'] && $record['type'] === $type) {
-                                $record['path'] = $path;
-                                $record['is_active'] = true;
-                                break;
-                            }
-                        }
-                    }
+                if ($bestImage) {
+                    $bestIdsByType[$type][$seasonKey] = $bestImage['id'];
                 }
             }
+        }
 
-            // 3. Upsert
-            if (! empty($records)) {
-                Media::upsert(
-                    $records,
-                    ['mediable_type', 'mediable_id', 'fanart_id'],
-                    ['type', 'url', 'path', 'lang', 'likes', 'season', 'disc', 'disc_type', 'is_active']
-                );
-            }
-        } catch (Throwable $e) {
-            // 4. Clean up files on exception
-            foreach ($storedPaths as $path) {
-                Storage::delete($path);
-            }
+        foreach ($records as &$record) {
+            $seasonKey = match ($record['season']) {
+                null => 'null',
+                0 => '0',
+                default => (string) $record['season'],
+            };
 
-            throw $e;
+            if (($bestIdsByType[$record['type']][$seasonKey] ?? null) === $record['fanart_id']) {
+                $record['is_active'] = true;
+            }
+        }
+
+        // 3. Upsert
+        if (! empty($records)) {
+            Media::upsert(
+                $records,
+                ['mediable_type', 'mediable_id', 'fanart_id'],
+                ['type', 'url', 'path', 'lang', 'likes', 'season', 'disc', 'disc_type', 'is_active']
+            );
         }
     }
 }
