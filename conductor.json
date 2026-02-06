@@ -1,7 +1,7 @@
 {
     "scripts": {
         "setup": ".conductor/setup.sh",
-        "run": "npm run dev",
+        "run": "php artisan horizon",
         "teardown": "FOLDER=$(basename $PWD) && herd unsecure \"${FOLDER}.test\" --silent && herd unlink && mysql -uroot -e \"DROP DATABASE IF EXISTS \\`${FOLDER}\\`\""
     }
 }

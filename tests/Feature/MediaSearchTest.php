@@ -64,3 +64,32 @@ it('uses black active styling in search results', function () {
         ->assertSee('data-active:!bg-black')
         ->assertSee('group-data-active/item:text-zinc-400');
 });
+
+it('renders stable keys for search results', function (string $type, callable $factory): void {
+    $model = $factory();
+
+    Livewire::test('media-search')
+        ->set('query', $model->imdb_id)
+        ->assertSeeHtml('wire:key="search-result-'.$type.'-'.$model->id.'"');
+})->with([
+    'show' => ['show', fn (): Show => Show::factory()->create(['imdb_id' => 'tt7000001'])],
+    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt7000002'])],
+]);
+
+it('renders preview poster art for results', function (string $type, callable $factory): void {
+    $model = $factory();
+
+    $expectedUrl = route('art', [
+        'mediable' => $type,
+        'id' => $model->id,
+        'type' => 'poster',
+        'preview' => 1,
+    ]);
+
+    Livewire::test('media-search')
+        ->set('query', $model->imdb_id)
+        ->assertSeeHtml('src="'.$expectedUrl.'"');
+})->with([
+    'show' => ['show', fn (): Show => Show::factory()->create(['imdb_id' => 'tt8000001'])],
+    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt8000002'])],
+]);

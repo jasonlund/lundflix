@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 class FanartTVService
@@ -17,16 +18,20 @@ class FanartTVService
      */
     public function movie(string $imdbId): ?array
     {
-        $response = $this->client()
-            ->get(self::BASE_URL.'/movies/'.$imdbId);
+        try {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/movies/'.$imdbId);
 
-        if ($response->notFound()) {
-            return null;
+            $response->throw();
+
+            return $response->json();
+        } catch (RequestException $e) {
+            if ($e->response->notFound()) {
+                return null;
+            }
+
+            throw $e;
         }
-
-        $response->throw();
-
-        return $response->json();
     }
 
     /**
@@ -37,16 +42,20 @@ class FanartTVService
      */
     public function show(int $tvdbId): ?array
     {
-        $response = $this->client()
-            ->get(self::BASE_URL.'/tv/'.$tvdbId);
+        try {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/tv/'.$tvdbId);
 
-        if ($response->notFound()) {
-            return null;
+            $response->throw();
+
+            return $response->json();
+        } catch (RequestException $e) {
+            if ($e->response->notFound()) {
+                return null;
+            }
+
+            throw $e;
         }
-
-        $response->throw();
-
-        return $response->json();
     }
 
     /**
@@ -58,18 +67,22 @@ class FanartTVService
      */
     public function latestMovies(?int $since = null): array
     {
-        $response = $this->client()
-            ->get(self::BASE_URL.'/movies/latest', $since ? ['date' => $since] : []);
+        try {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/movies/latest', $since ? ['date' => $since] : []);
 
-        if ($response->failed()) {
+            $response->throw();
+
+            return collect($response->json())
+                ->pluck('imdb_id')
+                ->filter()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+
             return [];
         }
-
-        return collect($response->json())
-            ->pluck('imdb_id')
-            ->filter()
-            ->values()
-            ->all();
     }
 
     /**
@@ -81,19 +94,23 @@ class FanartTVService
      */
     public function latestShows(?int $since = null): array
     {
-        $response = $this->client()
-            ->get(self::BASE_URL.'/tv/latest', $since ? ['date' => $since] : []);
+        try {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/tv/latest', $since ? ['date' => $since] : []);
 
-        if ($response->failed()) {
+            $response->throw();
+
+            return collect($response->json())
+                ->pluck('thetvdb_id')
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+
             return [];
         }
-
-        return collect($response->json())
-            ->pluck('thetvdb_id')
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->values()
-            ->all();
     }
 
     /**
@@ -117,6 +134,7 @@ class FanartTVService
             ->withHeaders([
                 'api-key' => config('services.fanart.api_key'),
             ])
-            ->retry(3, 1000, when: fn ($e, $request) => $e->response?->status() === 429, throw: false);
+            ->timeout(15)
+            ->retry(3, 1000, when: fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429);
     }
 }

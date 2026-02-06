@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MediaType;
+use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -11,7 +12,7 @@ use Laravel\Scout\Searchable;
 class Movie extends Model
 {
     /** @use HasFactory<\Database\Factories\MovieFactory> */
-    use HasFactory, Searchable;
+    use HasArtwork, HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -50,5 +51,15 @@ class Movie extends Model
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable');
+    }
+
+    protected function artworkExternalIdValue(): string|int|null
+    {
+        return $this->imdb_id;
+    }
+
+    protected function artworkMediableType(): string
+    {
+        return 'movie';
     }
 }

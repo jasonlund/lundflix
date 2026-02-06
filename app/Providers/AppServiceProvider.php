@@ -35,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         Vite::macro('image', fn (string $asset) => Vite::asset("resources/images/{$asset}"));
+
     }
 }

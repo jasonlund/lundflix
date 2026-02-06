@@ -19,6 +19,7 @@ Route::livewire('/cart/checkout', 'cart.checkout')->middleware('auth')->name('ca
 
 Route::get('/art/{mediable}/{id}/{type}', ArtController::class)
     ->whereIn('mediable', ['movie', 'show'])
+    ->whereIn('type', ['logo', 'poster', 'background'])
     ->middleware('auth')
     ->name('art');
 

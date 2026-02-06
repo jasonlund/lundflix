@@ -32,9 +32,11 @@ new class extends Component {
         return app(SearchService::class)
             ->search($this->query)
             ->take(10)
-            ->map(
-                fn ($item) => [
-                    'type' => $item instanceof Show ? 'show' : 'movie',
+            ->map(function (Movie|Show $item): array {
+                $isShow = $item instanceof Show;
+
+                return [
+                    'type' => $isShow ? 'show' : 'movie',
                     'id' => $item->id,
                     'title' => $item instanceof Show ? $item->name : $item->title,
                     'yearLabel' => $this->yearLabelFor($item),
@@ -146,6 +148,7 @@ new class extends Component {
 
                 @foreach ($this->results() as $result)
                     <flux:command.item
+                        wire:key="search-result-{{ $result['type'] }}-{{ $result['id'] }}"
                         as="a"
                         href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
                         wire:navigate

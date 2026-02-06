@@ -20,13 +20,6 @@ it('dispatches jobs for movies with updated artwork', function () {
             ['imdb_id' => 'tt0111161'],
         ]),
         'webservice.fanart.tv/v3/tv/latest*' => Http::response([]),
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'name' => 'The Shawshank Redemption',
-            'imdb_id' => 'tt0111161',
-            'hdmovielogo' => [
-                ['id' => '12345', 'url' => 'https://assets.fanart.tv/logo.png', 'lang' => 'en', 'likes' => '5'],
-            ],
-        ]),
     ]);
 
     $this->artisan('fanart:sync-updates')
@@ -42,13 +35,6 @@ it('dispatches jobs for shows with updated artwork', function () {
         'webservice.fanart.tv/v3/movies/latest*' => Http::response([]),
         'webservice.fanart.tv/v3/tv/latest*' => Http::response([
             ['thetvdb_id' => '264492'],
-        ]),
-        'webservice.fanart.tv/v3/tv/264492' => Http::response([
-            'name' => 'Under the Dome',
-            'thetvdb_id' => '264492',
-            'tvposter' => [
-                ['id' => '11111', 'url' => 'https://assets.fanart.tv/poster.jpg', 'lang' => 'en', 'likes' => '3'],
-            ],
         ]),
     ]);
 
@@ -116,24 +102,7 @@ it('ignores cached timestamp with --fresh option', function () {
     Http::assertSent(fn ($request) => ! str_contains($request->url(), 'date='));
 });
 
-it('skips processing when artwork fetch returns null', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/latest*' => Http::response([
-            ['imdb_id' => 'tt0111161'],
-        ]),
-        'webservice.fanart.tv/v3/tv/latest*' => Http::response([]),
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([], 404),
-    ]);
-
-    $this->artisan('fanart:sync-updates')
-        ->assertSuccessful();
-
-    Queue::assertNothingPushed();
-});
-
-it('continues processing when individual artwork fetch fails', function () {
+it('dispatches jobs for all matching models', function () {
     $movie1 = Movie::factory()->create(['imdb_id' => 'tt0111161']);
     $movie2 = Movie::factory()->create(['imdb_id' => 'tt0068646']);
 
@@ -143,20 +112,11 @@ it('continues processing when individual artwork fetch fails', function () {
             ['imdb_id' => 'tt0068646'],
         ]),
         'webservice.fanart.tv/v3/tv/latest*' => Http::response([]),
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([], 500),
-        'webservice.fanart.tv/v3/movies/tt0068646' => Http::response([
-            'name' => 'The Godfather',
-            'imdb_id' => 'tt0068646',
-            'hdmovielogo' => [
-                ['id' => '67890', 'url' => 'https://assets.fanart.tv/logo.png', 'lang' => 'en', 'likes' => '10'],
-            ],
-        ]),
     ]);
 
     $this->artisan('fanart:sync-updates')
-        ->assertSuccessful()
-        ->expectsOutputToContain('Failed to fetch artwork for movie tt0111161');
+        ->assertSuccessful();
 
+    Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->is($movie1));
     Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->is($movie2));
-    Queue::assertNotPushed(StoreFanart::class, fn ($job) => $job->model->is($movie1));
 });

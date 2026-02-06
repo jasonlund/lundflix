@@ -19,8 +19,6 @@ class SyncFanartUpdates extends Command
 
     private const CACHE_KEY = 'fanart:last_sync_timestamp';
 
-    private const RATE_LIMIT_DELAY_MS = 250;
-
     public function handle(FanartTVService $fanart): int
     {
         $since = $this->option('fresh') ? null : Cache::get(self::CACHE_KEY);
@@ -55,15 +53,13 @@ class SyncFanartUpdates extends Command
         $progress->start();
 
         foreach ($movies as $movie) {
-            $this->processMovie($fanart, $movie);
+            StoreFanart::dispatch($movie);
             $progress->advance();
-            usleep(self::RATE_LIMIT_DELAY_MS * 1000);
         }
 
         foreach ($shows as $show) {
-            $this->processShow($fanart, $show);
+            StoreFanart::dispatch($show);
             $progress->advance();
-            usleep(self::RATE_LIMIT_DELAY_MS * 1000);
         }
 
         $progress->finish();
@@ -73,31 +69,5 @@ class SyncFanartUpdates extends Command
         $this->info("Sync complete. Processed {$totalToProcess} items.");
 
         return Command::SUCCESS;
-    }
-
-    private function processMovie(FanartTVService $fanart, Movie $movie): void
-    {
-        try {
-            $response = $fanart->movie($movie->imdb_id);
-
-            if ($response !== null) {
-                StoreFanart::dispatch($movie, $response);
-            }
-        } catch (\Throwable $e) {
-            $this->warn("Failed to fetch artwork for movie {$movie->imdb_id}: {$e->getMessage()}");
-        }
-    }
-
-    private function processShow(FanartTVService $fanart, Show $show): void
-    {
-        try {
-            $response = $fanart->show($show->thetvdb_id);
-
-            if ($response !== null) {
-                StoreFanart::dispatch($show, $response);
-            }
-        } catch (\Throwable $e) {
-            $this->warn("Failed to fetch artwork for show {$show->thetvdb_id}: {$e->getMessage()}");
-        }
     }
 }
