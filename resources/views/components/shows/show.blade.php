@@ -3,10 +3,9 @@
 use App\Models\Show;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new class extends Component {
     public Show $show;
 
     #[Computed]
@@ -114,29 +113,25 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         return $label;
     }
+
+    public function render(): mixed
+    {
+        return $this->view()->layout('components.layouts.app', [
+            'backgroundImage' => $this->backgroundUrl(),
+        ]);
+    }
 };
 ?>
 
-<div class="flex flex-col gap-8">
-    <div class="relative aspect-video min-h-56 overflow-hidden bg-zinc-900">
-        @if ($this->backgroundUrl())
-            <img
-                src="{{ $this->backgroundUrl() }}"
-                alt="{{ $show->name }} background"
-                class="absolute inset-0 h-full w-full object-cover"
-            />
-        @endif
-
-        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/95 via-zinc-950/70 to-zinc-950/20"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-zinc-950/75 via-transparent to-transparent"></div>
-
-        <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
-            <div class="max-w-4xl">
+<div class="flex flex-col">
+    <div class="relative h-[16rem] overflow-hidden">
+        <div class="relative flex h-full flex-col gap-4 px-4 py-5">
+            <div>
                 @if ($this->logoUrl())
                     <img
                         src="{{ $this->logoUrl() }}"
                         alt="{{ $show->name }} logo"
-                        class="h-12 w-auto max-w-full drop-shadow sm:h-14 md:h-20"
+                        class="h-20 w-auto max-w-full drop-shadow"
                     />
                 @else
                     <flux:heading size="xl">{{ $show->name }}</flux:heading>
