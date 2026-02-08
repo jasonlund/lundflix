@@ -2,18 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
 
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasArtwork, HasFactory, Searchable;
+    use HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -22,8 +20,11 @@ class Show extends Model
         return [
             'genres' => 'array',
             'schedule' => 'array',
+            'rating' => 'array',
             'network' => 'array',
             'web_channel' => 'array',
+            'externals' => 'array',
+            'image' => 'array',
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',
@@ -53,20 +54,6 @@ class Show extends Model
     }
 
     /**
-     * Retrieve the model for a bound value with eager-loaded episodes.
-     *
-     * @param  mixed  $value
-     * @param  string|null  $field
-     */
-    public function resolveRouteBinding($value, $field = null): ?Model
-    {
-        return $this->query()
-            ->with('episodes')
-            ->where($field ?? $this->getRouteKeyName(), $value)
-            ->first();
-    }
-
-    /**
      * Get the most recent season (currently airing, or most recently completed).
      */
     protected function mostRecentSeason(): Attribute
@@ -93,20 +80,18 @@ class Show extends Model
     }
 
     /**
-     * @return MorphMany<Media, $this>
+     * @return array{value: int, approximate: bool}|null
      */
-    public function media(): MorphMany
+    public function displayRuntime(): ?array
     {
-        return $this->morphMany(Media::class, 'mediable');
-    }
+        if ($this->runtime !== null) {
+            return ['value' => $this->runtime, 'approximate' => false];
+        }
 
-    protected function artworkExternalIdValue(): string|int|null
-    {
-        return $this->thetvdb_id;
-    }
+        if ($this->average_runtime !== null) {
+            return ['value' => $this->average_runtime, 'approximate' => true];
+        }
 
-    protected function artworkMediableType(): string
-    {
-        return 'show';
+        return null;
     }
 }
