@@ -23,6 +23,13 @@ class Movie extends Model
             'runtime' => 'integer',
             'num_votes' => 'integer',
             'genres' => 'array',
+            'tmdb_id' => 'integer',
+            'release_date' => 'date',
+            'digital_release_date' => 'date',
+            'production_companies' => 'array',
+            'spoken_languages' => 'array',
+            'alternative_titles' => 'array',
+            'tmdb_synced_at' => 'datetime',
         ];
     }
 
