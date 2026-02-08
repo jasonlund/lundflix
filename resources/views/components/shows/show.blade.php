@@ -79,25 +79,31 @@ new #[Layout('components.layouts.app')] class extends Component {
     }
 
     /**
-     * @return array{prefix: string, label: string}|null
+     * @return list<array{prefix: string, label: string, logoUrl: string|null}>
      */
     #[Computed]
-    public function networkInfo(): ?array
+    public function networkInfoItems(): array
     {
+        $items = [];
+
         if ($this->show->network) {
             $label = $this->show->network['name'];
             if (isset($this->show->network['country']['name'])) {
                 $label .= " ({$this->show->network['country']['name']})";
             }
 
-            return ['prefix' => 'Network:', 'label' => $label];
+            $items[] = ['prefix' => 'Network:', 'label' => $label, 'logoUrl' => $this->show->networkLogoUrl()];
         }
 
         if ($this->show->web_channel) {
-            return ['prefix' => 'Streaming:', 'label' => $this->show->web_channel['name']];
+            $items[] = [
+                'prefix' => 'Streaming:',
+                'label' => $this->show->web_channel['name'],
+                'logoUrl' => $this->show->streamingLogoUrl(),
+            ];
         }
 
-        return null;
+        return $items;
     }
 
     #[Computed]
@@ -180,16 +186,26 @@ new #[Layout('components.layouts.app')] class extends Component {
                 </div>
             @endif
 
-            @if ($this->networkInfo() || $this->scheduleLabel())
+            @if ($this->networkInfoItems() || $this->scheduleLabel())
                 <div class="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    @if ($this->networkInfo())
-                        <span>
-                            <span class="font-medium text-zinc-200">{{ $this->networkInfo()['prefix'] }}</span>
-                            {{ $this->networkInfo()['label'] }}
-                        </span>
-                    @endif
+                    @foreach ($this->networkInfoItems() as $info)
+                        <span class="flex items-center gap-2">
+                            @if ($info['logoUrl'])
+                                <img
+                                    src="{{ $info['logoUrl'] }}"
+                                    alt="{{ $info['label'] }}"
+                                    class="h-5 w-auto object-contain"
+                                />
+                            @endif
 
-                    @if ($this->networkInfo() && $this->scheduleLabel())
+                            <span>
+                                <span class="font-medium text-zinc-200">{{ $info['prefix'] }}</span>
+                                {{ $info['label'] }}
+                            </span>
+                        </span>
+                    @endforeach
+
+                    @if ($this->networkInfoItems() && $this->scheduleLabel())
                         <span class="text-zinc-600">&middot;</span>
                     @endif
 
