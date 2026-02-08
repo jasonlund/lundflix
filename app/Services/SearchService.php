@@ -12,6 +12,14 @@ use Meilisearch\Contracts\SearchQuery;
 class SearchService
 {
     /**
+     * Determine if a query string is an IMDb ID (e.g. tt1234567).
+     */
+    public static function isImdbId(string $query): bool
+    {
+        return (bool) preg_match('/^tt\d+$/i', $query);
+    }
+
+    /**
      * Search shows and/or movies by query.
      *
      * @param  string  $query  Search term or IMDB ID (tt*)
@@ -25,7 +33,7 @@ class SearchService
             return collect();
         }
 
-        if (preg_match('/^tt\d+$/i', $query)) {
+        if (self::isImdbId($query)) {
             return $this->findByImdbId($query, $type);
         }
 
@@ -37,17 +45,15 @@ class SearchService
         $results = collect();
 
         if ($type === 'all' || $type === 'shows') {
-            $show = Show::where('imdb_id', $imdbId)->first();
-            if ($show) {
-                $results->push($show);
-            }
+            $results = $results->merge(
+                Show::search('')->where('imdb_id', $imdbId)->get()
+            );
         }
 
         if ($type === 'all' || $type === 'movies') {
-            $movie = Movie::where('imdb_id', $imdbId)->first();
-            if ($movie) {
-                $results->push($movie);
-            }
+            $results = $results->merge(
+                Movie::search('')->where('imdb_id', $imdbId)->get()
+            );
         }
 
         return $results;
