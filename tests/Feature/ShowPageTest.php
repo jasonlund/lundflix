@@ -2,7 +2,27 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use Illuminate\Foundation\Vite;
+use Illuminate\Support\Facades\Vite as ViteFacade;
+use Illuminate\Support\HtmlString;
 use Livewire\Livewire;
+
+beforeEach(function () {
+    ViteFacade::clearResolvedInstance();
+
+    $this->swap(Vite::class, new class extends Vite
+    {
+        public function __invoke($entrypoints, $buildDirectory = null): HtmlString
+        {
+            return new HtmlString('');
+        }
+
+        public function asset($asset, $buildDirectory = null): string
+        {
+            return "/{$asset}";
+        }
+    });
+});
 
 it('requires authentication to view show page', function () {
     $show = Show::factory()->create();
@@ -177,4 +197,50 @@ it('shows schedule for to-be-determined shows', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('We 10p');
+});
+
+it('displays network logo for a mapped network', function () {
+    $show = Show::factory()->create([
+        'network' => ['id' => 8, 'name' => 'HBO', 'country' => ['name' => 'United States']],
+        'web_channel' => null,
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSeeHtml('resources/images/logos/networks/hbo-us.png')
+        ->assertSee('HBO');
+});
+
+it('displays streaming logo for a mapped web channel', function () {
+    $show = Show::factory()->create([
+        'network' => null,
+        'web_channel' => ['id' => 1, 'name' => 'Netflix'],
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSeeHtml('resources/images/logos/streaming/netflix.png')
+        ->assertSee('Netflix');
+});
+
+it('displays both network and streaming logos when both exist', function () {
+    $show = Show::factory()->create([
+        'network' => ['id' => 3, 'name' => 'ABC', 'country' => ['name' => 'United States']],
+        'web_channel' => ['id' => 287, 'name' => 'Disney+'],
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSeeHtml('resources/images/logos/networks/abc-us.png')
+        ->assertSeeHtml('resources/images/logos/streaming/disney-plus.png')
+        ->assertSee('Network:')
+        ->assertSee('Streaming:');
+});
+
+it('displays text-only fallback for unmapped network', function () {
+    $show = Show::factory()->create([
+        'network' => ['id' => 99999, 'name' => 'Unknown TV', 'country' => ['name' => 'United States']],
+        'web_channel' => null,
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertDontSeeHtml('resources/images/logos/')
+        ->assertSee('Unknown TV');
 });

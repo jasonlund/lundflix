@@ -66,25 +66,31 @@ new class extends Component {
     }
 
     /**
-     * @return array{prefix: string, label: string}|null
+     * @return list<array{prefix: string, label: string, logoUrl: string|null}>
      */
     #[Computed]
-    public function networkInfo(): ?array
+    public function networkInfoItems(): array
     {
+        $items = [];
+
         if ($this->show->network) {
             $label = $this->show->network['name'];
             if (isset($this->show->network['country']['name'])) {
                 $label .= " ({$this->show->network['country']['name']})";
             }
 
-            return ['prefix' => 'Network:', 'label' => $label];
+            $items[] = ['prefix' => 'Network:', 'label' => $label, 'logoUrl' => $this->show->networkLogoUrl()];
         }
 
         if ($this->show->web_channel) {
-            return ['prefix' => 'Streaming:', 'label' => $this->show->web_channel['name']];
+            $items[] = [
+                'prefix' => 'Streaming:',
+                'label' => $this->show->web_channel['name'],
+                'logoUrl' => $this->show->streamingLogoUrl(),
+            ];
         }
 
-        return null;
+        return $items;
     }
 
     #[Computed]
@@ -117,7 +123,11 @@ new class extends Component {
     {
         $isoMap = [];
         for ($iso = 1; $iso <= 7; $iso++) {
-            $isoMap[Carbon::now()->startOfWeek()->addDays($iso - 1)->minDayName] = $iso;
+            $isoMap[
+                Carbon::now()
+                    ->startOfWeek()
+                    ->addDays($iso - 1)->minDayName
+            ] = $iso;
         }
 
         $ranges = [];
@@ -228,12 +238,24 @@ new class extends Component {
                 </div>
             @endif
 
-            @if ($this->networkInfo())
+            @if (count($this->networkInfoItems()) > 0)
                 <div class="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    <span>
-                        <span class="font-medium text-zinc-200">{{ $this->networkInfo()['prefix'] }}</span>
-                        {{ $this->networkInfo()['label'] }}
-                    </span>
+                    @foreach ($this->networkInfoItems() as $info)
+                        <span class="flex items-center gap-2">
+                            @if ($info['logoUrl'])
+                                <img
+                                    src="{{ $info['logoUrl'] }}"
+                                    alt="{{ $info['label'] }}"
+                                    class="h-5 w-auto object-contain"
+                                />
+                            @endif
+
+                            <span>
+                                <span class="font-medium text-zinc-200">{{ $info['prefix'] }}</span>
+                                {{ $info['label'] }}
+                            </span>
+                        </span>
+                    @endforeach
                 </div>
             @endif
         </div>
