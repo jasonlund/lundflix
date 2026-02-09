@@ -7,6 +7,7 @@ use App\Filament\Resources\Requests\Pages\ViewRequest;
 use App\Filament\Resources\Requests\RelationManagers\RequestItemsRelationManager;
 use App\Filament\Resources\Requests\Schemas\RequestInfolist;
 use App\Filament\Resources\Requests\Tables\RequestsTable;
+use App\Filament\Resources\Requests\Widgets\IptSearchLinksWidget;
 use App\Models\Request;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -37,6 +38,13 @@ class RequestResource extends Resource
     {
         return [
             RequestItemsRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            IptSearchLinksWidget::class,
         ];
     }
 
