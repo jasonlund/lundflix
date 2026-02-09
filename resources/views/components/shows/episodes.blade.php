@@ -46,8 +46,6 @@ new class extends Component {
             return;
         }
 
-        $start = hrtime(true);
-
         $tvMaze = app(TVMazeService::class);
 
         try {
@@ -62,13 +60,6 @@ new class extends Component {
         }
 
         $this->episodes = collect(app(PrepareEpisodesForDisplay::class)->prepare($apiEpisodes));
-
-        $elapsedMs = (hrtime(true) - $start) / 1_000_000;
-        $remainingMs = 250 - $elapsedMs;
-
-        if ($remainingMs > 0) {
-            usleep((int) ($remainingMs * 1000));
-        }
     }
 
     public function dehydrate(): void
@@ -141,13 +132,13 @@ new class extends Component {
     #[Computed]
     public function expandedSeason(): int|string
     {
-        $today = now()->format('Y-m-d');
+        $today = today();
         $expandedSeason = null;
 
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
-                $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate?->format('Y-m-d');
-                if ($airdate && $airdate <= $today) {
+                $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
+                if (! empty($airdate) && Carbon::parse($airdate)->lte($today)) {
                     $expandedSeason = $season['number'];
 
                     break;
@@ -171,7 +162,7 @@ new class extends Component {
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $code = \App\Models\Episode::displayCode($episode);
-                if (isset($selected[strtoupper($code)])) {
+                if (isset($selected[strtoupper($code)]) && $this->hasAired($episode)) {
                     $orderedCodes[] = $code;
                 }
             }
@@ -210,16 +201,32 @@ new class extends Component {
         return $result;
     }
 
+    public function hasAired(mixed $episode): bool
+    {
+        $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
+
+        if (empty($airdate)) {
+            return false;
+        }
+
+        return Carbon::parse($airdate)->lte(today());
+    }
+
+    public function pad(int $number): string
+    {
+        return str_pad((string) $number, 2, '0', STR_PAD_LEFT);
+    }
+
     public function formatRuntime(int $minutes): string
     {
         if ($minutes < 60) {
-            return $minutes . 'm';
+            return $this->pad($minutes) . 'm';
         }
 
         $hours = intdiv($minutes, 60);
         $remainder = $minutes % 60;
 
-        return $remainder > 0 ? "{$hours}h{$remainder}m" : "{$hours}h";
+        return $remainder > 0 ? "{$hours}h" . $this->pad($remainder) . 'm' : "{$hours}h";
     }
 };
 ?>
@@ -243,6 +250,12 @@ new class extends Component {
                 $wire.syncToCart(this.selected)
             }, 500)
         },
+        seasonCount(num, total) {
+            const selected = this.seasonSelections[num]?.length || 0
+            return selected > 0
+                ? String(selected).padStart(2, '0') + '/' + total
+                : total
+        },
     }"
 >
     <div class="space-y-2">
@@ -260,16 +273,14 @@ new class extends Component {
                                     <div x-on:click.stop>
                                         <flux:checkbox.all />
                                     </div>
-                                    <span class="font-mono">
-                                        S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}
-                                    </span>
+                                    <span class="font-mono">S{{ $this->pad($season['number']) }}</span>
                                     <span
                                         class="ml-auto font-mono text-sm text-zinc-500"
                                         x-text="
-                                            (seasonSelections['{{ $season['number'] }}']?.length || 0) > 0
-                                                ? seasonSelections['{{ $season['number'] }}'].length +
-                                                  '/{{ count($season['episodes']) }}'
-                                                : '{{ count($season['episodes']) }}'
+                                            seasonCount(
+                                                '{{ $season['number'] }}',
+                                                '{{ $this->pad(count($season['episodes'])) }}',
+                                            )
                                         "
                                     ></span>
                                 </div>
@@ -280,12 +291,18 @@ new class extends Component {
                                     @foreach ($season['episodes'] as $episode)
                                         <div
                                             wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
-                                            class="flex items-center"
+                                            @class(['flex items-center', 'cursor-not-allowed opacity-50' => ! $this->hasAired($episode)])
                                         >
                                             <div class="flex min-w-0 flex-1 items-center gap-2">
-                                                <flux:checkbox
-                                                    value="{{ \App\Models\Episode::displayCode($episode) }}"
-                                                />
+                                                @if ($this->hasAired($episode))
+                                                    <flux:checkbox
+                                                        value="{{ \App\Models\Episode::displayCode($episode) }}"
+                                                    />
+                                                @else
+                                                    <div
+                                                        class="size-[1.125rem] shrink-0 rounded-[.3rem] border border-zinc-200 dark:border-white/10"
+                                                    ></div>
+                                                @endif
                                                 <span class="min-w-0 truncate">
                                                     <span class="font-mono">
                                                         {{ \App\Models\Episode::displayCode($episode) }}
@@ -293,12 +310,16 @@ new class extends Component {
                                                     <span class="font-serif">{{ $episode['name'] }}</span>
                                                 </span>
                                                 <span class="ml-auto shrink-0 font-mono text-sm text-zinc-500">
-                                                    @if ($episode['airdate'])
-                                                        {{ Carbon::parse($episode['airdate'])->format('m/d/y') }}
+                                                    @if ($episode['runtime'] ?? null)
+                                                        {{ $this->formatRuntime($episode['runtime']) }}
                                                     @endif
 
-                                                    @if ($episode['runtime'] ?? null)
-                                                            &middot; {{ $this->formatRuntime($episode['runtime']) }}
+                                                    @if ($episode['airdate'])
+                                                        @if ($episode['runtime'] ?? null)
+                                                            &middot;
+                                                        @endif
+
+                                                        {{ Carbon::parse($episode['airdate'])->format('m/d/y') }}
                                                     @endif
                                                 </span>
                                             </div>
@@ -312,18 +333,9 @@ new class extends Component {
                 </flux:checkbox.group>
             </div>
         @empty
-            @if ($error)
-                <flux:callout variant="danger" class="mt-4">
-                    <flux:callout.heading>Error</flux:callout.heading>
-                    <flux:callout.text>{{ $error }}</flux:callout.text>
-                </flux:callout>
-            @else
-                <div class="mt-4">
-                    <x-lundbergh-bubble size="sm" :with-margin="false">
-                        {{ __('lundbergh.empty.episodes') }}
-                    </x-lundbergh-bubble>
-                </div>
-            @endif
+            <flux:callout :variant="$error ? 'danger' : null" class="mt-4">
+                <flux:callout.text>{{ $error ?? __('lundbergh.empty.episodes') }}</flux:callout.text>
+            </flux:callout>
         @endforelse
     </div>
 </div>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ShowStatus;
 use App\Filament\Resources\Shows\Pages\ListShows;
 use App\Filament\Resources\Shows\Pages\ViewShow;
 use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
@@ -44,7 +45,7 @@ it('displays show details on view page', function () {
     $show = Show::factory()->create([
         'name' => 'Detailed Show',
         'imdb_id' => 'tt8888888',
-        'status' => 'Running',
+        'status' => ShowStatus::Running->value,
     ]);
 
     Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])

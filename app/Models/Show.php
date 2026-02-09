@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
+use App\Enums\ShowStatus;
+use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Laravel\Scout\Searchable;
 
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasFactory, Searchable;
+    use HasArtwork, HasFactory, Searchable;
 
     protected $guarded = [];
 
@@ -20,14 +23,12 @@ class Show extends Model
         return [
             'genres' => 'array',
             'schedule' => 'array',
-            'rating' => 'array',
             'network' => 'array',
             'web_channel' => 'array',
-            'externals' => 'array',
-            'image' => 'array',
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',
+            'status' => ShowStatus::class,
         ];
     }
 
@@ -51,6 +52,20 @@ class Show extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(Episode::class);
+    }
+
+    /**
+     * Retrieve the model for a bound value with eager-loaded episodes.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        return $this->query()
+            ->with('episodes')
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
     }
 
     /**
@@ -80,6 +95,14 @@ class Show extends Model
     }
 
     /**
+     * @return MorphMany<Media, $this>
+     */
+    public function media(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'mediable');
+    }
+
+    /**
      * @return array{value: int, approximate: bool}|null
      */
     public function displayRuntime(): ?array
@@ -93,5 +116,15 @@ class Show extends Model
         }
 
         return null;
+    }
+
+    protected function artworkExternalIdValue(): string|int|null
+    {
+        return $this->thetvdb_id;
+    }
+
+    protected function artworkMediableType(): string
+    {
+        return 'show';
     }
 }

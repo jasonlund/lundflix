@@ -19,10 +19,10 @@
             </div>
 
             <div
-                class="pointer-events-none absolute top-0 right-full z-[11] hidden h-[600px] w-[calc((100vw-768px)/2)] backdrop-blur-md md:block"
+                class="pointer-events-none absolute top-0 right-full z-[11] hidden h-[600px] w-[calc((100vw-768px)/2)] backdrop-blur-sm md:block"
             ></div>
             <div
-                class="pointer-events-none absolute top-0 left-full z-[11] hidden h-[600px] w-[calc((100vw-768px)/2)] backdrop-blur-md md:block"
+                class="pointer-events-none absolute top-0 left-full z-[11] hidden h-[600px] w-[calc((100vw-768px)/2)] backdrop-blur-sm md:block"
             ></div>
 
             <div class="pointer-events-none absolute inset-y-0 left-0 z-[15] hidden w-px bg-zinc-800/70 md:block"></div>

@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\ShowStatus;
 use App\Models\Show;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -31,8 +33,8 @@ new class extends Component {
             return "{$startYear}–{$this->show->ended->year}";
         }
 
-        if ($this->show->status === 'Running') {
-            return "{$startYear}–";
+        if ($this->show->status === ShowStatus::Running) {
+            return "{$startYear}–present";
         }
 
         return (string) $startYear;
@@ -40,29 +42,15 @@ new class extends Component {
 
     public function runtimeText(): ?string
     {
-        if (! $this->show->runtime) {
+        $runtime = $this->show->displayRuntime();
+
+        if (! $runtime) {
             return null;
         }
 
-        return "{$this->show->runtime} min";
-    }
+        $prefix = $runtime['approximate'] ? '~' : '';
 
-    /**
-     * @return array<int, array{type: string, value: string}>
-     */
-    public function metadataItems(): array
-    {
-        $items = [];
-
-        if ($yearRange = $this->yearRange()) {
-            $items[] = ['type' => 'text', 'value' => $yearRange];
-        }
-
-        if ($runtime = $this->runtimeText()) {
-            $items[] = ['type' => 'text', 'value' => $runtime];
-        }
-
-        return $items;
+        return "{$prefix}{$runtime['value']} min";
     }
 
     #[Computed]
@@ -106,12 +94,69 @@ new class extends Component {
             return null;
         }
 
-        $label = implode(', ', $this->show->schedule['days']);
-        if ($this->show->schedule['time']) {
-            $label .= " at {$this->show->schedule['time']}";
+        $days = $this->show->schedule['days'];
+
+        usort($days, fn ($a, $b) => Carbon::parse($a)->dayOfWeekIso - Carbon::parse($b)->dayOfWeekIso);
+
+        $abbrevs = array_map(fn ($d) => Carbon::parse($d)->minDayName, $days);
+
+        $dayLabel = $this->collapseDayRanges($abbrevs);
+
+        $time = $this->show->schedule['time'] ?? '';
+        $timeLabel = $time !== '' ? $this->formatCompactTime($time) : null;
+
+        return $timeLabel ? "{$dayLabel} {$timeLabel}" : $dayLabel;
+    }
+
+    /**
+     * Collapse consecutive abbreviated days into en-dash ranges.
+     *
+     * @param  list<string>  $abbrevs
+     */
+    private function collapseDayRanges(array $abbrevs): string
+    {
+        $isoMap = [];
+        for ($iso = 1; $iso <= 7; $iso++) {
+            $isoMap[Carbon::now()->startOfWeek()->addDays($iso - 1)->minDayName] = $iso;
         }
 
-        return $label;
+        $ranges = [];
+        $currentRange = [$abbrevs[0]];
+
+        for ($i = 1; $i < count($abbrevs); $i++) {
+            if (($isoMap[$abbrevs[$i]] ?? 0) === ($isoMap[$abbrevs[$i - 1]] ?? 0) + 1) {
+                $currentRange[] = $abbrevs[$i];
+            } else {
+                $ranges[] = $currentRange;
+                $currentRange = [$abbrevs[$i]];
+            }
+        }
+        $ranges[] = $currentRange;
+
+        $parts = array_map(function (array $range) {
+            if (count($range) >= 3) {
+                return $range[0] . '–' . end($range);
+            }
+
+            return implode(', ', $range);
+        }, $ranges);
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Convert 24hr "HH:MM" to compact 12hr with 1-letter suffix.
+     */
+    private function formatCompactTime(string $time): string
+    {
+        $carbon = Carbon::createFromTimeString($time);
+        $suffix = $carbon->format('a')[0];
+
+        if ((int) $carbon->format('i') === 0) {
+            return $carbon->format('g') . $suffix;
+        }
+
+        return $carbon->format('g:i') . $suffix;
     }
 
     public function render(): mixed
@@ -125,6 +170,20 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative h-[16rem] overflow-hidden">
+        @if ($show->imdb_id)
+            <div class="absolute top-4 right-4 z-10">
+                <flux:tooltip content="View on IMDb">
+                    <a
+                        href="{{ $this->imdbUrl() }}"
+                        target="_blank"
+                        class="flex items-center justify-center rounded-lg bg-zinc-900 p-2 transition hover:bg-zinc-800"
+                    >
+                        <flux:icon.imdb class="size-8" />
+                    </a>
+                </flux:tooltip>
+            </div>
+        @endif
+
         <div class="relative flex h-full flex-col gap-4 px-4 py-5">
             <div>
                 @if ($this->logoUrl())
@@ -139,31 +198,25 @@ new class extends Component {
             </div>
 
             <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-300">
-                @foreach ($this->metadataItems() as $index => $item)
-                    @if ($index > 0)
-                        <span class="text-zinc-600">&middot;</span>
-                    @endif
+                @if ($this->yearRange())
+                    <span>{{ $this->yearRange() }}</span>
+                @endif
 
-                    <span>{{ $item['value'] }}</span>
-                @endforeach
+                <flux:tooltip :content="$show->status->value">
+                    <x-dynamic-component
+                        :component="'flux::icon.' . $show->status->icon()"
+                        variant="mini"
+                        :class="$show->status->iconColorClass()"
+                    />
+                </flux:tooltip>
 
-                <flux:badge
-                    :color="$show->status === 'Running' ? 'green' : ($show->status === 'Ended' ? 'red' : 'zinc')"
-                >
-                    {{ $show->status }}
-                </flux:badge>
+                @if ($show->status !== ShowStatus::Ended && $this->scheduleLabel())
+                    <span>{{ $this->scheduleLabel() }}</span>
+                @endif
 
-                @if ($show->imdb_id)
-                    <flux:button
-                        as="a"
-                        href="{{ $this->imdbUrl() }}"
-                        target="_blank"
-                        icon="external-link"
-                        size="sm"
-                        variant="ghost"
-                    >
-                        IMDB
-                    </flux:button>
+                @if ($this->runtimeText())
+                    <flux:icon.dot variant="micro" class="text-zinc-300" />
+                    <span>{{ $this->runtimeText() }}</span>
                 @endif
             </div>
 
@@ -175,25 +228,12 @@ new class extends Component {
                 </div>
             @endif
 
-            @if ($this->networkInfo() || $this->scheduleLabel())
+            @if ($this->networkInfo())
                 <div class="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    @if ($this->networkInfo())
-                        <span>
-                            <span class="font-medium text-zinc-200">{{ $this->networkInfo()['prefix'] }}</span>
-                            {{ $this->networkInfo()['label'] }}
-                        </span>
-                    @endif
-
-                    @if ($this->networkInfo() && $this->scheduleLabel())
-                        <span class="text-zinc-600">&middot;</span>
-                    @endif
-
-                    @if ($this->scheduleLabel())
-                        <span>
-                            <span class="font-medium text-zinc-200">Schedule:</span>
-                            {{ $this->scheduleLabel() }}
-                        </span>
-                    @endif
+                    <span>
+                        <span class="font-medium text-zinc-200">{{ $this->networkInfo()['prefix'] }}</span>
+                        {{ $this->networkInfo()['label'] }}
+                    </span>
                 </div>
             @endif
         </div>
