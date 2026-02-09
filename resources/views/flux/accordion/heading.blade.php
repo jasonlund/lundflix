@@ -32,18 +32,12 @@
 
     <?php if ($variant === 'reverse'): ?>
 
-    <flux:accordion.icon
-        pointing="down"
-        class="hidden text-zinc-800! group-data-open/accordion-heading:block dark:text-white!"
-    />
+    <flux:accordion.icon pointing="down" :active="true" class="hidden group-data-open/accordion-heading:block" />
     <flux:accordion.icon pointing="right" class="block group-data-open/accordion-heading:hidden" />
 
     <?php else: ?>
 
-    <flux:accordion.icon
-        pointing="up"
-        class="hidden text-zinc-800! group-data-open/accordion-heading:block dark:text-white!"
-    />
+    <flux:accordion.icon pointing="up" :active="true" class="hidden group-data-open/accordion-heading:block" />
     <flux:accordion.icon pointing="down" class="block group-data-open/accordion-heading:hidden" />
 
     <?php endif; ?>
