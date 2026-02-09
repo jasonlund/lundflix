@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Vite;
  */
 enum NetworkLogo: int
 {
-    // United States
+    // US
     case NbcUs = 1;
     case CbsUs = 2;
     case AbcUs = 3;
@@ -51,7 +51,7 @@ enum NetworkLogo: int
     case AnimalPlanetUs = 92;
     case HgtvUs = 192;
 
-    // United Kingdom
+    // UK
     case BbcOneUk = 12;
     case Itv1Uk = 35;
     case BbcTwoUk = 37;
@@ -59,7 +59,7 @@ enum NetworkLogo: int
     case BbcFourUk = 51;
     case Channel5Uk = 135;
 
-    // Australia
+    // AU
     case AbcAu = 114;
     case SbsAu = 127;
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NetworkLogo;
+use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -29,6 +30,7 @@ class Show extends Model
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',
+            'status' => ShowStatus::class,
         ];
     }
 
@@ -100,6 +102,22 @@ class Show extends Model
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable');
+    }
+
+    /**
+     * @return array{value: int, approximate: bool}|null
+     */
+    public function displayRuntime(): ?array
+    {
+        if ($this->runtime !== null) {
+            return ['value' => $this->runtime, 'approximate' => false];
+        }
+
+        if ($this->average_runtime !== null) {
+            return ['value' => $this->average_runtime, 'approximate' => true];
+        }
+
+        return null;
     }
 
     public function networkLogoUrl(): ?string
