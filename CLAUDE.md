@@ -57,6 +57,14 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Date Comparisons
+
+- Use Carbon methods (`->lte()`, `->gte()`, `->isPast()`, `->isBefore()`, etc.) for date comparisons instead of formatting dates as strings and comparing them
+- Use `today()` helper for date-only comparisons (returns `Carbon::today()` at 00:00:00)
+- `Carbon::parse()` accepts both string dates and Carbon instances, making it safe for mixed data sources (API arrays vs. Eloquent models)
+- Guard against null and empty string before calling `Carbon::parse()` — use `empty($date)` when data originates from external APIs
+- Formatting dates as strings for serialization (e.g., `->format('Y-m-d')` in Livewire `dehydrate()`) is distinct from comparison and remains correct
+
 ## Livewire Validation
 
 ### Convention: Use `#[Validate]` Attributes
@@ -209,6 +217,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+- Enums used in Filament tables, infolists, or forms must implement Filament's native contracts (`HasLabel`, `HasColor`, `HasIcon`, `HasDescription`) from `Filament\Support\Contracts\`. This lets Filament auto-detect labels, colors, and icons — never manually map these in table columns or infolist entries.
 
 === herd rules ===
 

@@ -46,18 +46,6 @@ class RequestItemsTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn (RequestItemStatus $state): string => match ($state) {
-                        RequestItemStatus::Pending => 'Pending',
-                        RequestItemStatus::Fulfilled => 'Fulfilled',
-                        RequestItemStatus::Rejected => 'Rejected',
-                        RequestItemStatus::NotFound => 'Not Found',
-                    })
-                    ->color(fn (RequestItemStatus $state): string => match ($state) {
-                        RequestItemStatus::Pending => 'gray',
-                        RequestItemStatus::Fulfilled => 'success',
-                        RequestItemStatus::Rejected => 'danger',
-                        RequestItemStatus::NotFound => 'warning',
-                    })
                     ->sortable(),
                 TextColumn::make('actionedBy.name')
                     ->label('Actioned By')

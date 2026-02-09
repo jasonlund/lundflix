@@ -149,6 +149,95 @@ it('displays episode checkboxes', function () {
         ->assertSeeHtml('data-flux-checkbox');
 });
 
+it('renders checkbox for aired episodes but not for future episodes', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $pastEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Aired Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    $futureEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 101,
+        'name' => 'Future Episode',
+        'season' => 1,
+        'number' => 2,
+        'airdate' => now()->addWeek(),
+    ]);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$pastEpisode, $futureEpisode])])
+        ->assertSee('Aired Episode')
+        ->assertSee('Future Episode')
+        ->assertSeeHtml('value="S01E01"')
+        ->assertDontSeeHtml('value="S01E02"');
+});
+
+it('treats empty string airdate from API as not aired', function () {
+    Queue::fake();
+
+    Http::fake([
+        'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
+            ['id' => 1, 'name' => 'TBA', 'season' => 1, 'number' => 1, 'airdate' => '', 'runtime' => 60, 'type' => 'regular'],
+        ]),
+    ]);
+
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->assertSee('TBA')
+        ->assertDontSeeHtml('value="S01E01"');
+});
+
+it('does not render checkbox for episodes with null airdate', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'TBA Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => null,
+    ]);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
+        ->assertSee('TBA Episode')
+        ->assertDontSeeHtml('value="S01E01"');
+});
+
+it('rejects future episodes in syncToCart', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $pastEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 1,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    $futureEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 2,
+        'season' => 1,
+        'number' => 2,
+        'airdate' => now()->addWeek(),
+    ]);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$pastEpisode, $futureEpisode])])
+        ->call('syncToCart', ['S01E01', 'S01E02'])
+        ->assertDispatched('cart-updated');
+
+    $cartEpisodes = app(\App\Services\CartService::class)->episodes();
+    expect($cartEpisodes)->toHaveCount(1);
+    expect($cartEpisodes[0]['code'])->toBe('s01e01');
+});
+
 it('syncs episodes to cart in display order', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 

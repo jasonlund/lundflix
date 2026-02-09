@@ -28,14 +28,11 @@ class ShowInfolist
                         TextEntry::make('type'),
                         TextEntry::make('language'),
                         TextEntry::make('status')
-                            ->badge()
-                            ->color(fn (string $state): string => match ($state) {
-                                'Running' => 'success',
-                                'Ended' => 'danger',
-                                'To Be Determined' => 'warning',
-                                default => 'gray',
-                            }),
+                            ->badge(),
                         TextEntry::make('runtime')
+                            ->suffix(' minutes'),
+                        TextEntry::make('average_runtime')
+                            ->label('Avg. Runtime')
                             ->suffix(' minutes'),
                         TextEntry::make('premiered')
                             ->date(),

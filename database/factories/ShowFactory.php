@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\ShowStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,8 +25,9 @@ class ShowFactory extends Factory
             'type' => fake()->randomElement(['Scripted', 'Animation', 'Reality', 'Documentary', 'Talk Show']),
             'language' => 'English',
             'genres' => fake()->randomElements(['Drama', 'Comedy', 'Action', 'Thriller', 'Sci-Fi', 'Horror'], 2),
-            'status' => fake()->randomElement(['Running', 'Ended', 'To Be Determined']),
+            'status' => fake()->randomElement(ShowStatus::cases())->value,
             'runtime' => fake()->randomElement([30, 45, 60]),
+            'average_runtime' => null,
             'premiered' => fake()->date(),
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => ['Monday']],

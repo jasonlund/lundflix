@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum TvArtworkLevel: string
+enum TvArtworkLevel: string implements HasLabel
 {
     case Show = 'show';
     case Season = 'season';
