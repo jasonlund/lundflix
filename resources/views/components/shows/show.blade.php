@@ -66,7 +66,7 @@ new class extends Component {
     }
 
     /**
-     * @return list<array{prefix: string, label: string, logoUrl: string|null}>
+     * @return list<array{name: string, tooltip: string, logoUrl: string|null}>
      */
     #[Computed]
     public function networkInfoItems(): array
@@ -74,23 +74,31 @@ new class extends Component {
         $items = [];
 
         if ($this->show->network) {
-            $label = $this->show->network['name'];
+            $name = $this->show->network['name'];
+            $tooltip = $name;
             if (isset($this->show->network['country']['name'])) {
-                $label .= " ({$this->show->network['country']['name']})";
+                $tooltip .= ' (' . $this->abbreviateCountry($this->show->network['country']['name']) . ')';
             }
 
-            $items[] = ['prefix' => 'Network:', 'label' => $label, 'logoUrl' => $this->show->networkLogoUrl()];
+            $items[] = ['name' => $name, 'tooltip' => $tooltip, 'logoUrl' => $this->show->networkLogoUrl()];
         }
 
         if ($this->show->web_channel) {
-            $items[] = [
-                'prefix' => 'Streaming:',
-                'label' => $this->show->web_channel['name'],
-                'logoUrl' => $this->show->streamingLogoUrl(),
-            ];
+            $name = $this->show->web_channel['name'];
+            $items[] = ['name' => $name, 'tooltip' => $name, 'logoUrl' => $this->show->streamingLogoUrl()];
         }
 
         return $items;
+    }
+
+    private function abbreviateCountry(string $country): string
+    {
+        return match ($country) {
+            'United States' => 'US',
+            'United Kingdom' => 'UK',
+            'Australia' => 'AU',
+            default => $country,
+        };
     }
 
     #[Computed]
@@ -228,33 +236,28 @@ new class extends Component {
                     <flux:icon.dot variant="micro" class="text-zinc-300" />
                     <span>{{ $this->runtimeText() }}</span>
                 @endif
+
+                @foreach ($this->networkInfoItems() as $info)
+                    <flux:icon.dot variant="micro" class="text-zinc-300" />
+
+                    @if ($info['logoUrl'])
+                        <flux:tooltip :content="$info['tooltip']">
+                            <img
+                                src="{{ $info['logoUrl'] }}"
+                                alt="{{ $info['tooltip'] }}"
+                                class="h-5 w-auto object-contain"
+                            />
+                        </flux:tooltip>
+                    @else
+                        <span>{{ $info['tooltip'] }}</span>
+                    @endif
+                @endforeach
             </div>
 
             @if ($show->genres && count($show->genres))
                 <div class="flex flex-wrap gap-2">
                     @foreach ($show->genres as $genre)
                         <x-genre-badge :$genre />
-                    @endforeach
-                </div>
-            @endif
-
-            @if (count($this->networkInfoItems()) > 0)
-                <div class="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
-                    @foreach ($this->networkInfoItems() as $info)
-                        <span class="flex items-center gap-2">
-                            @if ($info['logoUrl'])
-                                <img
-                                    src="{{ $info['logoUrl'] }}"
-                                    alt="{{ $info['label'] }}"
-                                    class="h-5 w-auto object-contain"
-                                />
-                            @endif
-
-                            <span>
-                                <span class="font-medium text-zinc-200">{{ $info['prefix'] }}</span>
-                                {{ $info['label'] }}
-                            </span>
-                        </span>
                     @endforeach
                 </div>
             @endif

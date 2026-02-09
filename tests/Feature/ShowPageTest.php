@@ -207,7 +207,8 @@ it('displays network logo for a mapped network', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSeeHtml('resources/images/logos/networks/hbo-us.png')
-        ->assertSee('HBO');
+        ->assertDontSee('Network:')
+        ->assertSee('HBO (US)');
 });
 
 it('displays streaming logo for a mapped web channel', function () {
@@ -218,6 +219,7 @@ it('displays streaming logo for a mapped web channel', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSeeHtml('resources/images/logos/streaming/netflix.png')
+        ->assertDontSee('Streaming:')
         ->assertSee('Netflix');
 });
 
@@ -230,8 +232,10 @@ it('displays both network and streaming logos when both exist', function () {
     Livewire::test('shows.show', ['show' => $show])
         ->assertSeeHtml('resources/images/logos/networks/abc-us.png')
         ->assertSeeHtml('resources/images/logos/streaming/disney-plus.png')
-        ->assertSee('Network:')
-        ->assertSee('Streaming:');
+        ->assertDontSee('Network:')
+        ->assertDontSee('Streaming:')
+        ->assertSee('ABC (US)')
+        ->assertSee('Disney+');
 });
 
 it('displays text-only fallback for unmapped network', function () {
@@ -242,5 +246,17 @@ it('displays text-only fallback for unmapped network', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertDontSeeHtml('resources/images/logos/')
-        ->assertSee('Unknown TV');
+        ->assertSee('Unknown TV (US)');
+});
+
+it('abbreviates country names in network tooltip', function () {
+    $show = Show::factory()->create([
+        'network' => ['id' => 12, 'name' => 'BBC One', 'country' => ['name' => 'United Kingdom']],
+        'web_channel' => null,
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSeeHtml('resources/images/logos/networks/bbc-one-uk.png')
+        ->assertSee('BBC One (UK)')
+        ->assertDontSee('United Kingdom');
 });
