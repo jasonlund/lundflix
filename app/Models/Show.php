@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\NetworkLogo;
+use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -98,6 +100,30 @@ class Show extends Model
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable');
+    }
+
+    public function networkLogoUrl(): ?string
+    {
+        /** @var array<string, mixed>|null $network */
+        $network = $this->network;
+
+        if (isset($network['id'])) {
+            return NetworkLogo::tryFrom($network['id'])?->url();
+        }
+
+        return null;
+    }
+
+    public function streamingLogoUrl(): ?string
+    {
+        /** @var array<string, mixed>|null $webChannel */
+        $webChannel = $this->web_channel;
+
+        if (isset($webChannel['id'])) {
+            return StreamingLogo::tryFrom($webChannel['id'])?->url();
+        }
+
+        return null;
     }
 
     protected function artworkExternalIdValue(): string|int|null
