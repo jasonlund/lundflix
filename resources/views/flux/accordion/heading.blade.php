@@ -15,11 +15,7 @@
                 'reverse' => 'flex-row-reverse justify-end [&>svg]:me-2',
             },
         )
-        ->add(
-            $disabled
-                ? 'text-zinc-400 dark:text-zinc-400 cursor-default'
-                : 'text-zinc-800 dark:text-white cursor-pointer',
-        );
+        ->add($disabled ? 'text-zinc-400 cursor-default' : 'text-white cursor-pointer');
 @endphp
 
 <button

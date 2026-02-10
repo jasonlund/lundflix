@@ -8,8 +8,8 @@
 
 @php
     $classes = Flux::classes()
-        ->add($active ? 'text-zinc-800 dark:text-white' : 'text-zinc-300 dark:text-zinc-400')
-        ->add($disabled ? '' : 'group-hover/accordion-heading:text-zinc-800 dark:group-hover/accordion-heading:text-white');
+        ->add($active ? 'text-white' : 'text-zinc-400')
+        ->add($disabled ? '' : 'group-hover/accordion-heading:text-white');
 @endphp
 
 <flux:icon :icon="'chevron-'.$pointing" variant="mini" aria-hidden="true" :attributes="$attributes->class($classes)" />

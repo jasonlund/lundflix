@@ -20,10 +20,10 @@
             <div class="p-2">
                 <x-lundbergh-bubble :with-margin="false">
                     <span class="flex flex-col gap-1">
-                        <span class="text-sm font-semibold text-zinc-900 empty:hidden dark:text-zinc-100">
+                        <span class="text-sm font-semibold text-zinc-100 empty:hidden">
                             <slot name="heading"></slot>
                         </span>
-                        <span class="text-sm text-zinc-600 dark:text-zinc-300">
+                        <span class="text-sm text-zinc-300">
                             <slot name="text"></slot>
                         </span>
                     </span>

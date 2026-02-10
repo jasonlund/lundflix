@@ -62,7 +62,7 @@ new class extends Component {
                         wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
                     >
                         <div class="flex w-full items-center gap-3">
-                            <div class="h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-200 dark:bg-zinc-700">
+                            <div class="h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-700">
                                 @if ($result['poster_url'])
                                     <img
                                         src="{{ $result['poster_url'] }}"
@@ -121,7 +121,7 @@ new class extends Component {
                         <flux:callout.text>
                             {!!
                                 __('lundbergh.empty.search_imdb_hint', [
-                                    'imdb_link' => '<a href="https://www.imdb.com" target="_blank" class="inline font-medium underline underline-offset-[6px] hover:decoration-current decoration-zinc-800/20 dark:decoration-white/20">IMDb</a>',
+                                    'imdb_link' => '<a href="https://www.imdb.com" target="_blank" class="inline font-medium underline underline-offset-[6px] hover:decoration-current decoration-white/20">IMDb</a>',
                                 ])
                             !!}
                         </flux:callout.text>
