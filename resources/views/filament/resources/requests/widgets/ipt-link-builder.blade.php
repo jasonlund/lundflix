@@ -60,7 +60,7 @@
                     color="gray"
                     size="sm"
                     x-on:mousedown.prevent
-                    x-on:click="insertSuggestion(@js($suggestion))"
+                    x-on:click="insertSuggestion({{ Js::from($suggestion) }})"
                     class="font-mono"
                 >
                     {{ $suggestion }}
@@ -78,7 +78,7 @@
                 type="button"
                 color="primary"
                 size="sm"
-                x-on:click="toggleAll(@js(array_map('intval', array_keys($categories))))"
+                x-on:click="toggleAll({{ Js::from(array_map('intval', array_keys($categories))) }})"
             >
                 <span x-text="selected.length === {{ count($categories) }} ? 'Deselect all' : 'Select all'"></span>
             </x-filament::link>

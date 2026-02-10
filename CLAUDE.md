@@ -57,6 +57,10 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Blade Components
+
+- **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+
 ## Livewire Validation
 
 ### Convention: Use `#[Validate]` Attributes
