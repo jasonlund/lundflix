@@ -72,7 +72,7 @@ it('handles mixed movies and episodes in the same request', function () {
     $request = Request::factory()->create();
 
     $movie = Movie::factory()->create(['imdb_id' => 'tt5000001', 'title' => 'Inception', 'year' => 2010]);
-    RequestItem::factory()->create([
+    $movieItem = RequestItem::factory()->create([
         'request_id' => $request->id,
         'requestable_type' => Movie::class,
         'requestable_id' => $movie->id,
@@ -88,17 +88,20 @@ it('handles mixed movies and episodes in the same request', function () {
         ]);
     }
     $episode = Episode::where('show_id', $show->id)->where('number', 1)->first();
-    RequestItem::factory()->create([
+    $episodeItem = RequestItem::factory()->create([
         'request_id' => $request->id,
         'requestable_type' => Episode::class,
         'requestable_id' => $episode->id,
     ]);
 
+    $movieCategories = IptCategory::queryString([IptCategory::MovieX265]);
+    $tvCategories = IptCategory::queryString([IptCategory::TvPacks, IptCategory::TvX265]);
+
     $widget = Livewire::test(IptSearchLinksWidget::class, ['record' => $request]);
 
     $widget->assertSee('Inception (2010)')
-        ->assertSee('tt5000001')
-        ->assertSee('tt5000002 s01e01');
+        ->assertActionHasUrl(TestAction::make('search')->table($movieItem), "https://iptorrents.com/t?{$movieCategories}&q=".urlencode('tt5000001').'&qf=#torrents')
+        ->assertActionHasUrl(TestAction::make('search')->table($episodeItem), "https://iptorrents.com/t?{$tvCategories}&q=".urlencode('tt5000002 s01e01').'&qf=#torrents');
 });
 
 it('uses MovieX265 category for movies and TV categories for episodes', function () {
@@ -154,22 +157,23 @@ it('shows individual episode links for a partial season', function () {
         ]));
     }
 
-    RequestItem::factory()->create([
+    $item1 = RequestItem::factory()->create([
         'request_id' => $request->id,
         'requestable_type' => Episode::class,
         'requestable_id' => $episodes[0]->id,
     ]);
-    RequestItem::factory()->create([
+    $item2 = RequestItem::factory()->create([
         'request_id' => $request->id,
         'requestable_type' => Episode::class,
         'requestable_id' => $episodes[2]->id,
     ]);
 
+    $categories = IptCategory::queryString([IptCategory::TvPacks, IptCategory::TvX265]);
+
     $widget = Livewire::test(IptSearchLinksWidget::class, ['record' => $request]);
 
-    $widget->assertSee('tt1234567 s01e01')
-        ->assertSee('tt1234567 s01e03')
-        ->assertDontSee('S01');
+    $widget->assertActionHasUrl(TestAction::make('search')->table($item1), "https://iptorrents.com/t?{$categories}&q=".urlencode('tt1234567 s01e01').'&qf=#torrents')
+        ->assertActionHasUrl(TestAction::make('search')->table($item2), "https://iptorrents.com/t?{$categories}&q=".urlencode('tt1234567 s01e03').'&qf=#torrents');
 });
 
 it('shows a season link when all episodes of a completed season are requested', function () {
@@ -177,6 +181,7 @@ it('shows a season link when all episodes of a completed season are requested', 
     $show = Show::factory()->create(['imdb_id' => 'tt9999999']);
 
     // Create 3 episodes in season 2, all aired
+    $firstItem = null;
     for ($i = 1; $i <= 3; $i++) {
         $episode = Episode::factory()->create([
             'show_id' => $show->id,
@@ -185,16 +190,21 @@ it('shows a season link when all episodes of a completed season are requested', 
             'airdate' => now()->subMonths(3),
         ]);
 
-        RequestItem::factory()->create([
+        $item = RequestItem::factory()->create([
             'request_id' => $request->id,
             'requestable_type' => Episode::class,
             'requestable_id' => $episode->id,
         ]);
+
+        $firstItem ??= $item;
     }
+
+    $categories = IptCategory::queryString([IptCategory::TvPacks, IptCategory::TvX265]);
 
     $widget = Livewire::test(IptSearchLinksWidget::class, ['record' => $request]);
 
-    $widget->assertSee('tt9999999 S02')
+    // Complete season consolidates to a single row with season query
+    $widget->assertActionHasUrl(TestAction::make('search')->table($firstItem), "https://iptorrents.com/t?{$categories}&q=".urlencode('tt9999999 S02').'&qf=#torrents')
         ->assertDontSee('s02e01')
         ->assertDontSee('s02e02')
         ->assertDontSee('s02e03');
@@ -356,6 +366,7 @@ it('handles mixed complete and partial seasons from different shows', function (
     $show2 = Show::factory()->create(['imdb_id' => 'tt1000002']);
 
     // Show 1: complete season 1 (2 episodes, all aired, all requested)
+    $show1FirstItem = null;
     for ($i = 1; $i <= 2; $i++) {
         $episode = Episode::factory()->create([
             'show_id' => $show1->id,
@@ -363,11 +374,12 @@ it('handles mixed complete and partial seasons from different shows', function (
             'number' => $i,
             'airdate' => now()->subMonths(6),
         ]);
-        RequestItem::factory()->create([
+        $item = RequestItem::factory()->create([
             'request_id' => $request->id,
             'requestable_type' => Episode::class,
             'requestable_id' => $episode->id,
         ]);
+        $show1FirstItem ??= $item;
     }
 
     // Show 2: partial season 3 (3 episodes exist, only 1 requested)
@@ -380,17 +392,96 @@ it('handles mixed complete and partial seasons from different shows', function (
         ]);
     }
     $show2Episode = Episode::where('show_id', $show2->id)->where('number', 2)->first();
-    RequestItem::factory()->create([
+    $show2Item = RequestItem::factory()->create([
         'request_id' => $request->id,
         'requestable_type' => Episode::class,
         'requestable_id' => $show2Episode->id,
     ]);
 
+    $categories = IptCategory::queryString([IptCategory::TvPacks, IptCategory::TvX265]);
+
     $widget = Livewire::test(IptSearchLinksWidget::class, ['record' => $request]);
 
     // Show 1: season link
-    $widget->assertSee('tt1000001 S01');
+    $widget->assertActionHasUrl(TestAction::make('search')->table($show1FirstItem), "https://iptorrents.com/t?{$categories}&q=".urlencode('tt1000001 S01').'&qf=#torrents');
 
     // Show 2: individual link
-    $widget->assertSee('tt1000002 s03e02');
+    $widget->assertActionHasUrl(TestAction::make('search')->table($show2Item), "https://iptorrents.com/t?{$categories}&q=".urlencode('tt1000002 s03e02').'&qf=#torrents');
+});
+
+it('has a build link action for movie items', function () {
+    $request = Request::factory()->create();
+    $movie = Movie::factory()->create(['imdb_id' => 'tt7000001']);
+    $movieItem = RequestItem::factory()->create([
+        'request_id' => $request->id,
+        'requestable_type' => Movie::class,
+        'requestable_id' => $movie->id,
+    ]);
+
+    Livewire::test(IptSearchLinksWidget::class, ['record' => $request])
+        ->assertActionExists(TestAction::make('buildLink')->table($movieItem));
+});
+
+it('has a build link action for episode items', function () {
+    $request = Request::factory()->create();
+    $show = Show::factory()->create(['imdb_id' => 'tt7000002']);
+    for ($i = 1; $i <= 10; $i++) {
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 1,
+            'number' => $i,
+            'airdate' => now()->subMonths(6),
+        ]);
+    }
+    $episode = Episode::where('show_id', $show->id)->where('number', 1)->first();
+    $episodeItem = RequestItem::factory()->create([
+        'request_id' => $request->id,
+        'requestable_type' => Episode::class,
+        'requestable_id' => $episode->id,
+    ]);
+
+    Livewire::test(IptSearchLinksWidget::class, ['record' => $request])
+        ->assertActionExists(TestAction::make('buildLink')->table($episodeItem));
+});
+
+it('pre-fills the build link modal with correct movie data', function () {
+    $request = Request::factory()->create();
+    $movie = Movie::factory()->create(['imdb_id' => 'tt7000003']);
+    $movieItem = RequestItem::factory()->create([
+        'request_id' => $request->id,
+        'requestable_type' => Movie::class,
+        'requestable_id' => $movie->id,
+    ]);
+
+    Livewire::test(IptSearchLinksWidget::class, ['record' => $request])
+        ->mountAction(TestAction::make('buildLink')->table($movieItem))
+        ->assertMountedActionModalSee('tt7000003')
+        ->assertMountedActionModalSee('x265');
+});
+
+it('pre-fills the build link modal with correct episode data', function () {
+    $request = Request::factory()->create();
+    $show = Show::factory()->create(['imdb_id' => 'tt7000004']);
+    for ($i = 1; $i <= 10; $i++) {
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 2,
+            'number' => $i,
+            'airdate' => now()->subMonths(6),
+        ]);
+    }
+    $episode = Episode::where('show_id', $show->id)->where('number', 5)->first();
+    $episodeItem = RequestItem::factory()->create([
+        'request_id' => $request->id,
+        'requestable_type' => Episode::class,
+        'requestable_id' => $episode->id,
+    ]);
+
+    Livewire::test(IptSearchLinksWidget::class, ['record' => $request])
+        ->mountAction(TestAction::make('buildLink')->table($episodeItem))
+        ->assertMountedActionModalSee('tt7000004 s02e05')
+        ->assertMountedActionModalSee('Packs')
+        ->assertMountedActionModalSee('x265')
+        ->assertMountedActionModalSee('S02')
+        ->assertMountedActionModalSee('s02e05');
 });

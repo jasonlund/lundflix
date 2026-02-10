@@ -7,10 +7,11 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\RequestItem;
 use Filament\Actions\Action;
-use Filament\Support\Enums\FontFamily;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
 
@@ -52,10 +53,6 @@ class IptSearchLinksWidget extends TableWidget
                         /** @var Episode $requestable */
                         return $requestable->show->name;
                     }),
-                TextColumn::make('search_query')
-                    ->label('Query')
-                    ->fontFamily(FontFamily::Mono)
-                    ->getStateUsing(fn (RequestItem $record): string => $this->getQueryForItem($record)),
             ])
             ->recordActions([
                 Action::make('search')
@@ -63,6 +60,24 @@ class IptSearchLinksWidget extends TableWidget
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->url(fn (RequestItem $record): string => $this->buildSearchUrl($record, $this->getQueryForItem($record)))
                     ->openUrlInNewTab(),
+                Action::make('buildLink')
+                    ->label('Build Link')
+                    ->icon(Heroicon::OutlinedWrenchScrewdriver)
+                    ->color('gray')
+                    ->modalHeading('IPT Link Builder')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(fn (RequestItem $record): View => view(
+                        'filament.resources.requests.widgets.ipt-link-builder',
+                        [
+                            'query' => $this->getQueryForItem($record),
+                            'categories' => $record->requestable instanceof Movie
+                                ? IptCategory::options(IptCategory::movieCases())
+                                : IptCategory::options(IptCategory::tvCases()),
+                            'defaults' => $this->getDefaultCategoryValues($record),
+                            'suggestions' => $this->getSuggestions($record),
+                        ],
+                    )),
             ])
             ->heading('IPT Search Links')
             ->paginated(false);
@@ -208,6 +223,46 @@ class IptSearchLinksWidget extends TableWidget
             ->exists();
 
         return ! $hasUnaired;
+    }
+
+    /** @return list<int> */
+    private function getDefaultCategoryValues(RequestItem $record): array
+    {
+        return $record->requestable instanceof Movie
+            ? IptCategory::defaultMovieValues()
+            : IptCategory::defaultTvValues();
+    }
+
+    /** @return list<string> */
+    private function getSuggestions(RequestItem $record): array
+    {
+        $requestable = $record->requestable;
+
+        if ($requestable instanceof Movie) {
+            return [
+                $requestable->title,
+                (string) $requestable->year,
+                "{$requestable->title} {$requestable->year}",
+                $requestable->imdb_id,
+            ];
+        }
+
+        /** @var Episode $requestable */
+        $show = $requestable->show;
+        $seasonCode = 'S'.str_pad((string) $requestable->season, 2, '0', STR_PAD_LEFT);
+
+        $suggestions = [
+            $show->name,
+            $show->imdb_id,
+            $seasonCode,
+        ];
+
+        $key = $requestable->show_id.'-'.$requestable->season;
+        if (! $this->getCompleteSeasonKeys()->contains($key)) {
+            $suggestions[] = $requestable->code;
+        }
+
+        return $suggestions;
     }
 
     private function buildSearchUrl(RequestItem $record, string $query): string
