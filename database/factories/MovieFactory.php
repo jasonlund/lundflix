@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Language;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,7 +41,7 @@ class MovieFactory extends Factory
             'alternative_titles' => [
                 ['iso_3166_1' => 'FR', 'title' => fake()->sentence(2), 'type' => ''],
             ],
-            'original_language' => fake()->randomElement(['en', 'fr', 'es', 'de', 'ja', 'ko']),
+            'original_language' => fake()->randomElement(Language::cases())->value,
             'tmdb_synced_at' => now(),
         ]);
     }

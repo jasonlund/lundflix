@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Language;
 use App\Enums\ShowStatus;
 use App\Models\Show;
 use Illuminate\Support\Facades\Http;
@@ -51,6 +52,7 @@ it('updates existing shows that have changed in TVMaze', function () {
 
     expect($show)->not->toBeNull()
         ->and($show->name)->toBe('South Park')
+        ->and($show->language)->toBe(Language::English)
         ->and($show->status)->toBe(ShowStatus::Ended)
         ->and($show->ended->toDateString())->toBe('2024-12-15');
 });
