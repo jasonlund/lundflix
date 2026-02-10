@@ -8,6 +8,7 @@ use App\Models\Movie;
 use App\Models\RequestItem;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class RequestItemsTable
 {
@@ -60,6 +61,9 @@ class RequestItemsTable
                     ->dateTime()
                     ->sortable(),
             ])
+            ->modifyQueryUsing(fn ($query) => $query->with(['requestable' => function (MorphTo $morphTo): void {
+                $morphTo->morphWith([Episode::class => ['show']]);
+            }]))
             ->checkIfRecordIsSelectableUsing(function (RequestItem $record): bool {
                 $user = auth()->user();
 

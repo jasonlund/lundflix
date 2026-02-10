@@ -58,6 +58,10 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Blade Components
+
+- **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+
 ## Dark Mode
 
 - Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).
