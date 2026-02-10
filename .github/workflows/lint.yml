@@ -54,6 +54,9 @@ jobs:
       - name: Security Audit (npm)
         run: npm audit --audit-level=high
 
+      - name: Lint (no dark: classes)
+        run: npm run lint
+
       # - name: Commit Changes
       #   uses: stefanzweifel/git-auto-commit-action@v7
       #   with:

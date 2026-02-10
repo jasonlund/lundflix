@@ -31,7 +31,7 @@ new #[Layout('components.layouts.app')] class extends Component {
         <flux:heading size="xl">{{ $this->movie->title }}</flux:heading>
     </div>
 
-    <div class="flex flex-wrap items-center gap-3 text-zinc-500 dark:text-zinc-400">
+    <div class="flex flex-wrap items-center gap-3 text-zinc-400">
         @if ($this->movie->year)
             <flux:text>{{ $this->movie->year }}</flux:text>
             <span>&middot;</span>

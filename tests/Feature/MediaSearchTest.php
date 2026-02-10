@@ -76,6 +76,26 @@ it('renders stable keys for search results', function (string $type, callable $f
     'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt7000002'])],
 ]);
 
+it('shows imdb tip callout when searching', function () {
+    Livewire::test('media-search')
+        ->set('query', 'something')
+        ->assertSeeHtml('go ahead and try an')
+        ->assertSeeHtml('href="https://www.imdb.com"')
+        ->assertSeeHtml('IMDb');
+});
+
+it('does not show imdb tip callout when searching by imdb id', function () {
+    Livewire::test('media-search')
+        ->set('query', 'tt1439629')
+        ->assertDontSeeHtml('go ahead and try an');
+});
+
+it('does not show imdb tip callout for short queries', function () {
+    Livewire::test('media-search')
+        ->set('query', 'a')
+        ->assertDontSeeHtml('go ahead and try an');
+});
+
 it('renders HD clear logo art for results', function (string $type, string $artType, callable $factory): void {
     $model = $factory();
 

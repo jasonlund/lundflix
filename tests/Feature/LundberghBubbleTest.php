@@ -23,8 +23,8 @@ it('renders with info variant by default', function () {
 
     expect($html)
         ->toContain('Test message')
-        ->toContain('border-zinc-200')
-        ->not->toContain('border-red-200');
+        ->toContain('border-zinc-700')
+        ->not->toContain('border-red-500/30');
 });
 
 it('renders with error variant', function () {
@@ -32,8 +32,7 @@ it('renders with error variant', function () {
 
     expect($html)
         ->toContain('Error message')
-        ->toContain('border-red-200')
-        ->toContain('dark:border-red-500/30');
+        ->toContain('border-red-500/30');
 });
 
 it('renders with paragraph tag by default', function () {

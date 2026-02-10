@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\NetworkLogo;
+use App\Enums\ShowStatus;
+use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +30,7 @@ class Show extends Model
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',
+            'status' => ShowStatus::class,
         ];
     }
 
@@ -98,6 +102,46 @@ class Show extends Model
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'mediable');
+    }
+
+    /**
+     * @return array{value: int, approximate: bool}|null
+     */
+    public function displayRuntime(): ?array
+    {
+        if ($this->runtime !== null) {
+            return ['value' => $this->runtime, 'approximate' => false];
+        }
+
+        if ($this->average_runtime !== null) {
+            return ['value' => $this->average_runtime, 'approximate' => true];
+        }
+
+        return null;
+    }
+
+    public function networkLogoUrl(): ?string
+    {
+        /** @var array<string, mixed>|null $network */
+        $network = $this->network;
+
+        if (isset($network['id'])) {
+            return NetworkLogo::tryFrom($network['id'])?->url();
+        }
+
+        return null;
+    }
+
+    public function streamingLogoUrl(): ?string
+    {
+        /** @var array<string, mixed>|null $webChannel */
+        $webChannel = $this->web_channel;
+
+        if (isset($webChannel['id'])) {
+            return StreamingLogo::tryFrom($webChannel['id'])?->url();
+        }
+
+        return null;
     }
 
     protected function artworkExternalIdValue(): string|int|null

@@ -4,6 +4,7 @@ use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
+use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -32,7 +33,7 @@ new class extends Component {
     {
         return <<<'HTML'
         <div>
-            <p>Loading...</p>
+            <flux:skeleton />
         </div>
         HTML;
     }
@@ -103,6 +104,7 @@ new class extends Component {
                         'name' => $ep['name'] ?? '',
                         'type' => $ep['type'] ?? 'regular',
                         'airdate' => $ep['airdate'] ?? null,
+                        'runtime' => $ep['runtime'] ?? null,
                     ]
                     : [
                         'id' => $ep->id,
@@ -112,6 +114,7 @@ new class extends Component {
                         'name' => $ep->name,
                         'type' => $ep->type ?? 'regular',
                         'airdate' => $ep->airdate?->format('Y-m-d'),
+                        'runtime' => $ep->runtime,
                     ],
             )
             ->all();
@@ -146,6 +149,32 @@ new class extends Component {
     }
 
     /**
+     * Determine which season should be expanded by default.
+     *
+     * Returns the most recent season with at least one aired episode,
+     * or the first season if no episodes have aired yet.
+     */
+    #[Computed]
+    public function expandedSeason(): int|string
+    {
+        $today = today();
+        $expandedSeason = null;
+
+        foreach ($this->seasons as $season) {
+            foreach ($season['episodes'] as $episode) {
+                $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
+                if (! empty($airdate) && Carbon::parse($airdate)->lte($today)) {
+                    $expandedSeason = $season['number'];
+
+                    break;
+                }
+            }
+        }
+
+        return $expandedSeason ?? ($this->seasons->keys()->first() ?? 0);
+    }
+
+    /**
      * Sync selected episodes to cart in display order (by season and episode number).
      *
      * @param  array<int, string>  $episodeCodes  Unordered codes from Alpine
@@ -158,7 +187,7 @@ new class extends Component {
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $code = \App\Models\Episode::displayCode($episode);
-                if (isset($selected[strtoupper($code)])) {
+                if (isset($selected[strtoupper($code)]) && $this->hasAired($episode)) {
                     $orderedCodes[] = $code;
                 }
             }
@@ -196,6 +225,34 @@ new class extends Component {
 
         return $result;
     }
+
+    public function hasAired(mixed $episode): bool
+    {
+        $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
+
+        if (empty($airdate)) {
+            return false;
+        }
+
+        return Carbon::parse($airdate)->lte(today());
+    }
+
+    public function pad(int $number): string
+    {
+        return str_pad((string) $number, 2, '0', STR_PAD_LEFT);
+    }
+
+    public function formatRuntime(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return $this->pad($minutes) . 'm';
+        }
+
+        $hours = intdiv($minutes, 60);
+        $remainder = $minutes % 60;
+
+        return $remainder > 0 ? "{$hours}h" . $this->pad($remainder) . 'm' : "{$hours}h";
+    }
 };
 ?>
 
@@ -218,54 +275,92 @@ new class extends Component {
                 $wire.syncToCart(this.selected)
             }, 500)
         },
+        seasonCount(num, total) {
+            const selected = this.seasonSelections[num]?.length || 0
+            return selected > 0
+                ? String(selected).padStart(2, '0') + '/' + total
+                : total
+        },
     }"
 >
-    <flux:heading size="lg" class="mt-8">Episodes</flux:heading>
+    <div class="space-y-2">
+        @forelse ($this->seasons as $season)
+            @if (! $loop->first)
+                <flux:separator />
+            @endif
 
-    @forelse ($this->seasons as $season)
-        <div x-init="initSeason('{{ $season['number'] }}')" wire:key="season-{{ $season['number'] }}">
-            <flux:checkbox.group
-                x-model="seasonSelections['{{ $season['number'] }}']"
-                @change="scheduleSync()"
-                class="mt-4"
-            >
-                <flux:checkbox.all label="S{{ str_pad($season['number'], 2, '0', STR_PAD_LEFT) }}" />
+            <div x-init="initSeason('{{ $season['number'] }}')" wire:key="season-{{ $season['number'] }}">
+                <flux:checkbox.group x-model="seasonSelections['{{ $season['number'] }}']" @change="scheduleSync()">
+                    <flux:accordion transition>
+                        <flux:accordion.item :expanded="$season['number'] === $this->expandedSeason">
+                            <flux:accordion.heading>
+                                <div class="flex w-full items-center gap-2">
+                                    <div x-on:click.stop>
+                                        <flux:checkbox.all />
+                                    </div>
+                                    <span class="font-mono">S{{ $this->pad($season['number']) }}</span>
+                                    <span
+                                        class="ml-auto font-mono text-sm text-zinc-500"
+                                        x-text="
+                                            seasonCount(
+                                                '{{ $season['number'] }}',
+                                                '{{ $this->pad(count($season['episodes'])) }}',
+                                            )
+                                        "
+                                    ></span>
+                                </div>
+                            </flux:accordion.heading>
 
-                <div class="mt-2 ml-6 space-y-1">
-                    @foreach ($season['episodes'] as $episode)
-                        <div
-                            wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
-                            class="flex items-center gap-3"
-                        >
-                            <flux:checkbox value="{{ \App\Models\Episode::displayCode($episode) }}" />
-                            <span class="flex-1">
-                                {{ \App\Models\Episode::displayCode($episode) }} {{ $episode['name'] }} -
-                                {{ $episode['airdate'] }}
-                            </span>
-                            @php($epServers = $this->plexAvailability[\App\Models\Episode::displayCode($episode)] ?? [])
-                            @if (count($epServers) > 0)
-                                <div class="flex gap-1">
-                                    @foreach ($epServers as $server)
-                                        <flux:badge size="sm" color="green">{{ $server['name'] }}</flux:badge>
+                            <flux:accordion.content>
+                                <div class="space-y-1">
+                                    @foreach ($season['episodes'] as $episode)
+                                        <div
+                                            wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
+                                            @class(['flex items-center', 'cursor-not-allowed opacity-50' => ! $this->hasAired($episode)])
+                                        >
+                                            <div class="flex min-w-0 flex-1 items-center gap-2">
+                                                @if ($this->hasAired($episode))
+                                                    <flux:checkbox
+                                                        value="{{ \App\Models\Episode::displayCode($episode) }}"
+                                                    />
+                                                @else
+                                                    <div
+                                                        class="size-[1.125rem] shrink-0 rounded-[.3rem] border border-white/10"
+                                                    ></div>
+                                                @endif
+                                                <span class="min-w-0 truncate">
+                                                    <span class="font-mono">
+                                                        {{ \App\Models\Episode::displayCode($episode) }}
+                                                    </span>
+                                                    <span class="font-serif">{{ $episode['name'] }}</span>
+                                                </span>
+                                                <span class="ml-auto shrink-0 font-mono text-sm text-zinc-500">
+                                                    @if ($episode['runtime'] ?? null)
+                                                        {{ $this->formatRuntime($episode['runtime']) }}
+                                                    @endif
+
+                                                    @if ($episode['airdate'])
+                                                        @if ($episode['runtime'] ?? null)
+                                                            &middot;
+                                                        @endif
+
+                                                        {{ Carbon::parse($episode['airdate'])->format('m/d/y') }}
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <div class="ms-2 size-5 shrink-0"></div>
+                                        </div>
                                     @endforeach
                                 </div>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </flux:checkbox.group>
-        </div>
-    @empty
-        @if ($error)
-            <flux:callout variant="danger" class="mt-4">
-                <flux:callout.text>{{ $error }}</flux:callout.text>
-            </flux:callout>
-        @else
-            <div class="mt-4">
-                <x-lundbergh-bubble size="sm" :with-margin="false">
-                    {{ __('lundbergh.empty.episodes') }}
-                </x-lundbergh-bubble>
+                            </flux:accordion.content>
+                        </flux:accordion.item>
+                    </flux:accordion>
+                </flux:checkbox.group>
             </div>
-        @endif
-    @endforelse
+        @empty
+            <flux:callout :variant="$error ? 'danger' : null" class="mt-4">
+                <flux:callout.text>{{ $error ?? __('lundbergh.empty.episodes') }}</flux:callout.text>
+            </flux:callout>
+        @endforelse
+    </div>
 </div>

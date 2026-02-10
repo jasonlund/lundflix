@@ -7,7 +7,7 @@ it('has 37 genre cases', function () {
 });
 
 it('returns correct labels for standard genres', function (Genre $genre, string $expected) {
-    expect($genre->label())->toBe($expected);
+    expect($genre->getLabel())->toBe($expected);
 })->with([
     [Genre::Action, 'Action'],
     [Genre::Comedy, 'Comedy'],
@@ -19,7 +19,7 @@ it('returns correct labels for standard genres', function (Genre $genre, string 
 ]);
 
 it('returns correct labels for special-cased genres', function (Genre $genre, string $expected) {
-    expect($genre->label())->toBe($expected);
+    expect($genre->getLabel())->toBe($expected);
 })->with([
     [Genre::DIY, 'DIY'],
     [Genre::FilmNoir, 'Film Noir'],

@@ -26,13 +26,7 @@ class ShowsTable
                 TextColumn::make('name')
                     ->sortable(),
                 TextColumn::make('status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Running' => 'success',
-                        'Ended' => 'danger',
-                        'To Be Determined' => 'warning',
-                        default => 'gray',
-                    }),
+                    ->badge(),
                 TextColumn::make('premiered')
                     ->date()
                     ->sortable(),

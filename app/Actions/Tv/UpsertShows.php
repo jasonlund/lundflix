@@ -2,6 +2,7 @@
 
 namespace App\Actions\Tv;
 
+use App\Enums\ShowStatus;
 use App\Models\Show;
 
 class UpsertShows
@@ -16,8 +17,8 @@ class UpsertShows
             ['tvmaze_id'],
             [
                 'name', 'type', 'language', 'genres', 'status', 'runtime',
-                'premiered', 'ended', 'schedule', 'network', 'web_channel',
-                'thetvdb_id',
+                'average_runtime', 'premiered', 'ended', 'schedule', 'network',
+                'web_channel', 'thetvdb_id',
             ]
         );
     }
@@ -37,8 +38,9 @@ class UpsertShows
             'type' => $show['type'],
             'language' => $show['language'],
             'genres' => json_encode($show['genres']),
-            'status' => $show['status'],
+            'status' => ShowStatus::from($show['status'])->value,
             'runtime' => $show['runtime'],
+            'average_runtime' => $show['averageRuntime'] ?? null,
             'premiered' => $show['premiered'],
             'ended' => $show['ended'],
             'schedule' => json_encode($show['schedule']),

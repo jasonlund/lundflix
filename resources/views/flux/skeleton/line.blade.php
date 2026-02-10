@@ -21,10 +21,9 @@
                 'shimmer' => [
                     'relative before:absolute before:inset-0 before:-translate-x-full',
                     'overflow-hidden isolate',
-                    '[:where(&)]:[--flux-shimmer-color:white]',
-                    'dark:[:where(&)]:[--flux-shimmer-color:var(--color-zinc-900)]',
+                    '[:where(&)]:[--flux-shimmer-color:var(--color-zinc-900)]',
                     'before:z-10 before:animate-[flux-shimmer_2s_infinite]',
-                    'before:bg-gradient-to-r before:from-transparent before:via-[var(--flux-shimmer-color)]/50 dark:before:via-[var(--flux-shimmer-color)]/50 before:to-transparent',
+                    'before:bg-gradient-to-r before:from-transparent before:via-[var(--flux-shimmer-color)]/50 before:to-transparent',
                 ],
                 'pulse' => 'animate-pulse',
                 default => '',
@@ -33,7 +32,7 @@
 @endphp
 
 <div {{ $attributes->class($classes) }} data-flux-skeleton-line>
-    <div class="h-full [:where(&)]:rounded-md [:where(&)]:bg-zinc-300/60 dark:[:where(&)]:bg-zinc-700/50">
+    <div class="h-full [:where(&)]:rounded-md [:where(&)]:bg-zinc-700/50">
         {{ $slot }}
     </div>
 </div>

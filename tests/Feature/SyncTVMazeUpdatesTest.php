@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ShowStatus;
 use App\Models\Show;
 use Illuminate\Support\Facades\Http;
 
@@ -29,6 +30,7 @@ it('updates existing shows that have changed in TVMaze', function () {
             'genres' => ['Comedy', 'Animation'],
             'status' => 'Ended',
             'runtime' => 30,
+            'averageRuntime' => 30,
             'premiered' => '1997-08-13',
             'ended' => '2024-12-15',
             'schedule' => ['time' => '22:00', 'days' => ['Wednesday']],
@@ -49,7 +51,7 @@ it('updates existing shows that have changed in TVMaze', function () {
 
     expect($show)->not->toBeNull()
         ->and($show->name)->toBe('South Park')
-        ->and($show->status)->toBe('Ended')
+        ->and($show->status)->toBe(ShowStatus::Ended)
         ->and($show->ended->toDateString())->toBe('2024-12-15');
 });
 
@@ -71,6 +73,7 @@ it('only fetches shows that exist in the database', function () {
             'genres' => ['Drama'],
             'status' => 'Running',
             'runtime' => 60,
+            'averageRuntime' => 60,
             'premiered' => '2020-01-01',
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => ['Monday']],
@@ -127,6 +130,7 @@ it('accepts since option for time period', function () {
             'genres' => [],
             'status' => 'Running',
             'runtime' => 60,
+            'averageRuntime' => 60,
             'premiered' => '2020-01-01',
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => []],
@@ -159,6 +163,7 @@ it('handles shows that no longer exist in TVMaze', function () {
             'genres' => [],
             'status' => 'Running',
             'runtime' => 60,
+            'averageRuntime' => 60,
             'premiered' => '2020-01-01',
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => []],

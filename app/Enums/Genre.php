@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum Genre: string
+enum Genre: string implements HasLabel
 {
     case Action = 'action';
     case Adult = 'adult';
@@ -49,7 +50,7 @@ enum Genre: string
         'sports' => 'sport',
     ];
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::DIY => 'DIY',
@@ -78,7 +79,7 @@ enum Genre: string
         $genre = self::tryFromString($value);
 
         if ($genre !== null) {
-            return $genre->label();
+            return $genre->getLabel();
         }
 
         return Str::of($value)

@@ -21,6 +21,7 @@ return [
         'search_prompt' => 'Yeah… go ahead and type at least two characters to start searching.',
         'search_no_results' => 'Mmm yeah… nothing matched that search. Try another title.',
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
+        'search_imdb_hint' => "Yeah… if you can't find what you're looking for, go ahead and try an :imdb_link ID instead. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

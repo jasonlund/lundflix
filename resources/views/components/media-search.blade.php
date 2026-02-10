@@ -235,6 +235,20 @@ new class extends Component {
                     </flux:command.item>
                 @endforeach
             </flux:command.items>
+
+            @if (strlen($query) >= 2 && ! SearchService::isImdbId($query))
+                <div class="p-2">
+                    <flux:callout>
+                        <flux:callout.text>
+                            {!!
+                                __('lundbergh.empty.search_imdb_hint', [
+                                    'imdb_link' => '<a href="https://www.imdb.com" target="_blank" class="inline font-medium underline underline-offset-[6px] hover:decoration-current decoration-white/20">IMDb</a>',
+                                ])
+                            !!}
+                        </flux:callout.text>
+                    </flux:callout>
+                </div>
+            @endif
         </flux:command>
     </flux:modal>
 </div>
