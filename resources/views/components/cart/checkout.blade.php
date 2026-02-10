@@ -5,7 +5,7 @@ use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Models\Episode;
 use App\Services\CartService;
-use App\Support\CartItemFormatter;
+use App\Support\RequestItemFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -109,7 +109,7 @@ new #[Layout('components.layouts.app')] class extends Component {
      */
     public function formatRun(Collection $episodes): string
     {
-        return CartItemFormatter::formatRun($episodes);
+        return RequestItemFormatter::formatRun($episodes);
     }
 
     /**
@@ -117,7 +117,7 @@ new #[Layout('components.layouts.app')] class extends Component {
      */
     public function formatSeason(int $season): string
     {
-        return CartItemFormatter::formatSeason($season);
+        return RequestItemFormatter::formatSeason($season);
     }
 };
 ?>

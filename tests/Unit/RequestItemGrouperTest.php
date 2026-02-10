@@ -3,7 +3,7 @@
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\CartItemGrouper;
+use App\Services\RequestItemGrouper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -13,7 +13,7 @@ it('separates movies from episodes', function () {
     $show = Show::factory()->create();
     $episode = Episode::factory()->create(['show_id' => $show->id]);
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group(collect([$movie, $episode]));
 
     expect($result['movies'])->toHaveCount(1);
@@ -30,7 +30,7 @@ it('groups episodes by show', function () {
 
     $episodes = Episode::with('show')->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     expect($result['shows'])->toHaveCount(2);
@@ -46,7 +46,7 @@ it('groups episodes by season within a show', function () {
 
     $episodes = Episode::with('show')->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     expect($result['shows'])->toHaveCount(1);
@@ -72,7 +72,7 @@ it('detects a full season when all episodes are in cart', function () {
     // Add all to cart
     $episodes = Episode::with('show')->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     expect($result['shows'][0]['seasons'][0]['is_full'])->toBeTrue();
@@ -95,7 +95,7 @@ it('detects partial season when not all episodes are in cart', function () {
     // Only get first 2 episodes
     $episodes = Episode::with('show')->where('number', '<=', 2)->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     expect($result['shows'][0]['seasons'][0]['is_full'])->toBeFalse();
@@ -146,7 +146,7 @@ it('finds consecutive runs based on airdate order', function () {
         ->whereIn('number', [1, 2, 4, 5])
         ->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     $runs = $result['shows'][0]['seasons'][0]['runs'];
@@ -183,7 +183,7 @@ it('includes specials in runs when consecutive by airdate', function () {
 
     $episodes = Episode::with('show')->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     $runs = $result['shows'][0]['seasons'][0]['runs'];
@@ -195,7 +195,7 @@ it('includes specials in runs when consecutive by airdate', function () {
 });
 
 it('handles empty collection', function () {
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group(collect());
 
     expect($result['movies'])->toBeEmpty();
@@ -205,7 +205,7 @@ it('handles empty collection', function () {
 it('handles movies only', function () {
     $movies = Movie::factory()->count(3)->create();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($movies);
 
     expect($result['movies'])->toHaveCount(3);
@@ -240,7 +240,7 @@ it('excludes insignificant specials from full season calculation', function () {
         ->where('type', '!=', 'insignificant_special')
         ->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     // Should be considered full since insignificant specials are excluded
@@ -275,7 +275,7 @@ it('sorts runs by airdate order', function () {
 
     $episodes = Episode::with('show')->get();
 
-    $grouper = new CartItemGrouper;
+    $grouper = new RequestItemGrouper;
     $result = $grouper->group($episodes);
 
     $runs = $result['shows'][0]['seasons'][0]['runs'];

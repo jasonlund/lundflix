@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\CartService;
-use App\Support\CartItemFormatter;
+use App\Support\RequestItemFormatter;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -29,12 +29,12 @@ new class extends Component {
 
     public function formatRun(Collection $episodes): string
     {
-        return CartItemFormatter::formatRun($episodes);
+        return RequestItemFormatter::formatRun($episodes);
     }
 
     public function formatSeason(int $season): string
     {
-        return CartItemFormatter::formatSeason($season);
+        return RequestItemFormatter::formatSeason($season);
     }
 
     /**
