@@ -7,7 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.guest')] class extends Component {
     #[Validate('required|email')]
     public string $email = '';
 
@@ -42,7 +42,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         RateLimiter::clear($throttleKey);
         session()->regenerate();
-        $this->redirect(route('home'));
+        $this->redirectIntended(route('home'));
     }
 };
 ?>
@@ -83,7 +83,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 <flux:modal.trigger name="plex-register">
                     <button
                         type="button"
-                        class="inline-flex items-center gap-1 border-b border-current pb-px transition-colors hover:text-zinc-400 dark:hover:text-zinc-300"
+                        class="inline-flex items-center gap-1 border-b border-current pb-px transition-colors hover:text-zinc-300"
                     >
                         Register with
                         <x-plex-logo class="h-4" />

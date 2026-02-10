@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum MovieArtwork: string
+enum MovieArtwork: string implements HasLabel
 {
     case HdClearLogo = 'hdmovielogo';
     case Poster = 'movieposter';

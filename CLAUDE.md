@@ -24,6 +24,7 @@ Code must pass the following checks before being committed:
 - `composer phpstan` - Static analysis
 - `composer audit` - PHP security vulnerabilities
 - `npm audit --audit-level=high` - JS security vulnerabilities
+- `npm run lint` - No `dark:` Tailwind classes (always dark mode)
 
 ## Git Commits
 
@@ -60,6 +61,18 @@ When committing changes, use this format:
 ## Blade Components
 
 - **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+
+## Dark Mode
+
+- Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).
+
+## Date Comparisons
+
+- Use Carbon methods (`->lte()`, `->gte()`, `->isPast()`, `->isBefore()`, etc.) for date comparisons instead of formatting dates as strings and comparing them
+- Use `today()` helper for date-only comparisons (returns `Carbon::today()` at 00:00:00)
+- `Carbon::parse()` accepts both string dates and Carbon instances, making it safe for mixed data sources (API arrays vs. Eloquent models)
+- Guard against null and empty string before calling `Carbon::parse()` — use `empty($date)` when data originates from external APIs
+- Formatting dates as strings for serialization (e.g., `->format('Y-m-d')` in Livewire `dehydrate()`) is distinct from comparison and remains correct
 
 ## Livewire Validation
 
@@ -213,6 +226,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+- Enums used in Filament tables, infolists, or forms must implement Filament's native contracts (`HasLabel`, `HasColor`, `HasIcon`, `HasDescription`) from `Filament\Support\Contracts\`. This lets Filament auto-detect labels, colors, and icons — never manually map these in table columns or infolist entries.
 
 === herd rules ===
 
@@ -513,7 +527,9 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 </code-snippet>
 
 ### Dark Mode
-- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
+- Dark mode is permanently enabled in this application — there is no light mode. The app always renders in dark mode.
+- **Never use `dark:` prefixed Tailwind classes.** Since dark mode is always on, use the dark variant colors directly as the default (e.g., use `bg-zinc-900` instead of `bg-white dark:bg-zinc-900`).
+- All new components and pages must be styled for dark mode only.
 
 === tailwindcss/v4 rules ===
 
