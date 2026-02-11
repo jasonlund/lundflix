@@ -300,7 +300,7 @@ new class extends Component {
                                                     />
                                                 @else
                                                     <div
-                                                        class="size-[1.125rem] shrink-0 rounded-[.3rem] border border-zinc-200 dark:border-white/10"
+                                                        class="size-[1.125rem] shrink-0 rounded-[.3rem] border border-white/10"
                                                     ></div>
                                                 @endif
                                                 <span class="min-w-0 truncate">

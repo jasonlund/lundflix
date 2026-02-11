@@ -24,6 +24,7 @@ Code must pass the following checks before being committed:
 - `composer phpstan` - Static analysis
 - `composer audit` - PHP security vulnerabilities
 - `npm audit --audit-level=high` - JS security vulnerabilities
+- `npm run lint` - No `dark:` Tailwind classes (always dark mode)
 
 ## Git Commits
 
@@ -56,6 +57,14 @@ When committing changes, use this format:
 ## Branding
 
 - The app name is always styled as "lundflix" (lowercase)
+
+## Blade Components
+
+- **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+
+## Dark Mode
+
+- Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).
 
 ## Date Comparisons
 
@@ -518,7 +527,9 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 </code-snippet>
 
 ### Dark Mode
-- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
+- Dark mode is permanently enabled in this application — there is no light mode. The app always renders in dark mode.
+- **Never use `dark:` prefixed Tailwind classes.** Since dark mode is always on, use the dark variant colors directly as the default (e.g., use `bg-zinc-900` instead of `bg-white dark:bg-zinc-900`).
+- All new components and pages must be styled for dark mode only.
 
 === tailwindcss/v4 rules ===
 

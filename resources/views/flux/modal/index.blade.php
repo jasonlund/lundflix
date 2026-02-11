@@ -39,8 +39,8 @@
             )
             ->add(
                 match ($variant) {
-                    default => "bg-white dark:bg-zinc-800 border-transparent dark:border-zinc-700",
-                    "floating" => "bg-white dark:bg-zinc-800 ring ring-black/5 dark:ring-zinc-700 shadow-lg rounded-xl",
+                    default => "bg-zinc-800 border-zinc-700",
+                    "floating" => "bg-zinc-800 ring ring-zinc-700 shadow-lg rounded-xl",
                     "bare" => "bg-transparent",
                 },
             );
@@ -56,7 +56,7 @@
             )
             ->add(
                 match ($variant) {
-                    default => "bg-white dark:bg-zinc-800 ring ring-black/5 dark:ring-zinc-700 shadow-lg rounded-xl",
+                    default => "bg-zinc-800 ring ring-zinc-700 shadow-lg rounded-xl",
                     "bare" => "bg-transparent",
                 },
             );

@@ -35,9 +35,7 @@
                     <flux:toast />
                 </flux:toast.group>
 
-                <flux:header
-                    class="sticky top-0 z-20 -mt-px border-b border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
-                >
+                <flux:header class="sticky top-0 z-20 -mt-px border-b border-zinc-700 bg-zinc-900">
                     <flux:brand
                         href="{{ route('home') }}"
                         wire:navigate
