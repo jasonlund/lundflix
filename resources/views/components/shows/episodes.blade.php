@@ -41,7 +41,28 @@ new class extends Component {
     public function mount(?Collection $episodes = null): void
     {
         if ($episodes !== null && $episodes->isNotEmpty()) {
-            $this->episodes = $episodes;
+            $this->episodes = $episodes->map(
+                fn ($ep) => is_array($ep)
+                    ? $ep
+                    : [
+                        'id' => $ep->id,
+                        'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
+                        'season' => $ep->season,
+                        'number' => $ep->number,
+                        'name' => $ep->name,
+                        'type' => $ep->type ?? 'regular',
+                        'airdate' => $ep->airdate?->format('Y-m-d'),
+                    ],
+            );
+
+            return;
+        }
+
+        $cacheKey = "tvmaze:episodes-failure:{$this->show->tvmaze_id}";
+
+        if (Cache::has($cacheKey)) {
+            $this->error = __('lundbergh.error.episodes_backoff');
+            $this->episodes = collect();
 
             return;
         }

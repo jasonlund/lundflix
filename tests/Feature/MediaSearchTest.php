@@ -51,13 +51,13 @@ it('does not show imdb tip callout for short queries', function () {
         ->assertDontSeeHtml('go ahead and try an');
 });
 
-it('renders preview poster art for results', function (string $type, callable $factory): void {
+it('renders preview poster art for results', function (string $type, string $artType, callable $factory): void {
     $model = $factory();
 
     $expectedUrl = route('art', [
         'mediable' => $type,
         'id' => $model->id,
-        'type' => 'poster',
+        'type' => $artType,
         'preview' => 1,
     ]);
 
@@ -65,6 +65,6 @@ it('renders preview poster art for results', function (string $type, callable $f
         ->set('query', $model->imdb_id)
         ->assertSeeHtml('src="'.$expectedUrl.'"');
 })->with([
-    'show' => ['show', fn (): Show => Show::factory()->create(['imdb_id' => 'tt8000001'])],
-    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt8000002'])],
+    'show' => ['show', 'logo', fn (): Show => Show::factory()->create(['imdb_id' => 'tt8000001'])],
+    'movie' => ['movie', 'logo', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt8000002'])],
 ]);

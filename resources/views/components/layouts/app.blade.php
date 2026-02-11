@@ -66,7 +66,9 @@
                 </flux:header>
 
                 <flux:main :padding="false">
-                    {{ $slot }}
+                    <div class="pb-6">
+                        {{ $slot }}
+                    </div>
                 </flux:main>
             </div>
         </div>
