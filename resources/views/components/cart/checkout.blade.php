@@ -3,9 +3,10 @@
 use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
+use App\Events\RequestSubmitted;
 use App\Models\Episode;
 use App\Services\CartService;
-use App\Support\CartItemFormatter;
+use App\Support\RequestItemFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             return;
         }
 
-        DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
+        $request = DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
             $request = $createRequest->create(Auth::user(), $this->notes ?: null);
 
             $items = $cart
@@ -94,7 +95,11 @@ new #[Layout('components.layouts.app')] class extends Component {
             $createRequestItems->create($request, $items);
 
             $cart->clear();
+
+            return $request;
         });
+
+        RequestSubmitted::dispatch($request);
 
         $this->dispatch('cart-updated');
 
@@ -109,7 +114,7 @@ new #[Layout('components.layouts.app')] class extends Component {
      */
     public function formatRun(Collection $episodes): string
     {
-        return CartItemFormatter::formatRun($episodes);
+        return RequestItemFormatter::formatRun($episodes);
     }
 
     /**
@@ -117,7 +122,7 @@ new #[Layout('components.layouts.app')] class extends Component {
      */
     public function formatSeason(int $season): string
     {
-        return CartItemFormatter::formatSeason($season);
+        return RequestItemFormatter::formatSeason($season);
     }
 };
 ?>

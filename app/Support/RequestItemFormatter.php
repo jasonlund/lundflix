@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\Episode;
 use Illuminate\Support\Collection;
 
-class CartItemFormatter
+class RequestItemFormatter
 {
     /**
      * Format a run of episodes for display.
@@ -43,6 +43,6 @@ class CartItemFormatter
      */
     public static function formatSeason(int $season): string
     {
-        return "Season {$season}";
+        return sprintf('S%02d', $season);
     }
 }
