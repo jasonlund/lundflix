@@ -194,7 +194,7 @@ new class extends Component {
                     <a
                         href="{{ $this->imdbUrl() }}"
                         target="_blank"
-                        class="flex items-center justify-center rounded-lg bg-zinc-900 p-2 transition hover:bg-zinc-800"
+                        class="flex items-center justify-center rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
                     >
                         <flux:icon.imdb class="size-8" />
                     </a>
@@ -202,17 +202,14 @@ new class extends Component {
             </div>
         @endif
 
-        <div class="relative flex h-full flex-col gap-4 px-4 py-5">
-            <div>
-                @if ($this->logoUrl())
-                    <img
-                        src="{{ $this->logoUrl() }}"
-                        alt="{{ $show->name }} logo"
-                        class="h-20 w-auto max-w-full drop-shadow"
-                    />
-                @else
-                    <flux:heading size="xl">{{ $show->name }}</flux:heading>
-                @endif
+        <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+            <div class="max-w-4xl">
+                <x-artwork
+                    :model="$show"
+                    type="logo"
+                    :alt="$show->name . ' logo'"
+                    class="h-12 drop-shadow sm:h-14 md:h-20"
+                />
             </div>
 
             <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-300">

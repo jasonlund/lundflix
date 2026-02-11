@@ -1,13 +1,14 @@
 <?php
 
 use App\Actions\Tv\PrepareEpisodesForDisplay;
-use App\Jobs\StoreShowEpisodes;
+use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -41,7 +42,28 @@ new class extends Component {
     public function mount(?Collection $episodes = null): void
     {
         if ($episodes !== null && $episodes->isNotEmpty()) {
-            $this->episodes = $episodes;
+            $this->episodes = $episodes->map(
+                fn ($ep) => is_array($ep)
+                    ? $ep
+                    : [
+                        'id' => $ep->id,
+                        'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
+                        'season' => $ep->season,
+                        'number' => $ep->number,
+                        'name' => $ep->name,
+                        'type' => $ep->type ?? 'regular',
+                        'airdate' => $ep->airdate?->format('Y-m-d'),
+                    ],
+            );
+
+            return;
+        }
+
+        $cacheKey = "tvmaze:episodes-failure:{$this->show->tvmaze_id}";
+
+        if (Cache::has($cacheKey)) {
+            $this->error = __('lundbergh.error.episodes_backoff');
+            $this->episodes = collect();
 
             return;
         }
@@ -51,12 +73,15 @@ new class extends Component {
         try {
             $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
         } catch (RequestException $e) {
-            $this->error = $e->response->status() === 404 ? null : 'Failed to load episodes from TVMaze.';
+            if ($e->response->status() !== 404) {
+                Cache::put($cacheKey, true, now()->addHour());
+                $this->error = __('lundbergh.error.episodes_backoff');
+            }
             $apiEpisodes = [];
         }
 
         if (! empty($apiEpisodes)) {
-            StoreShowEpisodes::dispatchSync($this->show, $apiEpisodes);
+            app(UpsertEpisodes::class)->fromApi($this->show, $apiEpisodes);
         }
 
         $this->episodes = collect(app(PrepareEpisodesForDisplay::class)->prepare($apiEpisodes));
