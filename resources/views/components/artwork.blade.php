@@ -41,7 +41,9 @@
                     <div class="{{ $aspectClass }} bg-black"></div>
                 @else
                     <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                        <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">{{ $name }}</span>
+                        <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">
+                            {{ $name }}
+                        </span>
                     </div>
                 @endif
             @else
@@ -56,7 +58,9 @@
                 <div class="{{ $aspectClass }} bg-black"></div>
             @else
                 <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                    <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">{{ $name }}</span>
+                    <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">
+                        {{ $name }}
+                    </span>
                 </div>
             @endif
         @else

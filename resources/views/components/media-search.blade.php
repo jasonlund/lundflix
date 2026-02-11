@@ -3,6 +3,7 @@
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\SearchService;
+use App\Support\Formatters;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -116,7 +117,7 @@ new class extends Component {
                 closable
             />
             <flux:command.items
-                class="min-h-0 flex-1 divide-y divide-zinc-200/70 overflow-y-auto bg-white/75 p-0 backdrop-blur-sm dark:divide-zinc-700/70 dark:bg-zinc-900/75"
+                class="min-h-0 flex-1 divide-y divide-zinc-700/70 overflow-y-auto bg-zinc-900/75 p-0 backdrop-blur-sm"
             >
                 <x-slot:empty>
                     {{ strlen($query) >= 2 ? __('lundbergh.empty.search_no_results') : __('lundbergh.empty.search_prompt') }}
@@ -132,7 +133,7 @@ new class extends Component {
                             $dispatch('modal-close', { name: 'search' })
                             $wire.clearSearch()
                         "
-                        class="hover:bg-white/60 data-active:!bg-black dark:hover:bg-zinc-800/60"
+                        class="hover:bg-zinc-800/60 data-active:!bg-black"
                     >
                         <div class="flex w-full items-stretch gap-3">
                             <div class="flex w-32 shrink-0">

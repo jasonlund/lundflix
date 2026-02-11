@@ -4,20 +4,20 @@ use App\Models\Movie;
 use App\Models\Show;
 use Livewire\Livewire;
 
-it('navigates to show page when show result is selected', function () {
-    $show = Show::factory()->create();
+it('renders show link in search results', function () {
+    $show = Show::factory()->create(['imdb_id' => 'tt9000001']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'show', $show->id)
-        ->assertRedirect(route('shows.show', $show));
+        ->set('query', $show->imdb_id)
+        ->assertSeeHtml('href="'.route('shows.show', $show).'"');
 });
 
-it('navigates to movie page when movie result is selected', function () {
-    $movie = Movie::factory()->create();
+it('renders movie link in search results', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt9000002']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'movie', $movie->id)
-        ->assertRedirect(route('movies.show', $movie));
+        ->set('query', $movie->imdb_id)
+        ->assertSeeHtml('href="'.route('movies.show', $movie).'"');
 });
 
 it('renders stable keys for search results', function (string $type, callable $factory): void {
