@@ -11,12 +11,10 @@
         "lint": "! grep -rn --include='*.blade.php' --include='*.css' --include='*.js' 'dark:' resources/"
     },
     "dependencies": {
-        "@tailwindcss/vite": "^4.1.11",
         "autoprefixer": "^10.4.20",
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0",
-        "tailwindcss": "^4.0.7",
         "vite": "^7.0.4"
     },
     "optionalDependencies": {
@@ -25,8 +23,10 @@
         "lightningcss-linux-x64-gnu": "^1.29.1"
     },
     "devDependencies": {
+        "@tailwindcss/vite": "^4.1.18",
         "prettier": "^3.7.4",
         "prettier-plugin-blade": "^2.1.21",
-        "prettier-plugin-tailwindcss": "^0.7.2"
+        "prettier-plugin-tailwindcss": "^0.7.2",
+        "tailwindcss": "^4.1.18"
     }
 }

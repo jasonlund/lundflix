@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Language;
 use App\Enums\ShowStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,7 +24,7 @@ class ShowFactory extends Factory
             'thetvdb_id' => fake()->unique()->numberBetween(100000, 999999),
             'name' => fake()->sentence(3),
             'type' => fake()->randomElement(['Scripted', 'Animation', 'Reality', 'Documentary', 'Talk Show']),
-            'language' => 'English',
+            'language' => fake()->randomElement(Language::cases())->getLabel(),
             'genres' => fake()->randomElements(['Drama', 'Comedy', 'Action', 'Thriller', 'Sci-Fi', 'Horror'], 2),
             'status' => fake()->randomElement(ShowStatus::cases())->value,
             'runtime' => fake()->randomElement([30, 45, 60]),

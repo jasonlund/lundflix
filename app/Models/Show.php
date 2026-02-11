@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\LanguageFromName;
 use App\Enums\NetworkLogo;
 use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
@@ -31,6 +32,7 @@ class Show extends Model
             'ended' => 'date',
             'num_votes' => 'integer',
             'status' => ShowStatus::class,
+            'language' => LanguageFromName::class,
         ];
     }
 

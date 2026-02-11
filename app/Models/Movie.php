@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\SpokenLanguages;
+use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Models\Concerns\HasArtwork;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +25,14 @@ class Movie extends Model
             'runtime' => 'integer',
             'num_votes' => 'integer',
             'genres' => 'array',
+            'tmdb_id' => 'integer',
+            'release_date' => 'date',
+            'digital_release_date' => 'date',
+            'production_companies' => 'array',
+            'spoken_languages' => SpokenLanguages::class,
+            'alternative_titles' => 'array',
+            'original_language' => Language::class,
+            'tmdb_synced_at' => 'datetime',
         ];
     }
 
