@@ -3,6 +3,7 @@
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\SearchService;
+use App\Support\Formatters;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -25,18 +26,82 @@ new class extends Component {
                     'type' => $isShow ? 'show' : 'movie',
                     'id' => $item->id,
                     'title' => $isShow ? $item->name : $item->title,
-                    'year' => $isShow ? $item->premiered?->year : $item->year,
-                    'genres' => $item->genres ? implode(', ', $item->genres) : null,
-                    'poster_url' => $item->artUrl('poster', true),
-                    'model' => $isShow ? null : $item,
+                    'yearLabel' => $this->yearLabelFor($item),
+                    'status' => $isShow ? $item->status : null,
+                    'runtime' => $this->runtimeLabelFor($item),
+                    'genres' => $item->genres ?? [],
+                    'network' => $isShow ? $this->networkLabelFor($item) : null,
+                    'model' => $item,
                 ];
             });
     }
 
-    public function selectResult(string $type, int $id): void
+    private function yearLabelFor(Show|Movie $item): ?string
     {
-        $route = $type === 'show' ? route('shows.show', $id) : route('movies.show', $id);
-        $this->redirect($route, navigate: true);
+        if ($item instanceof Show) {
+            return $this->showYearRange($item);
+        }
+
+        if (! $item->year) {
+            return null;
+        }
+
+        return (string) $item->year;
+    }
+
+    private function showYearRange(Show $show): ?string
+    {
+        if (! $show->premiered) {
+            return null;
+        }
+
+        $startYear = $show->premiered->year;
+
+        if ($show->ended) {
+            return $startYear . '-' . $show->ended->year;
+        }
+
+        if ($show->status === 'Running') {
+            return $startYear . '-';
+        }
+
+        return (string) $startYear;
+    }
+
+    private function runtimeLabelFor(Show|Movie $item): ?string
+    {
+        if (! $item->runtime) {
+            return null;
+        }
+
+        if ($item instanceof Show) {
+            return $item->runtime . ' min';
+        }
+
+        return Formatters::runtime($item->runtime);
+    }
+
+    private function networkLabelFor(Show $show): ?string
+    {
+        if (is_array($show->network) && isset($show->network['name'])) {
+            $label = $show->network['name'];
+            if (isset($show->network['country']['name'])) {
+                $label .= " ({$show->network['country']['name']})";
+            }
+
+            return $label;
+        }
+
+        if (is_array($show->web_channel) && isset($show->web_channel['name'])) {
+            return $show->web_channel['name'];
+        }
+
+        return null;
+    }
+
+    public function clearSearch(): void
+    {
+        $this->query = '';
     }
 };
 ?>
@@ -51,7 +116,9 @@ new class extends Component {
                 clearable
                 closable
             />
-            <flux:command.items class="max-h-[60vh] overflow-y-auto">
+            <flux:command.items
+                class="min-h-0 flex-1 divide-y divide-zinc-700/70 overflow-y-auto bg-zinc-900/75 p-0 backdrop-blur-sm"
+            >
                 <x-slot:empty>
                     {{ strlen($query) >= 2 ? __('lundbergh.empty.search_no_results') : __('lundbergh.empty.search_prompt') }}
                 </x-slot>
@@ -59,37 +126,68 @@ new class extends Component {
                 @foreach ($this->results() as $result)
                     <flux:command.item
                         wire:key="search-result-{{ $result['type'] }}-{{ $result['id'] }}"
-                        wire:click="selectResult('{{ $result['type'] }}', {{ $result['id'] }})"
+                        as="a"
+                        href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
+                        wire:navigate
+                        x-on:click="
+                            $dispatch('modal-close', { name: 'search' })
+                            $wire.clearSearch()
+                        "
+                        class="hover:bg-zinc-800/60 data-active:!bg-black"
                     >
-                        <div class="flex w-full items-center gap-3">
-                            <div class="h-12 w-9 shrink-0 overflow-hidden rounded-md bg-zinc-700">
-                                @if ($result['poster_url'])
-                                    <img
-                                        src="{{ $result['poster_url'] }}"
-                                        alt="{{ $result['title'] }} poster"
-                                        class="h-full w-full object-cover"
-                                        loading="lazy"
-                                    />
-                                @else
-                                    <div class="flex h-full w-full items-center justify-center text-zinc-500">
-                                        <flux:icon
-                                            name="{{ $result['type'] === 'show' ? 'tv' : 'film' }}"
-                                            class="size-5"
-                                        />
-                                    </div>
-                                @endif
+                        <div class="flex w-full items-stretch gap-3">
+                            <div class="flex w-32 shrink-0">
+                                <x-artwork
+                                    :model="$result['model']"
+                                    type="logo"
+                                    :alt="$result['title'] . ' logo'"
+                                    :preview="true"
+                                    class="h-full w-full overflow-hidden p-1"
+                                />
                             </div>
-
-                            <div class="flex min-w-0 flex-1 items-center justify-between gap-2">
-                                <div class="flex min-w-0 flex-col">
-                                    <span>
-                                        {{ $result['title'] }}
-                                        @if ($result['year'])
-                                            <span class="text-zinc-400">({{ $result['year'] }})</span>
+                            <div class="flex min-w-0 flex-1 items-center gap-3 py-4 pe-3">
+                                <div class="flex min-w-0 flex-1 flex-col gap-2">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 group-data-active/item:text-zinc-400"
+                                    >
+                                        @if ($result['yearLabel'])
+                                            <span>{{ $result['yearLabel'] }}</span>
                                         @endif
+
+                                        @if ($result['status'])
+                                            <flux:badge
+                                                size="sm"
+                                                :color="$result['status'] === 'Running' ? 'green' : ($result['status'] === 'Ended' ? 'red' : 'zinc')"
+                                            >
+                                                {{ $result['status'] }}
+                                            </flux:badge>
+                                        @endif
+
+                                        @if ($result['runtime'])
+                                            <span>{{ $result['runtime'] }}</span>
+                                        @endif
+                                    </div>
+
+                                    <span class="truncate font-medium group-data-active/item:text-white">
+                                        {{ $result['title'] }}
                                     </span>
-                                    @if ($result['genres'])
-                                        <span class="text-xs text-zinc-500">{{ $result['genres'] }}</span>
+
+                                    @if ($result['genres'] || $result['network'])
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            @if ($result['genres'])
+                                                @foreach ($result['genres'] as $genre)
+                                                    <x-genre-badge :$genre size="sm" />
+                                                @endforeach
+                                            @endif
+
+                                            @if ($result['network'])
+                                                <span
+                                                    class="text-xs text-zinc-500 group-data-active/item:text-zinc-400"
+                                                >
+                                                    {{ $result['network'] }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     @endif
                                 </div>
                                 <div @click.stop class="flex shrink-0 gap-1">
@@ -105,6 +203,10 @@ new class extends Component {
                                         as="a"
                                         href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
                                         wire:navigate
+                                        x-on:click="
+                                            $dispatch('modal-close', { name: 'search' })
+                                            $wire.clearSearch()
+                                        "
                                         icon="arrow-right"
                                         size="sm"
                                     />

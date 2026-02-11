@@ -23,6 +23,9 @@ return [
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
         'search_imdb_hint' => "Yeah… if you can't find what you're looking for, go ahead and try an :imdb_link ID instead. That'd be great.",
     ],
+    'error' => [
+        'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
+    ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
         'please_wait' => "Mmm yeah… I'm gonna need you to wait while we get that ready. So… yeah.",

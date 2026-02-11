@@ -4,20 +4,20 @@ use App\Models\Movie;
 use App\Models\Show;
 use Livewire\Livewire;
 
-it('navigates to show page when show result is selected', function () {
-    $show = Show::factory()->create();
+it('renders show link in search results', function () {
+    $show = Show::factory()->create(['imdb_id' => 'tt9000001']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'show', $show->id)
-        ->assertRedirect(route('shows.show', $show));
+        ->set('query', $show->imdb_id)
+        ->assertSeeHtml('href="'.route('shows.show', $show).'"');
 });
 
-it('navigates to movie page when movie result is selected', function () {
-    $movie = Movie::factory()->create();
+it('renders movie link in search results', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt9000002']);
 
     Livewire::test('media-search')
-        ->call('selectResult', 'movie', $movie->id)
-        ->assertRedirect(route('movies.show', $movie));
+        ->set('query', $movie->imdb_id)
+        ->assertSeeHtml('href="'.route('movies.show', $movie).'"');
 });
 
 it('renders stable keys for search results', function (string $type, callable $factory): void {
@@ -51,13 +51,13 @@ it('does not show imdb tip callout for short queries', function () {
         ->assertDontSeeHtml('go ahead and try an');
 });
 
-it('renders preview poster art for results', function (string $type, callable $factory): void {
+it('renders preview poster art for results', function (string $type, string $artType, callable $factory): void {
     $model = $factory();
 
     $expectedUrl = route('art', [
         'mediable' => $type,
         'id' => $model->id,
-        'type' => 'poster',
+        'type' => $artType,
         'preview' => 1,
     ]);
 
@@ -65,6 +65,6 @@ it('renders preview poster art for results', function (string $type, callable $f
         ->set('query', $model->imdb_id)
         ->assertSeeHtml('src="'.$expectedUrl.'"');
 })->with([
-    'show' => ['show', fn (): Show => Show::factory()->create(['imdb_id' => 'tt8000001'])],
-    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt8000002'])],
+    'show' => ['show', 'logo', fn (): Show => Show::factory()->create(['imdb_id' => 'tt8000001'])],
+    'movie' => ['movie', 'logo', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt8000002'])],
 ]);

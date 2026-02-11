@@ -47,4 +47,8 @@ return [
         'api_key' => env('FANART_API_KEY'),
     ],
 
+    'tmdb' => [
+        'api_key' => env('TMDB_API_KEY'),
+    ],
+
 ];

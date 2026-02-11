@@ -12,6 +12,7 @@ use function Laravel\Prompts\spin;
 class ExportSeedData extends Command
 {
     protected $signature = 'db:export-seed
+                            {--all : Export all records instead of top N by votes}
                             {--movies=50000 : Number of top movies to export}
                             {--shows=20000 : Number of top shows to export}
                             {--connection=mysql : Database connection to export from}';
@@ -27,17 +28,29 @@ class ExportSeedData extends Command
 
     public function handle(): int
     {
-        $movieLimit = (int) $this->option('movies');
-        $showLimit = (int) $this->option('shows');
+        $exportAll = $this->option('all');
+        $movieLimit = $exportAll ? 0 : (int) $this->option('movies');
+        $showLimit = $exportAll ? 0 : (int) $this->option('shows');
         $connection = $this->option('connection');
 
-        $dataDir = database_path('seeders/data');
+        if ($exportAll) {
+            $dataDir = storage_path('seed');
+            File::ensureDirectoryExists($dataDir);
+        } else {
+            $dataDir = database_path('seeders/data');
+        }
+
         $timestamp = now()->format('Y-m-d');
         $outputPath = "{$dataDir}/seed_{$timestamp}.sql.gz";
 
         $this->info("Exporting from '{$connection}' connection...");
-        $this->info("Movies: top {$movieLimit} by num_votes");
-        $this->info("Shows: top {$showLimit} by num_votes");
+
+        if ($exportAll) {
+            $this->info('Mode: full export (all records)');
+        } else {
+            $this->info("Movies: top {$movieLimit} by num_votes");
+            $this->info("Shows: top {$showLimit} by num_votes");
+        }
 
         // Open gzip file for streaming writes
         $this->gzHandle = gzopen($outputPath, 'wb9');
@@ -58,7 +71,7 @@ class ExportSeedData extends Command
         // Close the file
         gzclose($this->gzHandle);
 
-        // Delete old seed files
+        // Delete old seed files in the same directory
         $this->deleteOldSeedFiles($dataDir, $outputPath);
 
         $this->newLine();
@@ -95,7 +108,13 @@ class ExportSeedData extends Command
 
     private function exportMovies(string $connection, int $limit): void
     {
-        $columns = ['id', 'imdb_id', 'title', 'year', 'runtime', 'genres', 'num_votes', 'created_at', 'updated_at'];
+        $columns = [
+            'id', 'imdb_id', 'title', 'year', 'runtime', 'genres', 'num_votes',
+            'tmdb_id', 'release_date', 'digital_release_date',
+            'production_companies', 'spoken_languages', 'alternative_titles',
+            'original_language', 'tmdb_synced_at',
+            'created_at', 'updated_at',
+        ];
 
         $total = spin(
             fn () => DB::connection($connection)->table('movies')->count(),
@@ -106,17 +125,20 @@ class ExportSeedData extends Command
 
         $this->write("TRUNCATE TABLE movies;\n");
 
-        $progress = progress(label: 'Exporting movies', steps: min($total, $limit));
+        $exportCount = $limit > 0 ? min($total, $limit) : $total;
+        $progress = progress(label: 'Exporting movies', steps: $exportCount);
         $progress->start();
 
         $exported = 0;
         $batch = [];
 
-        DB::connection($connection)
-            ->table('movies')
-            ->orderByDesc('num_votes')
-            ->limit($limit)
-            ->cursor()
+        $query = DB::connection($connection)->table('movies');
+
+        if ($limit > 0) {
+            $query->orderByDesc('num_votes')->limit($limit);
+        }
+
+        $query->cursor()
             ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
                 $batch[] = $this->formatMovieRow($row);
                 $exported++;
@@ -151,7 +173,7 @@ class ExportSeedData extends Command
     {
         $columns = [
             'id', 'tvmaze_id', 'imdb_id', 'thetvdb_id', 'name', 'type', 'language', 'genres', 'status',
-            'runtime', 'premiered', 'ended', 'schedule', 'num_votes', 'network', 'web_channel',
+            'runtime', 'average_runtime', 'premiered', 'ended', 'schedule', 'num_votes', 'network', 'web_channel',
             'created_at', 'updated_at',
         ];
 
@@ -164,17 +186,20 @@ class ExportSeedData extends Command
 
         $this->write("TRUNCATE TABLE shows;\n");
 
-        $progress = progress(label: 'Exporting shows', steps: min($total, $limit));
+        $exportCount = $limit > 0 ? min($total, $limit) : $total;
+        $progress = progress(label: 'Exporting shows', steps: $exportCount);
         $progress->start();
 
         $exported = 0;
         $batch = [];
 
-        DB::connection($connection)
-            ->table('shows')
-            ->orderByDesc('num_votes')
-            ->limit($limit)
-            ->cursor()
+        $query = DB::connection($connection)->table('shows');
+
+        if ($limit > 0) {
+            $query->orderByDesc('num_votes')->limit($limit);
+        }
+
+        $query->cursor()
             ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
                 $batch[] = $this->formatShowRow($row);
                 $exported++;
@@ -218,6 +243,14 @@ class ExportSeedData extends Command
             $row->runtime === null ? 'NULL' : (string) $row->runtime,
             $row->genres === null ? 'NULL' : $this->quote($row->genres),
             $row->num_votes === null ? 'NULL' : (string) $row->num_votes,
+            $row->tmdb_id === null ? 'NULL' : (string) $row->tmdb_id,
+            $row->release_date === null ? 'NULL' : $this->quote($row->release_date),
+            $row->digital_release_date === null ? 'NULL' : $this->quote($row->digital_release_date),
+            $row->production_companies === null ? 'NULL' : $this->quote($row->production_companies),
+            $row->spoken_languages === null ? 'NULL' : $this->quote($row->spoken_languages),
+            $row->alternative_titles === null ? 'NULL' : $this->quote($row->alternative_titles),
+            $row->original_language === null ? 'NULL' : $this->quote($row->original_language),
+            $row->tmdb_synced_at === null ? 'NULL' : $this->quote($row->tmdb_synced_at),
             $this->quote($row->created_at),
             $this->quote($row->updated_at),
         ];
@@ -239,6 +272,7 @@ class ExportSeedData extends Command
             $row->genres === null ? 'NULL' : $this->quote($row->genres),
             $row->status === null ? 'NULL' : $this->quote($row->status),
             $row->runtime === null ? 'NULL' : (string) $row->runtime,
+            $row->average_runtime === null ? 'NULL' : (string) $row->average_runtime,
             $row->premiered === null ? 'NULL' : $this->quote($row->premiered),
             $row->ended === null ? 'NULL' : $this->quote($row->ended),
             $row->schedule === null ? 'NULL' : $this->quote($row->schedule),

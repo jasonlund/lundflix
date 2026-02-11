@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Language;
 use App\Models\Show;
 use Illuminate\Support\Facades\Http;
 
@@ -46,6 +47,7 @@ it('extracts imdb_id from externals when syncing shows', function () {
 
     expect($show)->not->toBeNull()
         ->and($show->name)->toBe('South Park')
+        ->and($show->language)->toBe(Language::English)
         ->and($show->imdb_id)->toBe('tt0121955')
         ->and($show->thetvdb_id)->toBe(75897);
 });
