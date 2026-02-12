@@ -116,10 +116,16 @@ return [
         'id' => env('ALGOLIA_APP_ID', ''),
         'secret' => env('ALGOLIA_SECRET', ''),
         'index-settings' => [
-            // 'users' => [
-            //     'searchableAttributes' => ['id', 'name', 'email'],
-            //     'attributesForFaceting'=> ['filterOnly(email)'],
-            // ],
+            'shows' => [
+                'searchableAttributes' => ['name'],
+                'attributesForFaceting' => ['filterOnly(imdb_id)', 'filterOnly(language)'],
+                'customRanking' => ['desc(num_votes)'],
+            ],
+            'movies' => [
+                'searchableAttributes' => ['title'],
+                'attributesForFaceting' => ['filterOnly(imdb_id)', 'filterOnly(year)', 'filterOnly(original_language)'],
+                'customRanking' => ['desc(num_votes)'],
+            ],
         ],
     ],
 
@@ -141,7 +147,8 @@ return [
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
             App\Models\Show::class => [
-                'filterableAttributes' => ['imdb_id', 'year'],
+                'searchableAttributes' => ['name'],
+                'filterableAttributes' => ['imdb_id', 'year', 'language'],
                 'sortableAttributes' => ['name', 'year', 'num_votes'],
                 'rankingRules' => [
                     'words',
@@ -154,7 +161,8 @@ return [
                 ],
             ],
             App\Models\Movie::class => [
-                'filterableAttributes' => ['imdb_id', 'year'],
+                'searchableAttributes' => ['title'],
+                'filterableAttributes' => ['imdb_id', 'year', 'language'],
                 'sortableAttributes' => ['title', 'year', 'num_votes'],
                 'rankingRules' => [
                     'words',

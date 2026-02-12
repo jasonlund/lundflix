@@ -1,10 +1,9 @@
 <?php
 
-use App\Jobs\StoreShowEpisodes;
 use App\Models\Episode;
 use App\Models\Show;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -30,9 +29,7 @@ it('displays episodes from database when available', function () {
     Http::assertNothingSent();
 });
 
-it('fetches from API when no episodes passed and dispatches job', function () {
-    Queue::fake();
-
+it('fetches from API when no episodes passed and persists to database', function () {
     Http::fake([
         'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
             ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60, 'type' => 'regular'],
@@ -45,14 +42,10 @@ it('fetches from API when no episodes passed and dispatches job', function () {
         ->assertSee('Pilot')
         ->assertSee('S01');
 
-    Queue::assertPushed(StoreShowEpisodes::class, function ($job) use ($show) {
-        return $job->show->id === $show->id;
-    });
+    expect(Episode::where('tvmaze_id', 1)->exists())->toBeTrue();
 });
 
 it('displays episodes grouped by season from API', function () {
-    Queue::fake();
-
     Http::fake([
         'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
             ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2013-06-24', 'runtime' => 60, 'type' => 'regular'],
@@ -72,8 +65,6 @@ it('displays episodes grouped by season from API', function () {
 });
 
 it('handles show with no episodes from API', function () {
-    Queue::fake();
-
     Http::fake([
         'api.tvmaze.com/shows/999/episodes?specials=1' => Http::response([], 404),
     ]);
@@ -84,12 +75,10 @@ it('handles show with no episodes from API', function () {
         ->assertSet('error', null)
         ->assertSee(__('lundbergh.empty.episodes'));
 
-    Queue::assertNothingPushed();
+    expect(Cache::has('tvmaze:episodes-failure:999'))->toBeFalse();
 });
 
-it('shows error when API request fails', function () {
-    Queue::fake();
-
+it('shows backoff error and caches failure when API request fails', function () {
     Http::fake([
         'api.tvmaze.com/shows/999/episodes?specials=1' => Http::response([], 500),
     ]);
@@ -97,10 +86,22 @@ it('shows error when API request fails', function () {
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
     Livewire::test('shows.episodes', ['show' => $show])
-        ->assertSet('error', 'Failed to load episodes from TVMaze.')
-        ->assertSee('Failed to load episodes from TVMaze.');
+        ->assertSet('error', __('lundbergh.error.episodes_backoff'))
+        ->assertSee(__('lundbergh.error.episodes_backoff'));
 
-    Queue::assertNothingPushed();
+    expect(Cache::has('tvmaze:episodes-failure:999'))->toBeTrue();
+});
+
+it('shows backoff error without hitting API when cache key exists', function () {
+    Cache::put('tvmaze:episodes-failure:999', true, now()->addHour());
+
+    $show = Show::factory()->create(['tvmaze_id' => 999]);
+
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->assertSet('error', __('lundbergh.error.episodes_backoff'))
+        ->assertSee(__('lundbergh.error.episodes_backoff'));
+
+    Http::assertNothingSent();
 });
 
 it('handles null episodes state gracefully', function () {
@@ -118,18 +119,19 @@ it('handles null episodes state gracefully', function () {
         ->assertSee(__('lundbergh.empty.episodes'));
 });
 
-it('does not dispatch job when no episodes returned from API', function () {
-    Queue::fake();
-
-    Http::fake([
-        'api.tvmaze.com/shows/999/episodes?specials=1' => Http::response([], 404),
-    ]);
-
+it('does not hit API when episodes are passed directly', function () {
     $show = Show::factory()->create(['tvmaze_id' => 999]);
 
-    Livewire::test('shows.episodes', ['show' => $show]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'season' => 1,
+        'number' => 1,
+    ]);
 
-    Queue::assertNothingPushed();
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => $show->episodes]);
+
+    Http::assertNothingSent();
 });
 
 it('displays episode checkboxes', function () {

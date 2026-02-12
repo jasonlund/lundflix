@@ -19,9 +19,12 @@ return [
         'cart_dropdown' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
         'cart_checkout' => "Mmm yeah… your cart is empty. Search for movies and shows to add to your request. That'd be great.",
         'search_prompt' => 'Yeah… go ahead and type at least two characters to start searching.',
-        'search_no_results' => 'Mmm yeah… nothing matched that search. Try another title.',
+        'search_no_results' => "Mmm yeah… that search didn't turn up anything.",
+        'search_no_results_filter' => "I'm gonna need you to refine your search term and... mmm.... filter by language.",
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
-        'search_imdb_hint' => "Yeah… if you can't find what you're looking for, go ahead and try an :imdb_link ID instead. That'd be great.",
+    ],
+    'error' => [
+        'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

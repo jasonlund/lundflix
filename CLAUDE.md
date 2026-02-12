@@ -62,6 +62,10 @@ When committing changes, use this format:
 
 - **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
 
+## Links
+
+- Outside of Filament, always use `<flux:link>` instead of self-styled `<a>` tags. Use the `external` prop for links that open in a new tab.
+
 ## Dark Mode
 
 - Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).
@@ -73,6 +77,14 @@ When committing changes, use this format:
 - `Carbon::parse()` accepts both string dates and Carbon instances, making it safe for mixed data sources (API arrays vs. Eloquent models)
 - Guard against null and empty string before calling `Carbon::parse()` — use `empty($date)` when data originates from external APIs
 - Formatting dates as strings for serialization (e.g., `->format('Y-m-d')` in Livewire `dehydrate()`) is distinct from comparison and remains correct
+
+## Search
+
+- Production uses Algolia (`SCOUT_DRIVER=algolia`), local dev uses the `database` Scout driver
+- `SearchService` (`app/Services/SearchService.php`) is the single entry point for all search — it handles popularity ranking (`num_votes` descending) and language filtering in PHP to ensure feature parity across all Scout drivers
+- Do not switch the local driver to Algolia or add driver-specific branching logic — keep `SearchService` driver-agnostic
+- Algolia and Meilisearch configs in `config/scout.php` are for production/migration purposes; don't remove them
+- The `database` driver does not support custom ranking or filtering — `SearchService` compensates for this in PHP so results match what Algolia/Meilisearch would return
 
 ## Livewire Validation
 
@@ -330,6 +342,10 @@ protected function isAccessible(User $user, ?string $path = null): bool
 <code-snippet name="Flux UI Component Example" lang="blade">
     <flux:button variant="primary"/>
 </code-snippet>
+
+### Icons
+
+Flux bundles Heroicons, not Lucide. This project uses custom Lucide icons published to `resources/views/flux/icon/`. When you need a Lucide icon that isn't already published, create a new Blade file following the existing pattern (see any sibling file for the template). Fetch the SVG paths from the [Lucide GitHub repo](https://github.com/lucide-icons/lucide/tree/main/icons).
 
 ### Available Components
 This is correct as of Boost installation, but there may be additional components within the codebase.

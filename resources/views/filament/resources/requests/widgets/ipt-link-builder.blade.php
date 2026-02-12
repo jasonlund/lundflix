@@ -48,7 +48,7 @@
 >
     {{-- Search Query --}}
     <div>
-        <label class="text-sm font-medium text-gray-950 dark:text-white">Search Query</label>
+        <label class="text-sm font-medium text-white">Search Query</label>
         <x-filament::input.wrapper>
             <x-filament::input type="text" x-ref="queryInput" x-model="query" />
         </x-filament::input.wrapper>
@@ -72,7 +72,7 @@
     {{-- Categories --}}
     <div>
         <div class="flex items-center justify-between">
-            <label class="text-sm font-medium text-gray-950 dark:text-white">Categories</label>
+            <label class="text-sm font-medium text-white">Categories</label>
             <x-filament::link
                 tag="button"
                 type="button"
@@ -87,7 +87,7 @@
             @foreach ($categories as $value => $label)
                 <label class="flex items-center gap-2">
                     <x-filament::input.checkbox :value="$value" x-model.number="selected" />
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ $label }}</span>
+                    <span class="text-sm text-gray-300">{{ $label }}</span>
                 </label>
             @endforeach
         </div>
@@ -95,7 +95,7 @@
 
     {{-- URL --}}
     <div>
-        <label class="text-sm font-medium text-gray-950 dark:text-white">URL</label>
+        <label class="text-sm font-medium text-white">URL</label>
         <div class="flex items-center gap-2">
             <x-filament::input.wrapper disabled class="flex-1">
                 <x-filament::input type="text" x-bind:value="url" readonly class="font-mono text-xs" />
@@ -112,7 +112,7 @@
                 label="Open in New Tab"
             />
         </div>
-        <p x-show="url === ''" x-cloak class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p x-show="url === ''" x-cloak class="mt-1 text-sm text-gray-400">
             Enter a query and select at least one category.
         </p>
     </div>

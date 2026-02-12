@@ -81,13 +81,10 @@ new #[Layout('components.layouts.guest')] class extends Component {
 
             <div class="flex justify-center">
                 <flux:modal.trigger name="plex-register">
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 border-b border-current pb-px transition-colors hover:text-zinc-300"
-                    >
+                    <flux:button variant="subtle" class="inline-flex items-center gap-1 border-b border-current pb-px">
                         Register with
                         <x-plex-logo class="h-4" />
-                    </button>
+                    </flux:button>
                 </flux:modal.trigger>
             </div>
 

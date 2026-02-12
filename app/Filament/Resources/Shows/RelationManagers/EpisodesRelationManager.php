@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Shows\RelationManagers;
 
+use App\Actions\Tv\UpsertEpisodes;
 use App\Filament\Resources\Shows\Tables\EpisodesTable;
-use App\Jobs\StoreShowEpisodes;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Filament\Actions\Action;
@@ -26,7 +26,7 @@ class EpisodesRelationManager extends RelationManager
                         ? 'Refresh Episodes'
                         : 'Fetch Episodes')
                     ->icon(Heroicon::ArrowPathRoundedSquare)
-                    ->action(function (TVMazeService $tvMaze): void {
+                    ->action(function (TVMazeService $tvMaze, UpsertEpisodes $upsertEpisodes): void {
                         $show = $this->getShow();
 
                         try {
@@ -51,7 +51,7 @@ class EpisodesRelationManager extends RelationManager
                             return;
                         }
 
-                        StoreShowEpisodes::dispatchSync($show, $episodes);
+                        $upsertEpisodes->fromApi($show, $episodes);
 
                         $this->dispatch('$refresh')->self();
 

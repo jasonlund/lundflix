@@ -4,6 +4,7 @@ use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
+use App\Support\Formatters;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
@@ -41,15 +42,19 @@ new class extends Component {
     public function mount(?Collection $episodes = null): void
     {
         if ($episodes !== null && $episodes->isNotEmpty()) {
-            $this->episodes = $episodes->map(fn ($ep) => is_array($ep) ? $ep : [
-                'id' => $ep->id,
-                'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
-                'season' => $ep->season,
-                'number' => $ep->number,
-                'name' => $ep->name,
-                'type' => $ep->type ?? 'regular',
-                'airdate' => $ep->airdate?->format('Y-m-d'),
-            ]);
+            $this->episodes = $episodes->map(
+                fn ($ep) => is_array($ep)
+                    ? $ep
+                    : [
+                        'id' => $ep->id,
+                        'tvmaze_id' => $ep->tvmaze_id ?? $ep->id,
+                        'season' => $ep->season,
+                        'number' => $ep->number,
+                        'name' => $ep->name,
+                        'type' => $ep->type ?? 'regular',
+                        'airdate' => $ep->airdate?->format('Y-m-d'),
+                    ],
+            );
 
             return;
         }
@@ -241,18 +246,6 @@ new class extends Component {
     {
         return str_pad((string) $number, 2, '0', STR_PAD_LEFT);
     }
-
-    public function formatRuntime(int $minutes): string
-    {
-        if ($minutes < 60) {
-            return $this->pad($minutes) . 'm';
-        }
-
-        $hours = intdiv($minutes, 60);
-        $remainder = $minutes % 60;
-
-        return $remainder > 0 ? "{$hours}h" . $this->pad($remainder) . 'm' : "{$hours}h";
-    }
 };
 ?>
 
@@ -336,7 +329,7 @@ new class extends Component {
                                                 </span>
                                                 <span class="ml-auto shrink-0 font-mono text-sm text-zinc-500">
                                                     @if ($episode['runtime'] ?? null)
-                                                        {{ $this->formatRuntime($episode['runtime']) }}
+                                                        {{ Formatters::runtime($episode['runtime']) }}
                                                     @endif
 
                                                     @if ($episode['airdate'])
