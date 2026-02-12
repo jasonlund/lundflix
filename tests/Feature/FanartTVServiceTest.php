@@ -47,6 +47,17 @@ it('returns null when movie has no artwork', function () {
     expect($artwork)->toBeNull();
 });
 
+it('returns null when movie api returns empty array', function () {
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/tt8503618' => Http::response([]),
+    ]);
+
+    $service = new FanartTVService;
+    $artwork = $service->movie('tt8503618');
+
+    expect($artwork)->toBeNull();
+});
+
 it('fetches tv show artwork by tvdb id', function () {
     Http::fake([
         'webservice.fanart.tv/v3/tv/264492' => Http::response([

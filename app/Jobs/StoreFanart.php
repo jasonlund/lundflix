@@ -26,7 +26,8 @@ class StoreFanart implements ShouldBeUnique, ShouldQueue
     public function handle(FanartTVService $fanart): void
     {
         $response = match (true) {
-            $this->model instanceof Movie => $fanart->movie($this->model->imdb_id),
+            $this->model instanceof Movie => ($this->model->tmdb_id ? $fanart->movie((string) $this->model->tmdb_id) : null)
+                ?? $fanart->movie($this->model->imdb_id),
             $this->model instanceof Show => $fanart->show($this->model->thetvdb_id),
         };
 
