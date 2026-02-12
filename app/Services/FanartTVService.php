@@ -11,20 +11,20 @@ class FanartTVService
     private const BASE_URL = 'https://webservice.fanart.tv/v3';
 
     /**
-     * Get artwork for a movie by IMDB ID.
-     * Returns null when the movie has no artwork (404).
+     * Get artwork for a movie by IMDB or TMDB ID.
+     * Returns null when the movie has no artwork.
      *
      * @return array<string, mixed>|null
      */
-    public function movie(string $imdbId): ?array
+    public function movie(string $id): ?array
     {
         try {
             $response = $this->client()
-                ->get(self::BASE_URL.'/movies/'.$imdbId);
+                ->get(self::BASE_URL.'/movies/'.$id);
 
             $response->throw();
 
-            return $response->json();
+            return $response->json() ?: null;
         } catch (RequestException $e) {
             if ($e->response->notFound()) {
                 return null;

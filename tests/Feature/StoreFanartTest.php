@@ -10,7 +10,7 @@ beforeEach(function () {
 });
 
 it('stores movie artwork from api response', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161', 'tmdb_id' => null]);
 
     Http::fake([
         'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
@@ -77,7 +77,7 @@ it('stores show artwork with season information', function () {
 });
 
 it('stores movie disc artwork with disc metadata', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161', 'tmdb_id' => null]);
 
     Http::fake([
         'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
@@ -97,7 +97,7 @@ it('stores movie disc artwork with disc metadata', function () {
 });
 
 it('updates existing media on re-run', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161', 'tmdb_id' => null]);
 
     $movie->media()->create([
         'fanart_id' => '12345',
@@ -156,10 +156,66 @@ it('returns early when api returns no artwork', function () {
     $movie = Movie::factory()->create(['imdb_id' => 'tt9999999']);
 
     Http::fake([
-        'webservice.fanart.tv/v3/movies/tt9999999' => Http::response([], 404),
+        'webservice.fanart.tv/v3/movies/*' => Http::response([], 404),
     ]);
 
     StoreFanart::dispatchSync($movie);
 
     expect($movie->media()->count())->toBe(0);
+});
+
+it('prefers tmdb id over imdb id for movie artwork', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt8503618', 'tmdb_id' => 556574]);
+
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/556574' => Http::response([
+            'movieposter' => [
+                ['id' => '99999', 'url' => 'https://assets.fanart.tv/poster.jpg', 'lang' => 'en', 'likes' => '5'],
+            ],
+        ]),
+    ]);
+
+    StoreFanart::dispatchSync($movie);
+
+    expect($movie->media)->toHaveCount(1)
+        ->and($movie->media->first()->url)->toBe('https://assets.fanart.tv/poster.jpg');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/movies/556574'));
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/movies/tt8503618'));
+});
+
+it('falls back to imdb id when tmdb id returns no artwork', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161', 'tmdb_id' => 278]);
+
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/278' => Http::response([]),
+        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
+            'movieposter' => [
+                ['id' => '11111', 'url' => 'https://assets.fanart.tv/poster.jpg', 'lang' => 'en', 'likes' => '5'],
+            ],
+        ]),
+    ]);
+
+    StoreFanart::dispatchSync($movie);
+
+    expect($movie->media)->toHaveCount(1)
+        ->and($movie->media->first()->url)->toBe('https://assets.fanart.tv/poster.jpg');
+});
+
+it('uses imdb id when movie has no tmdb id', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161', 'tmdb_id' => null]);
+
+    Http::fake([
+        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
+            'movieposter' => [
+                ['id' => '11111', 'url' => 'https://assets.fanart.tv/poster.jpg', 'lang' => 'en', 'likes' => '5'],
+            ],
+        ]),
+    ]);
+
+    StoreFanart::dispatchSync($movie);
+
+    expect($movie->media)->toHaveCount(1);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/movies/tt0111161'));
 });
