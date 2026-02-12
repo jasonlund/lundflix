@@ -13,9 +13,11 @@
                 class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
             >
                 <img src="{{ $backgroundImage }}" class="h-full w-full object-cover" />
-                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-black/60"></div>
+                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent to-black/70"></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-zinc-950/70 via-zinc-950/20 to-transparent"></div>
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
+                ></div>
             </div>
 
             <div
@@ -35,7 +37,17 @@
                     <flux:toast />
                 </flux:toast.group>
 
-                <flux:header class="sticky top-0 z-20 -mt-px border-b border-zinc-700 bg-zinc-900">
+                <flux:header
+                    x-data="{ scrolled: false }"
+                    x-init="scrolled = window.scrollY > $el.offsetHeight / 2"
+                    x-on:scroll.window.passive="scrolled = window.scrollY > $el.offsetHeight / 2"
+                    x-bind:class="
+                        scrolled
+                            ? 'bg-zinc-900/75 backdrop-blur-sm border-b border-zinc-700'
+                            : 'border-b border-transparent'
+                    "
+                    class="sticky top-0 z-20 -mt-px transition-[background-color,backdrop-filter,border-color] duration-300 ease-out"
+                >
                     <flux:brand
                         href="{{ route('home') }}"
                         wire:navigate
@@ -45,24 +57,35 @@
 
                     <flux:spacer />
 
-                    <flux:modal.trigger name="search" shortcut="cmd.k">
-                        <flux:button variant="ghost" icon="search" kbd="⌘K">
-                            <span class="sr-only sm:not-sr-only">Search</span>
-                        </flux:button>
-                    </flux:modal.trigger>
+                    <div
+                        class="**:data-[flux-button]:drop-shadow-glow flex items-center gap-1 **:data-[flux-button]:transition-[filter] **:data-[flux-button]:duration-300 **:data-[flux-button]:ease-out"
+                        x-bind:class="{ '**:data-[flux-button]:drop-shadow-none': scrolled }"
+                    >
+                        <flux:modal.trigger name="search" shortcut="cmd.k">
+                            <flux:button variant="ghost" icon="search">
+                                <span class="sr-only sm:not-sr-only">Search</span>
+                                <flux:badge size="sm" class="bg-lundflix/75 ml-1 text-white">⌘K</flux:badge>
+                            </flux:button>
+                        </flux:modal.trigger>
 
-                    @persist('cart')
-                        <livewire:cart.dropdown />
-                    @endpersist
+                        @persist('cart')
+                            <livewire:cart.dropdown />
+                        @endpersist
+                    </div>
 
                     <flux:spacer />
 
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <flux:button type="submit" variant="ghost" icon="log-out">
-                            <span class="sr-only sm:not-sr-only">Logout</span>
-                        </flux:button>
-                    </form>
+                    <div
+                        class="**:data-[flux-button]:drop-shadow-glow **:data-[flux-button]:transition-[filter] **:data-[flux-button]:duration-300 **:data-[flux-button]:ease-out"
+                        x-bind:class="{ '**:data-[flux-button]:drop-shadow-none': scrolled }"
+                    >
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <flux:button type="submit" variant="ghost" icon="log-out">
+                                <span class="sr-only sm:not-sr-only">Logout</span>
+                            </flux:button>
+                        </form>
+                    </div>
                 </flux:header>
 
                 <flux:main :padding="false">
