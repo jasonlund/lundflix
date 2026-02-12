@@ -24,6 +24,16 @@ mysql -uroot -e "DROP DATABASE IF EXISTS \`${FOLDER}\`; CREATE DATABASE \`${FOLD
 # -----------------------------------------------------------------------------
 herd link --secure
 
+# Fix Herd bug: herd link generates nginx configs with empty server.php paths
+NGINX_CONF="$HOME/Library/Application Support/Herd/config/valet/Nginx/${FOLDER}.test"
+SERVER_PHP="/Applications/Herd.app/Contents/Resources/valet/server.php"
+if [ -f "$NGINX_CONF" ]; then
+    sed -i '' "s|rewrite ^ \"\" last;|rewrite ^ \"$SERVER_PHP\" last;|g" "$NGINX_CONF"
+    sed -i '' "s|error_page 404 \"\";|error_page 404 \"$SERVER_PHP\";|g" "$NGINX_CONF"
+    sed -i '' "s|fastcgi_index \"\";|fastcgi_index \"$SERVER_PHP\";|g" "$NGINX_CONF"
+    sed -i '' "s|fastcgi_param SCRIPT_FILENAME \"\";|fastcgi_param SCRIPT_FILENAME \"$SERVER_PHP\";|g" "$NGINX_CONF"
+fi
+
 # -----------------------------------------------------------------------------
 # Composer Setup
 # -----------------------------------------------------------------------------
