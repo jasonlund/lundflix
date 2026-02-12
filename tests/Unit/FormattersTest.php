@@ -84,6 +84,58 @@ it('returns null year label for a show without premiere date', function () {
     expect(Formatters::yearLabel($show))->toBeNull();
 });
 
+it('formats compact year label for a running show without present', function () {
+    $show = Show::factory()->make([
+        'premiered' => '2020-06-15',
+        'ended' => null,
+        'status' => 'Running',
+    ]);
+
+    expect(Formatters::compactYearLabel($show))->toBe("'20-");
+});
+
+it('formats compact year label for an ended show', function () {
+    $show = Show::factory()->make([
+        'premiered' => '2008-01-20',
+        'ended' => '2013-09-29',
+        'status' => 'Ended',
+    ]);
+
+    expect(Formatters::compactYearLabel($show))->toBe("'08-'13");
+});
+
+it('formats compact year label for a movie with year', function () {
+    $movie = Movie::factory()->make(['year' => 1999]);
+
+    expect(Formatters::compactYearLabel($movie))->toBe("'99");
+});
+
+it('returns null compact year label for a movie without year', function () {
+    $movie = Movie::factory()->make(['year' => null]);
+
+    expect(Formatters::compactYearLabel($movie))->toBeNull();
+});
+
+it('returns null compact year label for a show without premiere date', function () {
+    $show = Show::factory()->make([
+        'premiered' => null,
+        'ended' => null,
+        'status' => 'In Development',
+    ]);
+
+    expect(Formatters::compactYearLabel($show))->toBeNull();
+});
+
+it('formats compact year label for a show with only premiere date', function () {
+    $show = Show::factory()->make([
+        'premiered' => '2022-03-10',
+        'ended' => null,
+        'status' => 'To Be Determined',
+    ]);
+
+    expect(Formatters::compactYearLabel($show))->toBe("'22");
+});
+
 it('formats approximate runtime with tilde prefix', function () {
     expect(Formatters::runtime(49, approximate: true))->toBe('~49m');
 });

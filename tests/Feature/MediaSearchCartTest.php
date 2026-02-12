@@ -7,23 +7,13 @@ use App\Services\CartService;
 use App\Support\Formatters;
 use Livewire\Livewire;
 
-it('displays add to cart button for movies in search results', function () {
+it('does not display add to cart button in search results', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create(['imdb_id' => 'tt1111111']);
 
     Livewire::actingAs($user)
         ->test('media-search')
         ->set('query', 'tt1111111')
-        ->assertSeeLivewire('cart.add-movie-button');
-});
-
-it('does not display add to cart button for shows in search results', function () {
-    $user = User::factory()->create();
-    $show = Show::factory()->create(['imdb_id' => 'tt2222222']);
-
-    Livewire::actingAs($user)
-        ->test('media-search')
-        ->set('query', 'tt2222222')
         ->assertDontSeeLivewire('cart.add-movie-button');
 });
 
@@ -35,15 +25,19 @@ it('shows movie metadata in search results', function () {
         'year' => 2024,
         'runtime' => 125,
         'genres' => ['Action'],
+        'release_date' => '2024-06-15',
+        'production_companies' => [
+            ['id' => 1, 'name' => 'Test Studios', 'logo_path' => null, 'origin_country' => 'US'],
+        ],
     ]);
     $runtime = Formatters::runtime($movie->runtime);
 
     Livewire::actingAs($user)
         ->test('media-search')
         ->set('query', 'tt3333333')
-        ->assertSee('2024')
-        ->assertSee($runtime)
-        ->assertSee('Action');
+        ->assertSee('06/15/24')
+        ->assertSee('Test Studios')
+        ->assertSee($runtime);
 });
 
 it('shows show metadata in search results', function () {
@@ -62,10 +56,8 @@ it('shows show metadata in search results', function () {
     Livewire::actingAs($user)
         ->test('media-search')
         ->set('query', 'tt4444444')
-        ->assertSee('2018-2020')
-        ->assertSee('Ended')
-        ->assertSee('42 min')
-        ->assertSee('Drama')
+        ->assertSee("'18-'20")
+        ->assertSee('42m')
         ->assertSee('HBO');
 });
 

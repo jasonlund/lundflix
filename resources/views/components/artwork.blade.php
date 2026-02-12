@@ -13,7 +13,7 @@
         default => 'aspect-[1000/562]',
     };
     $name = $model->name ?? ($model->title ?? '');
-    $fallbackTextClass = $preview ? 'text-sm' : 'text-5xl';
+    $fallbackTextClass = $preview ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
 @endphp
 
 @if ($url)
@@ -41,7 +41,7 @@
                     <div class="{{ $aspectClass }} bg-black"></div>
                 @else
                     <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                        <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">
+                        <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
                             {{ $name }}
                         </span>
                     </div>
@@ -58,7 +58,7 @@
                 <div class="{{ $aspectClass }} bg-black"></div>
             @else
                 <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                    <span class="{{ $fallbackTextClass }} w-full truncate text-center text-zinc-400">
+                    <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
                         {{ $name }}
                     </span>
                 </div>

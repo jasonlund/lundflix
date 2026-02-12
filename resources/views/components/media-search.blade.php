@@ -22,7 +22,7 @@ new class extends Component {
 
         return app(SearchService::class)
             ->search($this->query, 'all', $this->language ?: null)
-            ->take(5)
+            ->take(8)
             ->map(function (Movie|Show $item): array {
                 $isShow = $item instanceof Show;
 
@@ -30,7 +30,10 @@ new class extends Component {
                     'type' => $isShow ? 'show' : 'movie',
                     'id' => $item->id,
                     'title' => $isShow ? $item->name : $item->title,
-                    'yearLabel' => Formatters::yearLabel($item),
+                    'yearLabel' => $isShow ? Formatters::compactYearLabel($item) : null,
+                    'releaseDate' => ! $isShow && $item->release_date ? $item->release_date->format('m/d/y') : null,
+                    'productionCompany' =>
+                        ! $isShow && ! empty($item->production_companies) ? $item->production_companies[0]['name'] : null,
                     'language' => $this->shouldShowLanguage()
                         ? ($isShow
                             ? $item->language?->getLabel()
@@ -169,19 +172,21 @@ new class extends Component {
                 class="min-h-0 flex-1 divide-y divide-zinc-700/70 overflow-y-auto bg-zinc-900/75 p-0 backdrop-blur-sm"
             >
                 <x-slot:empty>
-                    @if (strlen($query) >= 2 && ! SearchService::isImdbId($query))
-                        <div class="space-y-1">
-                            <p>{{ __('lundbergh.empty.search_no_results') }}</p>
-                            <p>{{ __('lundbergh.empty.search_no_results_filter') }}</p>
-                            <p>
-                                Or go ahead and search by an
-                                <flux:link href="https://www.imdb.com" external>IMDb</flux:link>
-                                ID. That'd be great.
-                            </p>
-                        </div>
-                    @else
-                        {{ __('lundbergh.empty.search_prompt') }}
-                    @endif
+                    <div class="px-3 py-2 text-sm">
+                        @if (strlen($query) >= 2 && ! SearchService::isImdbId($query))
+                            <div class="space-y-1">
+                                <p>{{ __('lundbergh.empty.search_no_results') }}</p>
+                                <p>{{ __('lundbergh.empty.search_no_results_filter') }}</p>
+                                <p>
+                                    Or go ahead and search by an
+                                    <flux:link href="https://www.imdb.com" external>IMDb</flux:link>
+                                    ID. That'd be great.
+                                </p>
+                            </div>
+                        @else
+                            {{ __('lundbergh.empty.search_prompt') }}
+                        @endif
+                    </div>
                 </x-slot>
 
                 @foreach ($this->results as $result)
@@ -196,50 +201,33 @@ new class extends Component {
                         "
                         class="hover:bg-zinc-800/60 data-active:!bg-black"
                     >
-                        <div class="flex w-full items-stretch gap-3">
-                            <div class="flex w-32 shrink-0">
+                        <div class="flex w-full items-center gap-3 px-3 py-2">
+                            <flux:icon
+                                :name="$result['type'] === 'show' ? 'tv' : 'film'"
+                                variant="mini"
+                                class="shrink-0 text-zinc-400"
+                            />
+
+                            <div class="flex aspect-[1000/562] w-20 shrink-0 items-center">
                                 <x-artwork
                                     :model="$result['model']"
                                     type="logo"
                                     :alt="$result['title'] . ' logo'"
                                     :preview="true"
-                                    class="h-full w-full overflow-hidden p-1"
+                                    class="h-full w-full overflow-hidden"
                                 />
                             </div>
-                            <div class="flex min-w-0 flex-1 items-center gap-3 py-4 pe-3">
-                                <div class="flex min-w-0 flex-1 flex-col gap-2">
-                                    <div
-                                        class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 group-data-active/item:text-zinc-400"
-                                    >
-                                        @if ($result['yearLabel'])
-                                            <span>{{ $result['yearLabel'] }}</span>
-                                        @endif
 
-                                        @if ($result['language'])
-                                            <span>{{ $result['language'] }}</span>
-                                        @endif
+                            <div
+                                class="line-clamp-2 flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 group-data-active/item:text-zinc-400"
+                            >
+                                @if ($result['type'] === 'show')
+                                    @if ($result['yearLabel'])
+                                        <span class="shrink-0">{{ $result['yearLabel'] }}</span>
+                                    @endif
 
-                                        @if ($result['status'])
-                                            <x-show-status :status="$result['status']" />
-                                        @endif
-
-                                        @if ($result['runtime'])
-                                            <span>{{ $result['runtime'] }}</span>
-                                        @endif
-                                    </div>
-
-                                    <span class="truncate font-medium group-data-active/item:text-white">
-                                        {{ $result['title'] }}
-                                    </span>
-
-                                    @if ($result['genres'] || $result['networkInfo'])
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            @if ($result['genres'])
-                                                @foreach ($result['genres'] as $genre)
-                                                    <x-genre-badge :$genre size="sm" />
-                                                @endforeach
-                                            @endif
-
+                                    @if ($result['networkInfo'])
+                                        <span class="hidden shrink-0 items-center gap-1 sm:inline-flex">
                                             @foreach ($result['networkInfo'] as $info)
                                                 @if ($info['logoUrl'])
                                                     <flux:tooltip :content="$info['tooltip']" class="text-xs">
@@ -250,54 +238,82 @@ new class extends Component {
                                                         />
                                                     </flux:tooltip>
                                                 @else
-                                                    <span
-                                                        class="text-xs text-zinc-500 group-data-active/item:text-zinc-400"
-                                                    >
-                                                        {{ $info['tooltip'] }}
-                                                    </span>
+                                                    <span>{{ $info['tooltip'] }}</span>
                                                 @endif
                                             @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                                <div @click.stop class="flex shrink-0 gap-1">
-                                    @if ($result['type'] === 'movie')
-                                        <livewire:cart.add-movie-button
-                                            :movie="$result['model']"
-                                            :show-text="false"
-                                            :wire:key="'search-cart-'.$result['id']"
-                                        />
+                                        </span>
                                     @endif
 
-                                    <flux:button
-                                        as="a"
-                                        href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
-                                        wire:navigate
-                                        x-on:click="
-                                            $dispatch('modal-close', { name: 'search' })
-                                            $wire.clearSearch()
-                                        "
-                                        icon="arrow-right"
-                                        size="sm"
-                                    />
-                                </div>
+                                    @if ($result['status'])
+                                        <x-show-status :status="$result['status']" />
+                                    @endif
+                                @else
+                                    @if ($result['releaseDate'])
+                                        <span class="shrink-0">{{ $result['releaseDate'] }}</span>
+                                    @endif
+
+                                    @if ($result['productionCompany'])
+                                        <span class="hidden max-w-32 shrink-0 truncate sm:inline">
+                                            {{ $result['productionCompany'] }}
+                                        </span>
+                                    @endif
+
+                                    <flux:icon.theater variant="micro" class="shrink-0 text-zinc-500" />
+                                @endif
+
+                                <span class="basis-full sm:hidden" aria-hidden="true"></span>
+
+                                @if ($result['runtime'])
+                                    <span class="shrink-0">{{ $result['runtime'] }}</span>
+                                @endif
+
+                                @if ($result['language'])
+                                    <span class="shrink-0">{{ $result['language'] }}</span>
+                                @endif
+
+                                @if ($result['genres'])
+                                    <span class="inline-flex shrink-0 items-center gap-1">
+                                        @foreach ($result['genres'] as $genre)
+                                            <flux:tooltip :content="\App\Enums\Genre::labelFor($genre)" class="text-xs">
+                                                <x-dynamic-component
+                                                    :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                                                    variant="micro"
+                                                    class="text-zinc-500 group-data-active/item:text-zinc-400"
+                                                />
+                                            </flux:tooltip>
+                                        @endforeach
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div @click.stop class="flex shrink-0 gap-1">
+                                <flux:button
+                                    as="a"
+                                    href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
+                                    wire:navigate
+                                    x-on:click="
+                                        $dispatch('modal-close', { name: 'search' })
+                                        $wire.clearSearch()
+                                    "
+                                    variant="ghost"
+                                    icon="arrow-right"
+                                    size="sm"
+                                />
                             </div>
                         </div>
                     </flux:command.item>
                 @endforeach
-
-                @if ($this->results->isNotEmpty() && ! SearchService::isImdbId($query))
-                    <div class="p-2">
-                        <flux:callout>
-                            <flux:callout.text>
-                                Yeah… if you can't find what you're looking for, go ahead and try an
-                                <flux:link href="https://www.imdb.com" external>IMDb</flux:link>
-                                ID instead. That'd be great.
-                            </flux:callout.text>
-                        </flux:callout>
-                    </div>
-                @endif
             </flux:command.items>
+
+            @if ($this->results->isNotEmpty() && ! SearchService::isImdbId($query))
+                <div class="px-3 py-2">
+                    <x-lundbergh-bubble :with-margin="false" contentTag="div">
+                        Yeah… if you can't find what you're looking for, go ahead and try an
+                        <flux:link href="https://www.imdb.com" external class="text-xs">IMDb</flux:link>
+                        ID instead. That'd be great.
+                    </x-lundbergh-bubble>
+                </div>
+            @endif
         </flux:command>
     </flux:modal>
 </div>

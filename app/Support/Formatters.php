@@ -40,6 +40,34 @@ class Formatters
         return self::runtime($item->runtime);
     }
 
+    public static function compactYearLabel(Show|Movie $item): ?string
+    {
+        if ($item instanceof Movie) {
+            return $item->year ? self::shortYear($item->year) : null;
+        }
+
+        if (! $item->premiered) {
+            return null;
+        }
+
+        $start = self::shortYear($item->premiered->year); // @phpstan-ignore property.nonObject (casted to Carbon)
+
+        if ($item->ended) {
+            return $start.'-'.self::shortYear($item->ended->year); // @phpstan-ignore property.nonObject (casted to Carbon)
+        }
+
+        if ($item->status === ShowStatus::Running) { // @phpstan-ignore identical.alwaysFalse (casted to ShowStatus)
+            return $start.'-';
+        }
+
+        return $start;
+    }
+
+    private static function shortYear(int $year): string
+    {
+        return "'".substr((string) $year, -2);
+    }
+
     public static function yearLabel(Show|Movie $item): ?string
     {
         if ($item instanceof Movie) {

@@ -21,7 +21,7 @@ it('displays show results in search', function () {
 
     Livewire::test('media-search')
         ->set('query', 'Breaking')
-        ->assertSee('2008-2013')
+        ->assertSee("'08-'13")
         ->assertSee('Ended')
         ->assertSee('47m')
         ->assertSee('Drama')
@@ -36,14 +36,18 @@ it('displays movie results in search', function () {
         'runtime' => 136,
         'genres' => ['Action', 'Sci-Fi'],
         'original_language' => 'en',
+        'release_date' => '1999-03-31',
+        'production_companies' => [
+            ['id' => 79, 'name' => 'Warner Bros.', 'logo_path' => null, 'origin_country' => 'US'],
+        ],
     ]);
     $runtime = Formatters::runtime($movie->runtime);
 
     Livewire::test('media-search')
         ->set('query', 'Matrix')
-        ->assertSee('1999')
+        ->assertSee('03/31/99')
+        ->assertSee('Warner Bros.')
         ->assertSee($runtime)
-        ->assertSee('Action')
         ->assertSee(route('movies.show', $movie));
 });
 
@@ -267,4 +271,61 @@ it('falls back to text for show with unknown network id', function () {
         ->set('query', 'Fallback Network')
         ->assertSee('Obscure Network (Canada)')
         ->assertDontSeeHtml('alt="Obscure Network (Canada)"');
+});
+
+it('displays compact year label for running shows without present', function () {
+    Show::factory()->create([
+        'name' => 'Ongoing Test Show',
+        'language' => 'English',
+        'premiered' => '2020-03-01',
+        'ended' => null,
+        'status' => 'Running',
+    ]);
+
+    Livewire::test('media-search')
+        ->set('query', 'Ongoing Test')
+        ->assertSee("'20-")
+        ->assertDontSee('2020-present');
+});
+
+it('displays release date for movies in search', function () {
+    Movie::factory()->create([
+        'title' => 'Dated Test Movie',
+        'release_date' => '2024-07-15',
+        'original_language' => 'en',
+    ]);
+
+    Livewire::test('media-search')
+        ->set('query', 'Dated Test')
+        ->assertSee('07/15/24');
+});
+
+it('displays production company for movies in search', function () {
+    Movie::factory()->create([
+        'title' => 'Company Test Movie',
+        'production_companies' => [
+            ['id' => 1, 'name' => 'Warner Bros.', 'logo_path' => null, 'origin_country' => 'US'],
+        ],
+        'original_language' => 'en',
+    ]);
+
+    Livewire::test('media-search')
+        ->set('query', 'Company Test')
+        ->assertSee('Warner Bros.');
+});
+
+it('renders type icon for shows', function () {
+    Show::factory()->create(['name' => 'Type Icon Test Show', 'language' => 'English']);
+
+    Livewire::test('media-search')
+        ->set('query', 'Type Icon Test')
+        ->assertSeeHtml('data-flux-icon');
+});
+
+it('renders type icon for movies', function () {
+    Movie::factory()->create(['title' => 'Type Icon Test Movie', 'original_language' => 'en']);
+
+    Livewire::test('media-search')
+        ->set('query', 'Type Icon Test')
+        ->assertSeeHtml('data-flux-icon');
 });
