@@ -36,7 +36,7 @@ class IptSearchLinksWidget extends TableWidget
                 RequestItem::query()
                     ->where('request_id', $this->record->id)
                     ->whereNotIn('id', $excludeIds)
-                    ->with(['requestable' => function (MorphTo $morphTo): void {
+                    ->with(['requestable' => function (MorphTo $morphTo): void { // @phpstan-ignore argument.type
                         $morphTo->morphWith([Episode::class => ['show']]);
                     }])
             )
