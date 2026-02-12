@@ -58,6 +58,14 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Fonts
+
+- Three font families are loaded from Bunny Fonts CDN in `resources/views/partials/head.blade.php`:
+  - **Sans** (Work Sans) — default body font
+  - **Serif** (Cormorant Garamond) — used via `font-serif`
+  - **Mono** (IBM Plex Mono) — used via `font-mono`
+- Only import the weights and styles (italic) that are actually used in the codebase. When adding a Tailwind font-weight class (e.g., `font-bold`) or `italic` that wasn't previously used, update the corresponding Bunny Fonts `<link>` in `head.blade.php` to include that weight/style variant.
+
 ## Blade Components
 
 - **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
@@ -140,8 +148,8 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/sail (SAIL) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
-- tailwindcss (TAILWINDCSS) - v4
 - prettier (PRETTIER) - v3
+- tailwindcss (TAILWINDCSS) - v4
 
 ## Conventions
 - You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
@@ -230,7 +238,6 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ## Enums
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
-- Enums used in Filament tables, infolists, or forms must implement Filament's native contracts (`HasLabel`, `HasColor`, `HasIcon`, `HasDescription`) from `Filament\Support\Contracts\`. This lets Filament auto-detect labels, colors, and icons — never manually map these in table columns or infolist entries.
 
 === herd rules ===
 
@@ -353,26 +360,6 @@ accordion, autocomplete, avatar, badge, brand, breadcrumbs, button, calendar, ca
 
 ## Livewire Best Practices
 - Livewire components require a single root element.
-- Avoid `@php` blocks in Livewire Blade templates. Since Livewire SFCs have PHP and Blade in the same file, put all PHP logic in the class section and call methods from the template (e.g., `{{ $this->getEpisodeCode($episode) }}`).
-
-### Convention: Use `#[Computed]` for Repeated Template Calls
-
-When a method is called 2+ times in a Livewire Blade template, use the `#[Computed]` attribute to cache the result for the duration of the request:
-
-```php
-use Livewire\Attributes\Computed;
-
-#[Computed]
-public function networkInfo(): ?array
-{
-    // Called multiple times in template - cached after first call
-    return $this->show->network ? [...] : null;
-}
-```
-
-- Methods called once don't need `#[Computed]` - the overhead is unnecessary
-- Since `@php` blocks are discouraged, `#[Computed]` is the preferred way to avoid redundant method calls
-- Import: `use Livewire\Attributes\Computed;`
 - Use `wire:loading` and `wire:dirty` for delightful loading states.
 - Add `wire:key` in loops:
 
@@ -531,9 +518,7 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 </code-snippet>
 
 ### Dark Mode
-- Dark mode is permanently enabled in this application — there is no light mode. The app always renders in dark mode.
-- **Never use `dark:` prefixed Tailwind classes.** Since dark mode is always on, use the dark variant colors directly as the default (e.g., use `bg-zinc-900` instead of `bg-white dark:bg-zinc-900`).
-- All new components and pages must be styled for dark mode only.
+- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
 
 === tailwindcss/v4 rules ===
 
@@ -575,183 +560,6 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | overflow-ellipsis | text-ellipsis |
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
-
-## Tailwind Important Modifier
-
-**NEVER use Tailwind's `!` (important) modifier unless absolutely unavoidable.** Using `!important` is a code smell that indicates a deeper problem with CSS specificity or component design.
-
-When you encounter a situation where `!` seems necessary:
-
-1. **Prefer publishing Flux components** - Use `php artisan flux:publish` to customize components with proper props or variants
-2. **Create a custom component** - Build a new component for your specific use case
-3. **Use CSS custom properties** - Override design tokens in `@theme` instead of fighting specificity
-
-If `!important` is truly unavoidable (extremely rare), document why in a code comment explaining:
-- What you tried instead
-- Why those alternatives didn't work
-- What would need to change to remove the `!important`
-
-=== scout/core rules ===
-
-## Laravel Scout
-
-- Scout provides full-text search for Eloquent models using drivers like Meilisearch, Algolia, or database.
-- Use the `search-docs` tool for version-specific Scout documentation.
-- Add the `Searchable` trait to models that need search functionality.
-- Use `php artisan scout:import` to index existing records.
-- Use `Model::search('query')` to perform searches.
-
-### Searchable Models
-
-```php
-use Laravel\Scout\Searchable;
-
-class Post extends Model
-{
-    use Searchable;
-
-    public function toSearchableArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'content' => $this->content,
-        ];
-    }
-}
-```
-
-### Searching
-
-```php
-$posts = Post::search('laravel')->get();
-$posts = Post::search('laravel')->where('user_id', 1)->get();
-$posts = Post::search('laravel')->paginate(15);
-```
-
-=== horizon/core rules ===
-
-## Laravel Horizon
-
-- Horizon provides a dashboard and configuration for Laravel Redis queues.
-- Use the `search-docs` tool for version-specific Horizon documentation.
-- Access the dashboard at `/horizon` (protected by `HorizonServiceProvider` authorization).
-- Configure queue workers and supervisors in `config/horizon.php`.
-
-### Configuration
-
-- Horizon configuration lives in `config/horizon.php`.
-- Define environments, supervisors, and queue settings there.
-- Use `php artisan horizon` to start the Horizon process.
-- Use `php artisan horizon:terminate` for graceful shutdown during deployments.
-
-=== filament/v5 rules ===
-
-## Filament 5
-
-- Filament is an admin panel and form/table builder for Laravel.
-- Use the `search-docs` tool for version-specific Filament documentation.
-- Resources are static classes that build CRUD interfaces for Eloquent models.
-
-### Panels
-
-- Configure panels in a PanelProvider (e.g., `AdminPanelProvider`).
-- Use `php artisan make:filament-panel` to create new panels.
-- Enable database notifications with `->databaseNotifications()` in panel configuration.
-
-### Resources
-
-- Use `php artisan make:filament-resource` to generate resources.
-- Resources include tables, forms, and pages for managing Eloquent models.
-- Follow existing resource patterns in the codebase.
-
-### Testing
-
-- **All Filament resource pages require test coverage.** For each resource, test:
-  - List page renders successfully
-  - View page renders successfully (if applicable)
-  - Data displays correctly in tables and infolists
-  - Policy enforcement (create/edit/delete actions hidden when denied)
-- Tests live in `tests/Feature/Filament/` and use `Livewire::test()` for page components.
-- For multi-tenant panels, call `Filament::bootCurrentPanel()` after setting the tenant.
-
-```php
-use Livewire\Livewire;
-
-beforeEach(function () {
-    $this->admin = User::factory()->create(['plex_token' => 'admin-token']);
-    $this->actingAs($this->admin);
-});
-
-it('can render the list page', function () {
-    Livewire::test(ListMovies::class)->assertSuccessful();
-});
-
-it('does not show create button due to policy', function () {
-    Livewire::test(ListMovies::class)->assertDontSee('New movie');
-});
-```
-
-=== pennant/core rules ===
-
-## Laravel Pennant
-
-- Pennant is a lightweight feature flag package for incremental rollouts and A/B testing.
-- Use the `search-docs` tool for version-specific Pennant documentation.
-- Prefer class-based features over closure-based definitions.
-
-### Defining Features
-
-- Use `php artisan pennant:feature FeatureName` to create class-based features in `app/Features/`.
-- Features resolve against a scope (usually the authenticated user).
-
-```php
-namespace App\Features;
-
-use App\Models\User;
-
-class NewDashboard
-{
-    public function resolve(User $user): bool
-    {
-        return $user->is_beta_tester;
-    }
-}
-```
-
-### Checking Features
-
-```php
-use Laravel\Pennant\Feature;
-
-// Check if active
-Feature::active(NewDashboard::class);
-
-// Conditional execution
-Feature::when(NewDashboard::class,
-    fn () => /* feature active */,
-    fn () => /* feature inactive */,
-);
-```
-
-### Blade Directive
-
-```blade
-@feature(App\Features\NewDashboard::class)
-    <x-new-dashboard />
-@else
-    <x-old-dashboard />
-@endfeature
-```
-
-### Testing
-
-```php
-use Laravel\Pennant\Feature;
-
-Feature::define(NewDashboard::class, true);
-expect(Feature::active(NewDashboard::class))->toBeTrue();
-```
 </laravel-boost-guidelines>
 
 ---
