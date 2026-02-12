@@ -192,10 +192,10 @@ it('syncs multiple episodes for the same show', function () {
 
 it('syncs episodes for multiple tracked shows', function () {
     $show1 = Show::factory()->create(['tvmaze_id' => 100]);
-    Episode::factory()->create(['show_id' => $show1->id, 'tvmaze_id' => 1000]);
+    Episode::factory()->create(['show_id' => $show1->id, 'tvmaze_id' => 1000, 'season' => 1, 'number' => 1]);
 
     $show2 = Show::factory()->create(['tvmaze_id' => 200]);
-    Episode::factory()->create(['show_id' => $show2->id, 'tvmaze_id' => 2000]);
+    Episode::factory()->create(['show_id' => $show2->id, 'tvmaze_id' => 2000, 'season' => 1, 'number' => 1]);
 
     Http::fake([
         'api.tvmaze.com/schedule/full' => Http::response([
@@ -239,7 +239,7 @@ it('syncs episodes for multiple tracked shows', function () {
 
 it('handles special episodes correctly', function () {
     $show = Show::factory()->create(['tvmaze_id' => 100]);
-    Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 1000]);
+    Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 1000, 'season' => 1, 'number' => 1]);
 
     Http::fake([
         'api.tvmaze.com/schedule/full' => Http::response([

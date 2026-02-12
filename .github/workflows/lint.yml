@@ -54,7 +54,7 @@ jobs:
       - name: Security Audit (npm)
         run: npm audit --audit-level=high
 
-      - name: Lint (no dark: classes)
+      - name: "Lint (no dark: classes)"
         run: npm run lint
 
       # - name: Commit Changes

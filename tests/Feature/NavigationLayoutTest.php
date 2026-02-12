@@ -14,3 +14,15 @@ it('renders mobile-friendly navigation labels', function () {
         ->assertSee('⌘K')
         ->assertDontSee('[&>div.text-xs]:hidden');
 });
+
+it('renders transparent navbar with Alpine scroll tracking', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('home'));
+
+    $response->assertSuccessful()
+        ->assertSee('x-on:scroll.window.passive', false)
+        ->assertSee('backdrop-blur-sm', false)
+        ->assertSee('drop-shadow-glow', false)
+        ->assertSee('drop-shadow-none', false);
+});

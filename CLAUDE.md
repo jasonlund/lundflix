@@ -62,6 +62,10 @@ When committing changes, use this format:
 
 - **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
 
+## Inline Styles
+
+- **Never use inline `style` attributes.** All styling must use Tailwind CSS classes. If a utility doesn't exist, create one with `@utility` in `resources/css/app.css` or define a theme token in `@theme`.
+
 ## Dark Mode
 
 - Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).
