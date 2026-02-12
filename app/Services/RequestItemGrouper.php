@@ -8,7 +8,7 @@ use App\Models\Show;
 use App\Support\EpisodeCode;
 use Illuminate\Support\Collection;
 
-class CartItemGrouper
+class RequestItemGrouper
 {
     /**
      * Group cart items for consolidated display.

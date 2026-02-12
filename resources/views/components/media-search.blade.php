@@ -228,6 +228,10 @@ new class extends Component {
                                         @endif
                                     </div>
 
+                                    <span class="truncate font-medium group-data-active/item:text-white">
+                                        {{ $result['title'] }}
+                                    </span>
+
                                     @if ($result['genres'] || $result['networkInfo'])
                                         <div class="flex flex-wrap items-center gap-2">
                                             @if ($result['genres'])

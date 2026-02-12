@@ -161,7 +161,7 @@ class CartService
      */
     public function loadGroupedItems(): array
     {
-        return app(CartItemGrouper::class)->group($this->loadItems());
+        return app(RequestItemGrouper::class)->group($this->loadItems());
     }
 
     public function isEmpty(): bool
