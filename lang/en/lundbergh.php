@@ -29,6 +29,8 @@ return [
     'toast' => [
         'cart_added' => "Yeah… so, :title has been added to your cart. If you could add more or check out, that'd be great.",
         'cart_removed' => 'Mmm yeah… :title has been removed from your cart. So… yeah.',
+        'episodes_added' => '{1} Yeah… so, :count episode of :title has been added to your cart. So… yeah.|[2,*] Yeah… so, :count episodes of :title have been added to your cart. So… yeah.',
+        'episodes_removed' => '{1} Mmm yeah… :count episode of :title has been removed from your cart.|[2,*] Mmm yeah… :count episodes of :title have been removed from your cart.',
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
