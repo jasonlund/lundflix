@@ -2,6 +2,7 @@
 
 use App\Models\Movie;
 use App\Services\CartService;
+use Flux\Flux;
 use Livewire\Component;
 
 new class extends Component {
@@ -20,6 +21,12 @@ new class extends Component {
     {
         $this->inCart = $cart->toggleMovie($this->movie->id);
         $this->dispatch('cart-updated');
+
+        Flux::toast(
+            text: __($this->inCart ? 'lundbergh.toast.cart_added' : 'lundbergh.toast.cart_removed', [
+                'title' => $this->movie->title,
+            ]),
+        );
     }
 };
 ?>

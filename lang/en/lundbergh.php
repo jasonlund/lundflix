@@ -26,6 +26,10 @@ return [
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
     ],
+    'toast' => [
+        'cart_added' => "Yeah… so, :title has been added to your cart. If you could add more or check out, that'd be great.",
+        'cart_removed' => 'Mmm yeah… :title has been removed from your cart. So… yeah.',
+    ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
         'please_wait' => "Mmm yeah… I'm gonna need you to wait while we get that ready. So… yeah.",

@@ -27,7 +27,8 @@ it('can add movie to cart', function () {
         ->assertSet('inCart', false)
         ->call('toggle')
         ->assertSet('inCart', true)
-        ->assertDispatched('cart-updated');
+        ->assertDispatched('cart-updated')
+        ->assertDispatched('toast-show');
 
     expect(app(CartService::class)->has($movie->id))->toBeTrue();
 });
@@ -42,7 +43,8 @@ it('can remove movie from cart', function () {
         ->assertSet('inCart', true)
         ->call('toggle')
         ->assertSet('inCart', false)
-        ->assertDispatched('cart-updated');
+        ->assertDispatched('cart-updated')
+        ->assertDispatched('toast-show');
 
     expect(app(CartService::class)->has($movie->id))->toBeFalse();
 });
