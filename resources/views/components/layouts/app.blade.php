@@ -33,9 +33,11 @@
             ></div>
 
             <div class="relative z-20">
-                <flux:toast.group>
-                    <flux:toast />
-                </flux:toast.group>
+                @persist('toast')
+                    <flux:toast.group>
+                        <flux:toast />
+                    </flux:toast.group>
+                @endpersist
 
                 <flux:header
                     x-data="{ scrolled: false }"
