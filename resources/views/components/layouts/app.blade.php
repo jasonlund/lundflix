@@ -1,5 +1,6 @@
 @php
-    $backgroundImage ??= Vite::image('default-background.jpg');
+    $defaultBackground = Vite::image('default-background.jpg');
+    $backgroundImage ??= $defaultBackground;
 @endphp
 
 <!DOCTYPE html>
@@ -12,7 +13,14 @@
             <div
                 class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
             >
-                <img src="{{ $backgroundImage }}" class="h-full w-full object-cover" />
+                <img
+                    src="{{ $backgroundImage }}"
+                    onerror="
+                        this.onerror = null
+                        this.src = '{{ $defaultBackground }}'
+                    "
+                    class="h-full w-full object-cover"
+                />
                 <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent to-black/70"></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
                 <div

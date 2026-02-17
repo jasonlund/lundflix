@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Language;
+use App\Enums\MovieStatus;
 use App\Models\Movie;
 use Illuminate\Support\Facades\Http;
 
@@ -33,6 +34,12 @@ function fakeTmdbDetails(int $tmdbId, array $overrides = []): array
             ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
         ],
         'original_language' => 'en',
+        'original_title' => 'The Shawshank Redemption',
+        'tagline' => 'Fear can hold you prisoner. Hope can set you free.',
+        'status' => 'Released',
+        'budget' => 25000000,
+        'revenue' => 58300000,
+        'origin_country' => ['US'],
         'release_dates' => ['results' => []],
         'alternative_titles' => ['titles' => []],
     ];
@@ -86,7 +93,16 @@ it('syncs tmdb data for unsynced movies', function () {
         ->and($movie->spoken_languages)->toBe([Language::English])
         ->and($movie->alternative_titles)->toHaveCount(2)
         ->and($movie->original_language)->toBe(Language::English)
+        ->and($movie->original_title)->toBe('The Shawshank Redemption')
+        ->and($movie->tagline)->toBe('Fear can hold you prisoner. Hope can set you free.')
+        ->and($movie->status)->toBe(MovieStatus::Released)
+        ->and($movie->budget)->toBe(25000000)
+        ->and($movie->revenue)->toBe(58300000)
+        ->and($movie->origin_country)->toBe(['US'])
+        ->and($movie->release_dates)->toBeArray()
         ->and($movie->tmdb_synced_at)->not->toBeNull();
+
+    $this->assertDatabaseHas('movies', ['imdb_id' => 'tt0111161', 'status' => 'Released']);
 });
 
 it('updates recently changed movies via changes endpoint', function () {
@@ -321,4 +337,87 @@ it('handles mixed found and not-found movies in same batch', function () {
         ->and($details404->refresh()->tmdb_id)->toBe(238)
         ->and($details404->release_date)->toBeNull()
         ->and($details404->tmdb_synced_at)->not->toBeNull();
+});
+
+it('stores null for zero budget and revenue', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+
+    Http::fake([
+        ...fakeTmdbFind('tt0111161', 278),
+        ...fakeTmdbDetails(278, [
+            'budget' => 0,
+            'revenue' => 0,
+        ]),
+        ...fakeTmdbChanges(),
+    ]);
+
+    $this->artisan('tmdb:sync-movies')->assertSuccessful();
+
+    $movie->refresh();
+
+    expect($movie->budget)->toBeNull()
+        ->and($movie->revenue)->toBeNull();
+});
+
+it('syncs non-released movie status', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+
+    Http::fake([
+        ...fakeTmdbFind('tt0111161', 278),
+        ...fakeTmdbDetails(278, [
+            'status' => 'In Production',
+        ]),
+        ...fakeTmdbChanges(),
+    ]);
+
+    $this->artisan('tmdb:sync-movies')->assertSuccessful();
+
+    $movie->refresh();
+
+    expect($movie->status)->toBe(MovieStatus::InProduction);
+});
+
+it('stores full release dates from all countries', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+
+    $releaseDates = [
+        'results' => [
+            ['iso_3166_1' => 'US', 'release_dates' => [
+                ['type' => 3, 'release_date' => '1994-10-14T00:00:00.000Z'],
+            ]],
+            ['iso_3166_1' => 'FR', 'release_dates' => [
+                ['type' => 1, 'release_date' => '1994-09-10T00:00:00.000Z', 'note' => 'Cannes Film Festival'],
+            ]],
+        ],
+    ];
+
+    Http::fake([
+        ...fakeTmdbFind('tt0111161', 278),
+        ...fakeTmdbDetails(278, ['release_dates' => $releaseDates]),
+        ...fakeTmdbChanges(),
+    ]);
+
+    $this->artisan('tmdb:sync-movies')->assertSuccessful();
+
+    $movie->refresh();
+
+    expect($movie->release_dates)->toHaveCount(2)
+        ->and($movie->release_dates[0]['iso_3166_1'])->toBe('US')
+        ->and($movie->release_dates[1]['iso_3166_1'])->toBe('FR');
+});
+
+it('stores null tagline for empty string', function () {
+    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
+
+    Http::fake([
+        ...fakeTmdbFind('tt0111161', 278),
+        ...fakeTmdbDetails(278, ['tagline' => '']),
+        ...fakeTmdbChanges(),
+    ]);
+
+    $this->artisan('tmdb:sync-movies')->assertSuccessful();
+
+    $movie->refresh();
+
+    expect($movie->tagline)->toBeNull();
 });

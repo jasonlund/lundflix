@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 
@@ -13,6 +14,13 @@ class MovieShowSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::table('movies')->truncate();
+        DB::table('shows')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        $this->command->info('Truncated movies and shows tables.');
+
         $gzPath = $this->findLatestSeedFile();
         $tempSql = sys_get_temp_dir().'/seed_'.uniqid().'.sql';
 

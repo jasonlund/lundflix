@@ -12,12 +12,10 @@ use function Laravel\Prompts\spin;
 class ExportSeedData extends Command
 {
     protected $signature = 'db:export-seed
-                            {--all : Export all records instead of top N by votes}
-                            {--movies=50000 : Number of top movies to export}
-                            {--shows=20000 : Number of top shows to export}
+                            {--all : Export all records (including unrated)}
                             {--connection=mysql : Database connection to export from}';
 
-    protected $description = 'Export top movies and shows to timestamped seed file';
+    protected $description = 'Export rated movies and shows to timestamped seed file';
 
     private const MOVIE_BATCH_SIZE = 500;
 
@@ -29,16 +27,9 @@ class ExportSeedData extends Command
     public function handle(): int
     {
         $exportAll = $this->option('all');
-        $movieLimit = $exportAll ? 0 : (int) $this->option('movies');
-        $showLimit = $exportAll ? 0 : (int) $this->option('shows');
         $connection = $this->option('connection');
 
-        if ($exportAll) {
-            $dataDir = storage_path('seed');
-            File::ensureDirectoryExists($dataDir);
-        } else {
-            $dataDir = database_path('seeders/data');
-        }
+        $dataDir = database_path('seeders/data');
 
         $timestamp = now()->format('Y-m-d');
         $outputPath = "{$dataDir}/seed_{$timestamp}.sql.gz";
@@ -46,10 +37,9 @@ class ExportSeedData extends Command
         $this->info("Exporting from '{$connection}' connection...");
 
         if ($exportAll) {
-            $this->info('Mode: full export (all records)');
+            $this->info('Mode: full export (including unrated)');
         } else {
-            $this->info("Movies: top {$movieLimit} by num_votes");
-            $this->info("Shows: top {$showLimit} by num_votes");
+            $this->info('Mode: rated only (num_votes > 0)');
         }
 
         // Open gzip file for streaming writes
@@ -63,10 +53,10 @@ class ExportSeedData extends Command
         $this->write("SET FOREIGN_KEY_CHECKS=0;\n\n");
 
         // Export movies
-        $this->exportMovies($connection, $movieLimit);
+        $this->exportMovies($connection, $exportAll);
 
         // Export shows
-        $this->exportShows($connection, $showLimit);
+        $this->exportShows($connection, $exportAll);
 
         // Close the file
         gzclose($this->gzHandle);
@@ -106,37 +96,38 @@ class ExportSeedData extends Command
         gzwrite($this->gzHandle, $data);
     }
 
-    private function exportMovies(string $connection, int $limit): void
+    private function exportMovies(string $connection, bool $exportAll): void
     {
         $columns = [
             'id', 'imdb_id', 'title', 'year', 'runtime', 'genres', 'num_votes',
             'tmdb_id', 'release_date', 'digital_release_date',
             'production_companies', 'spoken_languages', 'alternative_titles',
-            'original_language', 'tmdb_synced_at',
+            'original_language', 'original_title', 'tagline', 'status',
+            'budget', 'revenue', 'origin_country', 'release_dates',
+            'tmdb_synced_at',
             'created_at', 'updated_at',
         ];
 
+        $query = DB::connection($connection)->table('movies');
+
+        if (! $exportAll) {
+            $query->where('num_votes', '>', 0);
+        }
+
         $total = spin(
-            fn () => DB::connection($connection)->table('movies')->count(),
+            fn () => (clone $query)->count(),
             'Counting movies...'
         );
 
-        $this->info("Found {$total} movies in source database");
+        $this->info("Found {$total} movies to export");
 
         $this->write("TRUNCATE TABLE movies;\n");
 
-        $exportCount = $limit > 0 ? min($total, $limit) : $total;
-        $progress = progress(label: 'Exporting movies', steps: $exportCount);
+        $progress = progress(label: 'Exporting movies', steps: $total);
         $progress->start();
 
         $exported = 0;
         $batch = [];
-
-        $query = DB::connection($connection)->table('movies');
-
-        if ($limit > 0) {
-            $query->orderByDesc('num_votes')->limit($limit);
-        }
 
         $query->cursor()
             ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
@@ -169,7 +160,7 @@ class ExportSeedData extends Command
         $this->write("\n");
     }
 
-    private function exportShows(string $connection, int $limit): void
+    private function exportShows(string $connection, bool $exportAll): void
     {
         $columns = [
             'id', 'tvmaze_id', 'imdb_id', 'thetvdb_id', 'name', 'type', 'language', 'genres', 'status',
@@ -177,27 +168,26 @@ class ExportSeedData extends Command
             'created_at', 'updated_at',
         ];
 
+        $query = DB::connection($connection)->table('shows');
+
+        if (! $exportAll) {
+            $query->where('num_votes', '>', 0);
+        }
+
         $total = spin(
-            fn () => DB::connection($connection)->table('shows')->count(),
+            fn () => (clone $query)->count(),
             'Counting shows...'
         );
 
-        $this->info("Found {$total} shows in source database");
+        $this->info("Found {$total} shows to export");
 
         $this->write("TRUNCATE TABLE shows;\n");
 
-        $exportCount = $limit > 0 ? min($total, $limit) : $total;
-        $progress = progress(label: 'Exporting shows', steps: $exportCount);
+        $progress = progress(label: 'Exporting shows', steps: $total);
         $progress->start();
 
         $exported = 0;
         $batch = [];
-
-        $query = DB::connection($connection)->table('shows');
-
-        if ($limit > 0) {
-            $query->orderByDesc('num_votes')->limit($limit);
-        }
 
         $query->cursor()
             ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
@@ -250,6 +240,13 @@ class ExportSeedData extends Command
             $row->spoken_languages === null ? 'NULL' : $this->quote($row->spoken_languages),
             $row->alternative_titles === null ? 'NULL' : $this->quote($row->alternative_titles),
             $row->original_language === null ? 'NULL' : $this->quote($row->original_language),
+            $row->original_title === null ? 'NULL' : $this->quote($row->original_title),
+            $row->tagline === null ? 'NULL' : $this->quote($row->tagline),
+            $row->status === null ? 'NULL' : $this->quote($row->status),
+            $row->budget === null ? 'NULL' : (string) $row->budget,
+            $row->revenue === null ? 'NULL' : (string) $row->revenue,
+            $row->origin_country === null ? 'NULL' : $this->quote($row->origin_country),
+            $row->release_dates === null ? 'NULL' : $this->quote($row->release_dates),
             $row->tmdb_synced_at === null ? 'NULL' : $this->quote($row->tmdb_synced_at),
             $this->quote($row->created_at),
             $this->quote($row->updated_at),

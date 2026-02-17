@@ -203,6 +203,13 @@ class SyncTMDBMovies extends Command
                     'spoken_languages' => null,
                     'alternative_titles' => null,
                     'original_language' => null,
+                    'original_title' => null,
+                    'tagline' => null,
+                    'status' => null,
+                    'budget' => null,
+                    'revenue' => null,
+                    'origin_country' => null,
+                    'release_dates' => null,
                 ];
 
                 if ($movieDetails) {
@@ -250,6 +257,13 @@ class SyncTMDBMovies extends Command
                 'spoken_languages' => null,
                 'alternative_titles' => null,
                 'original_language' => null,
+                'original_title' => null,
+                'tagline' => null,
+                'status' => null,
+                'budget' => null,
+                'revenue' => null,
+                'origin_country' => null,
+                'release_dates' => null,
             ];
 
             if (isset($detailsMap[$imdbId]) && $detailsMap[$imdbId]) {
