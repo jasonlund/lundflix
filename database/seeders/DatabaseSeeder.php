@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'user@lundflix.com'],
+            ['email' => 'admin@lundflix.com'],
             [
                 'name' => 'lundflix',
                 'password' => Hash::make('password'),
@@ -22,6 +23,7 @@ class DatabaseSeeder extends Seeder
                 'plex_username' => 'lundflix',
                 'plex_thumb' => 'https://plex.tv/users/6e1e991aa79f07da/avatar?c=1768416028',
                 'plex_token' => config('services.plex.seed_token'),
+                'role' => UserRole::Admin,
             ]
         );
 

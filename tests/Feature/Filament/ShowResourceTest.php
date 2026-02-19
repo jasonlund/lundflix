@@ -13,8 +13,7 @@ use Illuminate\Http\Client\RequestException;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    config(['services.plex.seed_token' => 'admin-token']);
-    $this->admin = User::factory()->create(['plex_token' => 'admin-token']);
+    $this->admin = User::factory()->admin()->create();
     $this->actingAs($this->admin);
 });
 
