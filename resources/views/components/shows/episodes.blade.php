@@ -194,14 +194,28 @@ new class extends Component {
             }
         }
 
-        $previousCount = collect(app(CartService::class)->episodes())
+        $previousCodes = collect(app(CartService::class)->episodes())
             ->where('show_id', $this->show->id)
-            ->count();
+            ->pluck('code')
+            ->map(fn ($c) => strtolower($c))
+            ->sort()
+            ->values()
+            ->all();
 
         app(CartService::class)->syncShowEpisodes($this->show->id, $orderedCodes);
         $this->dispatch('cart-updated');
 
-        $delta = count($orderedCodes) - $previousCount;
+        $newCodes = collect($orderedCodes)
+            ->map(fn ($c) => strtolower($c))
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($previousCodes === $newCodes) {
+            return;
+        }
+
+        $delta = count($orderedCodes) - count($previousCodes);
 
         if ($delta > 0) {
             Flux::toast(
@@ -212,6 +226,12 @@ new class extends Component {
         } elseif ($delta < 0) {
             Flux::toast(
                 text: trans_choice('lundbergh.toast.episodes_removed', abs($delta), [
+                    'title' => $this->show->name,
+                ]),
+            );
+        } else {
+            Flux::toast(
+                text: __('lundbergh.toast.episodes_swapped', [
                     'title' => $this->show->name,
                 ]),
             );

@@ -31,6 +31,7 @@ return [
         'cart_removed' => 'Mmm yeah… :title has been removed from your cart. So… yeah.',
         'episodes_added' => '{1} Yeah… so, :count episode of :title has been added to your cart. So… yeah.|[2,*] Yeah… so, :count episodes of :title have been added to your cart. So… yeah.',
         'episodes_removed' => '{1} Mmm yeah… :count episode of :title has been removed from your cart.|[2,*] Mmm yeah… :count episodes of :title have been removed from your cart.',
+        'episodes_swapped' => "Yeah… so, your :title episodes have been updated. If you could go ahead and review your cart, that'd be great.",
         'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
     ],
     'loading' => [

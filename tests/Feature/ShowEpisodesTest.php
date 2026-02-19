@@ -313,3 +313,38 @@ it('dispatches toast when multiple episodes are synced to cart', function () {
         ->assertDispatched('cart-updated')
         ->assertDispatched('toast-show');
 });
+
+it('dispatches toast when episodes are swapped with same count', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episodes = collect([
+        Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 1, 'season' => 1, 'number' => 1, 'airdate' => now()->subWeek()]),
+        Episode::factory()->create(['show_id' => $show->id, 'tvmaze_id' => 2, 'season' => 1, 'number' => 2, 'airdate' => now()->subWeek()]),
+    ]);
+
+    app(\App\Services\CartService::class)->syncShowEpisodes($show->id, ['S01E01']);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => $episodes])
+        ->call('syncToCart', ['S01E02'])
+        ->assertDispatched('cart-updated')
+        ->assertDispatched('toast-show');
+});
+
+it('does not dispatch toast when synced episodes are unchanged', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 1,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    app(\App\Services\CartService::class)->syncShowEpisodes($show->id, ['S01E01']);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
+        ->call('syncToCart', ['S01E01'])
+        ->assertDispatched('cart-updated')
+        ->assertNotDispatched('toast-show');
+});
