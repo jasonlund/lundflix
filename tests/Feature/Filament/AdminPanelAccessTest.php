@@ -8,50 +8,26 @@ it('redirects unauthenticated users to login', function () {
     $response->assertRedirect('/login');
 });
 
-it('denies access to users without matching plex token', function () {
-    config(['services.plex.seed_token' => 'admin-secret-token']);
-
-    $user = User::factory()->create([
-        'plex_token' => 'different-token',
-    ]);
+it('denies access to members', function () {
+    $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get('/admin')
         ->assertForbidden();
 });
 
-it('allows access to users with matching plex token', function () {
-    config(['services.plex.seed_token' => 'admin-secret-token']);
-
-    $user = User::factory()->create([
-        'plex_token' => 'admin-secret-token',
-    ]);
+it('allows access to admins', function () {
+    $user = User::factory()->admin()->create();
 
     $this->actingAs($user)
         ->get('/admin')
         ->assertSuccessful();
 });
 
-it('denies access when user has no plex token', function () {
-    config(['services.plex.seed_token' => 'admin-secret-token']);
-
-    $user = User::factory()->create([
-        'plex_token' => null,
-    ]);
+it('allows access to server owners', function () {
+    $user = User::factory()->serverOwner()->create();
 
     $this->actingAs($user)
         ->get('/admin')
-        ->assertForbidden();
-});
-
-it('denies access when seed token is not configured', function () {
-    config(['services.plex.seed_token' => null]);
-
-    $user = User::factory()->create([
-        'plex_token' => 'some-token',
-    ]);
-
-    $this->actingAs($user)
-        ->get('/admin')
-        ->assertForbidden();
+        ->assertSuccessful();
 });

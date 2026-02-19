@@ -23,11 +23,7 @@ it('shows the lundbergh bubble for password errors', function () {
 });
 
 it('redirects to the intended url after login', function () {
-    config(['services.plex.seed_token' => 'admin-secret-token']);
-
-    $user = User::factory()->create([
-        'plex_token' => 'admin-secret-token',
-    ]);
+    $user = User::factory()->admin()->create();
 
     $this->get('/admin')->assertRedirect(route('login'));
 

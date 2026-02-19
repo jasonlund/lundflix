@@ -115,7 +115,7 @@ public string $password = '';
 
 ## Enums
 
-- Enums used in Filament tables, infolists, or forms must implement Filament's native contracts (`HasLabel`, `HasColor`, `HasIcon`, `HasDescription`) from `Filament\Support\Contracts\`. This lets Filament auto-detect labels, colors, and icons — never manually map these in table columns or infolist entries.
+- Enums used in Filament tables, infolists, or forms must implement `HasLabel` from `Filament\Support\Contracts\`. Optionally implement `HasColor`, `HasIcon`, and/or `HasDescription` when the enum needs colors, icons, or descriptions in the UI. This lets Filament auto-detect these values — never manually map them in table columns or infolist entries.
 
 ## Livewire Best Practices (Project-Specific)
 

@@ -8,12 +8,11 @@ use App\Models\User;
 use App\Policies\RequestItemPolicy;
 
 beforeEach(function () {
-    config(['services.plex.seed_token' => 'admin-token']);
     $this->policy = new RequestItemPolicy;
     $this->user = User::factory()->create();
-    $this->admin = User::factory()->create(['plex_token' => 'admin-token']);
-    $this->nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
-    $this->otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $this->admin = User::factory()->admin()->create();
+    $this->nonAdmin = User::factory()->create();
+    $this->otherUser = User::factory()->create();
     $this->request = Request::factory()->create();
     $this->requestItem = RequestItem::factory()->create([
         'request_id' => $this->request->id,

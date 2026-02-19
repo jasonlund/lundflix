@@ -13,8 +13,7 @@ use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    config(['services.plex.seed_token' => 'admin-token']);
-    $this->admin = User::factory()->create(['plex_token' => 'admin-token']);
+    $this->admin = User::factory()->admin()->create();
     $this->actingAs($this->admin);
 });
 
@@ -143,8 +142,8 @@ it('shows bulk actions when items are selected', function () {
 });
 
 it('disables selection for items actioned by others', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
-    $otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $nonAdmin = User::factory()->create();
+    $otherUser = User::factory()->create();
     $request = Request::factory()->create();
 
     $authorizedItem = RequestItem::factory()->for($request)->fulfilled($nonAdmin->id)->create();
@@ -238,7 +237,7 @@ it('can mark selected items as pending', function () {
 });
 
 it('admin can change status of items actioned by others', function () {
-    $otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $otherUser = User::factory()->create();
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->fulfilled($otherUser->id)->count(2)->create();
 
@@ -256,8 +255,8 @@ it('admin can change status of items actioned by others', function () {
 });
 
 it('non-admin cannot change status of items actioned by others', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
-    $otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $nonAdmin = User::factory()->create();
+    $otherUser = User::factory()->create();
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->fulfilled($otherUser->id)->count(2)->create();
 
@@ -277,7 +276,7 @@ it('non-admin cannot change status of items actioned by others', function () {
 });
 
 it('non-admin can change status of items they actioned', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
+    $nonAdmin = User::factory()->create();
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->fulfilled($nonAdmin->id)->count(2)->create();
 
@@ -297,7 +296,7 @@ it('non-admin can change status of items they actioned', function () {
 });
 
 it('non-admin can change status of pending items', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
+    $nonAdmin = User::factory()->create();
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->pending()->count(2)->create();
 
@@ -317,8 +316,8 @@ it('non-admin can change status of pending items', function () {
 });
 
 it('non-admin cannot reset items actioned by others to pending', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
-    $otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $nonAdmin = User::factory()->create();
+    $otherUser = User::factory()->create();
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->fulfilled($otherUser->id)->count(2)->create();
 
@@ -338,8 +337,8 @@ it('non-admin cannot reset items actioned by others to pending', function () {
 });
 
 it('bulk action fails entirely if any item is unauthorized', function () {
-    $nonAdmin = User::factory()->create(['plex_token' => 'non-admin-token']);
-    $otherUser = User::factory()->create(['plex_token' => 'other-token']);
+    $nonAdmin = User::factory()->create();
+    $otherUser = User::factory()->create();
     $request = Request::factory()->create();
 
     $authorizedItem = RequestItem::factory()->for($request)->fulfilled($nonAdmin->id)->create();
