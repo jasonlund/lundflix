@@ -6,8 +6,7 @@ use App\Support\Formatters;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public Movie $movie;
 
     public bool $inCart = false;
@@ -106,7 +105,7 @@ new class extends Component
                         window.dispatchEvent(new CustomEvent('cart-syncing'))
                         $wire.toggleCart()
                     "
-                    class="flex size-12 items-center justify-center rounded-lg bg-white/10 p-2 text-white border-2 border-zinc-200 backdrop-blur-sm transition hover:bg-white/20"
+                    class="flex size-12 items-center justify-center rounded-lg border-2 border-zinc-200 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
                 >
                     <flux:icon.check x-show="inCart" x-cloak class="size-8" />
                     <div x-show="!inCart" class="size-8"></div>
@@ -117,7 +116,7 @@ new class extends Component
                     <a
                         href="{{ $this->imdbUrl() }}"
                         target="_blank"
-                        class="flex items-center justify-center rounded-lg bg-white/10 p-2 text-white border-1 border-zinc-600 backdrop-blur-sm transition hover:bg-white/20"
+                        class="flex items-center justify-center rounded-lg border-1 border-zinc-600 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
                     >
                         <flux:icon.imdb class="size-8" />
                     </a>
