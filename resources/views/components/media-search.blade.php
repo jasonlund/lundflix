@@ -191,14 +191,6 @@ new class extends Component {
                                     @endif
                                 </div>
                                 <div @click.stop class="flex shrink-0 gap-1">
-                                    @if ($result['type'] === 'movie')
-                                        <livewire:cart.add-movie-button
-                                            :movie="$result['model']"
-                                            :show-text="false"
-                                            :wire:key="'search-cart-'.$result['id']"
-                                        />
-                                    @endif
-
                                     <flux:button
                                         as="a"
                                         href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"

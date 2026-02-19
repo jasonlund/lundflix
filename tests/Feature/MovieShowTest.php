@@ -4,6 +4,7 @@ use App\Enums\Language;
 use App\Enums\MovieStatus;
 use App\Models\Movie;
 use App\Models\User;
+use App\Services\CartService;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -81,25 +82,6 @@ it('displays IMDB link with correct URL', function () {
         ->assertSee('https://www.imdb.com/title/tt0133093/');
 });
 
-it('displays top 3 production companies', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'production_companies' => [
-            ['id' => 1, 'name' => 'Warner Bros. Pictures'],
-            ['id' => 2, 'name' => 'Legendary Pictures'],
-            ['id' => 3, 'name' => 'Syncopy'],
-            ['id' => 4, 'name' => 'DC'],
-        ],
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSee('Warner Bros. Pictures')
-        ->assertSee('Legendary Pictures')
-        ->assertSee('Syncopy')
-        ->assertDontSee('DC');
-});
-
 it('displays only original language when spoken languages match', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -115,7 +97,7 @@ it('displays only original language when spoken languages match', function () {
         ->assertDontSee('English (');
 });
 
-it('displays spoken languages parenthetically when they differ from original', function () {
+it('displays only primary language without spoken languages', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
         'original_language' => Language::English,
@@ -128,48 +110,9 @@ it('displays spoken languages parenthetically when they differ from original', f
 
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
-        ->assertSee('English (French, Spanish)');
-});
-
-it('limits parenthetical spoken languages to top 3', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'original_language' => Language::English,
-        'spoken_languages' => [
-            ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-            ['iso_639_1' => 'fr', 'english_name' => 'French', 'name' => 'Français'],
-            ['iso_639_1' => 'es', 'english_name' => 'Spanish', 'name' => 'Español'],
-            ['iso_639_1' => 'de', 'english_name' => 'German', 'name' => 'Deutsch'],
-            ['iso_639_1' => 'it', 'english_name' => 'Italian', 'name' => 'Italiano'],
-        ],
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSee('English (French, Spanish, German)')
-        ->assertDontSee('Italian');
-});
-
-it('displays top 2 english alternative titles excluding main title', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'title' => 'The Dark Knight',
-        'alternative_titles' => [
-            ['title' => 'Batman: The Dark Knight', 'iso_3166_1' => 'US'],
-            ['title' => 'El caballero oscuro', 'iso_3166_1' => 'ES'],
-            ['title' => 'The Dark Knight', 'iso_3166_1' => 'US'],
-            ['title' => 'Batman II: The Dark Knight', 'iso_3166_1' => 'US'],
-            ['title' => 'Batman II - The Dark Knight', 'iso_3166_1' => 'US'],
-            ['title' => 'Mroczny Rycerz', 'iso_3166_1' => 'PL'],
-        ],
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSee('Batman: The Dark Knight')
-        ->assertSee('Batman II: The Dark Knight')
-        ->assertDontSee('El caballero oscuro')
-        ->assertDontSee('Mroczny Rycerz');
+        ->assertSee('English')
+        ->assertDontSee('French')
+        ->assertDontSee('Spanish');
 });
 
 it('displays original title when it differs from main title', function () {
@@ -181,7 +124,7 @@ it('displays original title when it differs from main title', function () {
 
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
-        ->assertSee('Originally "千と千尋の神隠し"');
+        ->assertSee('千と千尋の神隠し');
 });
 
 it('does not display original title when it matches main title', function () {
@@ -250,18 +193,7 @@ it('falls back to year when release date is null', function () {
         ->assertSee('2029');
 });
 
-it('handles movie without production companies', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'production_companies' => null,
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSuccessful();
-});
-
-it('displays status icon for released movie', function () {
+it('displays status label for released movie', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->withTmdbData()->create([
         'release_date' => '2020-01-01',
@@ -360,4 +292,130 @@ it('handles movie without status', function () {
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
         ->assertSuccessful();
+});
+
+describe('cart', function () {
+    beforeEach(function () {
+        session()->flush();
+    });
+
+    it('can add movie to cart', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('inCart', false)
+            ->call('toggleCart')
+            ->assertSet('inCart', true)
+            ->assertDispatched('cart-updated');
+
+        expect(app(CartService::class)->has($movie->id))->toBeTrue();
+    });
+
+    it('can remove movie from cart', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->create();
+        app(CartService::class)->toggleMovie($movie->id);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('inCart', true)
+            ->call('toggleCart')
+            ->assertSet('inCart', false)
+            ->assertDispatched('cart-updated');
+
+        expect(app(CartService::class)->has($movie->id))->toBeFalse();
+    });
+
+    it('disables cart for unreleased movie statuses', function (string $rawStatus) {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => $rawStatus,
+            'release_date' => now()->addYear(),
+            'digital_release_date' => null,
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isCartDisabled', true);
+    })->with([
+        'Rumored',
+        'Planned',
+        'In Production',
+        'Post Production',
+    ]);
+
+    it('disables cart for canceled movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => 'Canceled',
+            'release_date' => null,
+            'digital_release_date' => null,
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isCartDisabled', true);
+    });
+
+    it('enables cart for released movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => 'Released',
+            'digital_release_date' => '2020-01-01',
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isCartDisabled', false);
+    });
+
+    it('enables cart for movies with null status', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->create(['status' => null]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isCartDisabled', false);
+    });
+
+    it('prevents toggling cart for unreleased movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => 'Planned',
+            'release_date' => now()->addYear(),
+            'digital_release_date' => null,
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->call('toggleCart')
+            ->assertSet('inCart', false)
+            ->assertNotDispatched('cart-updated');
+
+        expect(app(CartService::class)->has($movie->id))->toBeFalse();
+    });
+
+    it('prevents toggling cart for canceled movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => 'Canceled',
+            'release_date' => null,
+            'digital_release_date' => null,
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->call('toggleCart')
+            ->assertSet('inCart', false)
+            ->assertNotDispatched('cart-updated');
+
+        expect(app(CartService::class)->has($movie->id))->toBeFalse();
+    });
 });

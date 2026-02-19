@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\Language;
 use App\Models\Movie;
+use App\Services\CartService;
 use App\Support\Formatters;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -9,9 +9,34 @@ use Livewire\Component;
 new class extends Component {
     public Movie $movie;
 
-    public function mount(Movie $movie): void
+    public bool $inCart = false;
+
+    public function mount(Movie $movie, CartService $cart): void
     {
         $this->movie = $movie;
+        $this->inCart = $cart->has($this->movie->id);
+    }
+
+    #[Computed]
+    public function isCartDisabled(): bool
+    {
+        $status = $this->movie->status;
+
+        if ($status === null) {
+            return false;
+        }
+
+        return ! $status->isCartable();
+    }
+
+    public function toggleCart(CartService $cart): void
+    {
+        if ($this->isCartDisabled) {
+            return;
+        }
+
+        $this->inCart = $cart->toggleMovie($this->movie->id);
+        $this->dispatch('cart-updated');
     }
 
     public function imdbUrl(): string
@@ -32,88 +57,10 @@ new class extends Component {
         return null;
     }
 
-    /**
-     * @return list<string>
-     */
-    public function productionCompanyNames(): array
-    {
-        $companies = $this->movie->production_companies ?? [];
-
-        return collect($companies)
-            ->take(3)
-            ->pluck('name')
-            ->all();
-    }
-
-    public function formattedLanguage(): ?string
-    {
-        $original = $this->movie->original_language;
-        if (! $original) {
-            return null;
-        }
-
-        $label = $original->getLabel();
-
-        $others = collect($this->movie->spoken_languages ?? [])
-            ->reject(fn (Language $lang): bool => $lang === $original)
-            ->take(3)
-            ->map(fn (Language $lang): string => $lang->getLabel())
-            ->all();
-
-        if (count($others) === 0) {
-            return $label;
-        }
-
-        return $label . ' (' . implode(', ', $others) . ')';
-    }
-
-    private const ENGLISH_COUNTRIES = ['US', 'GB', 'AU', 'CA'];
-
-    public function titleVariants(): ?string
-    {
-        $parts = [];
-
-        $originalTitle = $this->movie->original_title;
-        if ($originalTitle && $originalTitle !== $this->movie->title) {
-            $parts[] = 'Originally "' . $originalTitle . '"';
-        }
-
-        $altTitles = $this->alternativeTitles();
-        if (count($altTitles) > 0) {
-            $parts[] = 'aka ' . implode(', ', $altTitles);
-        }
-
-        return $parts ? implode(' · ', $parts) : null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function alternativeTitles(): array
-    {
-        $titles = $this->movie->alternative_titles ?? [];
-        $movieTitle = $this->movie->title;
-
-        return collect($titles)
-            ->filter(fn (array $t): bool => in_array($t['iso_3166_1'] ?? '', self::ENGLISH_COUNTRIES))
-            ->pluck('title')
-            ->filter(fn (string $title): bool => $title !== $movieTitle)
-            ->unique()
-            ->take(2)
-            ->values()
-            ->all();
-    }
-
     #[Computed]
     public function backgroundUrl(): ?string
     {
         return $this->movie->artUrl('background');
-    }
-
-    #[Computed]
-    public function logoUrl(): ?string
-    {
-        return $this->movie->artUrl('logo');
     }
 
     public function contentRating(): ?string
@@ -136,89 +83,120 @@ new class extends Component {
 ?>
 
 <div class="flex flex-col">
-    <div class="relative h-[16rem] overflow-hidden">
-        @if ($movie->imdb_id)
-            <div class="absolute top-4 right-4 z-10">
+    <div class="relative overflow-hidden">
+        <div
+            x-data="{ inCart: {{ Js::from($inCart) }} }"
+            class="absolute top-4 right-4 z-10 flex flex-col items-center gap-2"
+        >
+            @if ($this->isCartDisabled)
+                <flux:tooltip content="Not yet released">
+                    <div
+                        class="flex size-12 items-center justify-center rounded-lg bg-white/10 p-2 text-white/50 backdrop-blur-sm"
+                    >
+                        <flux:icon.check class="size-8" />
+                    </div>
+                </flux:tooltip>
+            @else
+                <button
+                    x-on:click="
+                        inCart = ! inCart
+                        window.dispatchEvent(new CustomEvent('cart-syncing'))
+                        $wire.toggleCart()
+                    "
+                    class="flex size-12 items-center justify-center rounded-lg bg-white/10 p-2 text-white border-2 border-zinc-200 backdrop-blur-sm transition hover:bg-white/20"
+                >
+                    <flux:icon.check x-show="inCart" x-cloak class="size-8" />
+                    <div x-show="!inCart" class="size-8"></div>
+                </button>
+            @endif
+            @if ($movie->imdb_id)
                 <flux:tooltip content="View on IMDb">
                     <a
                         href="{{ $this->imdbUrl() }}"
                         target="_blank"
-                        class="flex items-center justify-center rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                        class="flex items-center justify-center rounded-lg bg-white/10 p-2 text-white border-1 border-zinc-600 backdrop-blur-sm transition hover:bg-white/20"
                     >
                         <flux:icon.imdb class="size-8" />
                     </a>
                 </flux:tooltip>
-            </div>
-        @endif
+            @endif
+        </div>
 
-        <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
             <div class="max-w-4xl">
                 <x-artwork
                     :model="$movie"
                     type="logo"
                     :alt="$movie->title . ' logo'"
-                    class="h-12 drop-shadow sm:h-14 md:h-20"
+                    class="h-24 drop-shadow sm:h-28 md:h-40"
                 >
                     <flux:heading size="xl">{{ $movie->title }}</flux:heading>
                 </x-artwork>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-300">
+            <div class="truncate">
+                <flux:heading size="xl" class="inline">{{ $movie->title }}</flux:heading>
+                @if ($movie->original_title && $movie->original_title !== $movie->title)
+                    <span class="ml-3 text-base">{{ $movie->original_title }}</span>
+                @endif
+            </div>
+
+            <div class="truncate text-zinc-200">
                 @if ($this->releaseDate())
                     <span>{{ $this->releaseDate() }}</span>
                 @endif
 
                 @if ($movie->status)
-                    <flux:tooltip :content="$movie->status->getLabel()">
-                        <x-dynamic-component
-                            :component="'flux::icon.' . $movie->status->icon()"
-                            variant="mini"
-                            :class="$movie->status->iconColorClass()"
-                        />
-                    </flux:tooltip>
-                @endif
+                    @if ($this->releaseDate())
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
 
-                @if ($this->contentRating())
-                    <flux:icon.dot variant="micro" class="text-zinc-300" />
-                    <span>{{ $this->contentRating() }}</span>
-                @endif
-
-                @if ($this->formattedRuntime())
-                    <flux:icon.dot variant="micro" class="text-zinc-300" />
-                    <span>{{ $this->formattedRuntime() }}</span>
-                @endif
-
-                @if ($this->formattedLanguage())
-                    <flux:icon.dot variant="micro" class="text-zinc-300" />
-                    <span>{{ $this->formattedLanguage() }}</span>
+                    <span class="{{ $movie->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
+                        <x-dynamic-component :component="'flux::icon.' . $movie->status->icon()" variant="mini" />
+                        {{ $movie->status->getLabel() }}
+                    </span>
                 @endif
             </div>
 
             @if ($movie->genres && count($movie->genres))
-                <div class="flex flex-wrap gap-2">
+                <div class="flex gap-4 truncate text-zinc-200">
                     @foreach ($movie->genres as $genre)
-                        <x-genre-badge :$genre />
+                        <span class="inline-flex items-center gap-1 align-middle">
+                            <x-dynamic-component
+                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                                variant="mini"
+                            />
+                            {{ \App\Enums\Genre::labelFor($genre) }}
+                        </span>
                     @endforeach
                 </div>
             @endif
 
-            @if (count($this->productionCompanyNames()) > 0)
-                <div class="text-xs text-zinc-400">
-                    {{ implode(' · ', $this->productionCompanyNames()) }}
-                </div>
-            @endif
+            <div class="truncate text-sm text-zinc-200">
+                @if ($movie->original_language)
+                    <span>{{ $movie->original_language->getLabel() }}</span>
+                @endif
 
-            @if ($this->titleVariants())
-                <div class="text-xs text-zinc-400">{{ $this->titleVariants() }}</div>
-            @endif
+                @if ($this->formattedRuntime())
+                    @if ($movie->original_language)
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
+
+                    <span>{{ $this->formattedRuntime() }}</span>
+                @endif
+
+                @if ($this->contentRating())
+                    @if ($movie->original_language || $this->formattedRuntime())
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
+
+                    <span>{{ $this->contentRating() }}</span>
+                @endif
+            </div>
         </div>
     </div>
 
     <div class="flex flex-col gap-8 px-4 sm:px-6">
-        <div class="flex gap-3">
-            <livewire:cart.add-movie-button :movie="$movie" />
-        </div>
-
         @if ($movie->imdb_id)
             <livewire:movies.plex-availability :movie="$movie" lazy />
         @endif
