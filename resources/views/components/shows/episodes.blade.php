@@ -6,6 +6,7 @@ use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
 use Carbon\Carbon;
+use Flux\Flux;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -193,8 +194,48 @@ new class extends Component {
             }
         }
 
+        $previousCodes = collect(app(CartService::class)->episodes())
+            ->where('show_id', $this->show->id)
+            ->pluck('code')
+            ->map(fn ($c) => strtolower($c))
+            ->sort()
+            ->values()
+            ->all();
+
         app(CartService::class)->syncShowEpisodes($this->show->id, $orderedCodes);
         $this->dispatch('cart-updated');
+
+        $newCodes = collect($orderedCodes)
+            ->map(fn ($c) => strtolower($c))
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($previousCodes === $newCodes) {
+            return;
+        }
+
+        $delta = count($orderedCodes) - count($previousCodes);
+
+        if ($delta > 0) {
+            Flux::toast(
+                text: trans_choice('lundbergh.toast.episodes_added', $delta, [
+                    'title' => $this->show->name,
+                ]),
+            );
+        } elseif ($delta < 0) {
+            Flux::toast(
+                text: trans_choice('lundbergh.toast.episodes_removed', abs($delta), [
+                    'title' => $this->show->name,
+                ]),
+            );
+        } else {
+            Flux::toast(
+                text: __('lundbergh.toast.episodes_swapped', [
+                    'title' => $this->show->name,
+                ]),
+            );
+        }
     }
 
     /**
