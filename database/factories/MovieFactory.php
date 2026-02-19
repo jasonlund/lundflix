@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\Language;
+use App\Enums\MovieStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -42,6 +43,34 @@ class MovieFactory extends Factory
                 ['iso_3166_1' => 'FR', 'title' => fake()->sentence(2), 'type' => ''],
             ],
             'original_language' => fake()->randomElement(Language::cases())->value,
+            'original_title' => fake()->sentence(3),
+            'tagline' => fake()->sentence(),
+            'status' => fake()->randomElement([
+                MovieStatus::Released,
+                MovieStatus::Canceled,
+                MovieStatus::PostProduction,
+                MovieStatus::InProduction,
+                MovieStatus::Planned,
+                MovieStatus::Rumored,
+            ])->value,
+            'budget' => fake()->numberBetween(1_000_000, 200_000_000),
+            'revenue' => fake()->numberBetween(10_000_000, 1_000_000_000),
+            'origin_country' => ['US'],
+            'release_dates' => [
+                [
+                    'iso_3166_1' => 'US',
+                    'release_dates' => [
+                        [
+                            'type' => 3,
+                            'release_date' => fake()->date('Y-m-d\TH:i:s.000\Z'),
+                            'certification' => fake()->randomElement(['G', 'PG', 'PG-13', 'R']),
+                            'note' => '',
+                            'iso_639_1' => '',
+                            'descriptors' => [],
+                        ],
+                    ],
+                ],
+            ],
             'tmdb_synced_at' => now(),
         ]);
     }

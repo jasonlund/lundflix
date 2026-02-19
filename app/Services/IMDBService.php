@@ -57,13 +57,7 @@ class IMDBService
                 continue;
             }
 
-            // Exclude entries without runtime
             $runtime = $runtimeMinutes !== '\\N' ? (int) $runtimeMinutes : null;
-            if ($runtime === null) {
-                yield null;
-
-                continue;
-            }
 
             yield [
                 'imdb_id' => $tconst,

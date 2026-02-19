@@ -38,7 +38,7 @@ it('parses tsv export file correctly', function () {
     @unlink($tempFile);
 });
 
-it('excludes movies with null runtime', function () {
+it('includes movies with null runtime', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'imdb_test_');
     $gzFile = $tempFile.'.gz';
 
@@ -56,9 +56,11 @@ it('excludes movies with null runtime', function () {
     $service = new IMDBService;
     $movies = array_values(array_filter(iterator_to_array($service->parseExportFile($gzFile))));
 
-    expect($movies)->toHaveCount(1)
-        ->and($movies[0]['imdb_id'])->toBe('tt0000002')
-        ->and($movies[0]['runtime'])->toBe(90);
+    expect($movies)->toHaveCount(2)
+        ->and($movies[0]['imdb_id'])->toBe('tt0000001')
+        ->and($movies[0]['runtime'])->toBeNull()
+        ->and($movies[1]['imdb_id'])->toBe('tt0000002')
+        ->and($movies[1]['runtime'])->toBe(90);
 
     unlink($gzFile);
     @unlink($tempFile);
@@ -105,7 +107,7 @@ it('yields null for skipped entries to enable progress tracking', function () {
         "tt0000001\tmovie\tValid Movie\tValid Movie\t0\t2000\t\\N\t120\tDrama", // valid
         "tt0000002\tmovie\tAdult Film\tAdult Film\t1\t2020\t\\N\t90\tAdult", // skipped: adult
         "tt0000003\ttvSeries\tTV Show\tTV Show\t0\t2020\t\\N\t45\tDrama", // skipped: not movie
-        "tt0000004\tmovie\tNo Runtime\tNo Runtime\t0\t2020\t\\N\t\\N\tDrama", // skipped: no runtime
+        "tt0000004\tmovie\tNo Runtime\tNo Runtime\t0\t2020\t\\N\t\\N\tDrama", // valid: null runtime allowed
         "tt0000005\tmovie\tAnother Valid\tAnother Valid\t0\t2021\t\\N\t100\tComedy", // valid
     ];
     $content = implode("\n", $lines);
@@ -130,8 +132,10 @@ it('yields null for skipped entries to enable progress tracking', function () {
     // Third entry: TV series (null)
     expect($results[2])->toBeNull();
 
-    // Fourth entry: no runtime (null)
-    expect($results[3])->toBeNull();
+    // Fourth entry: no runtime, still valid (array)
+    expect($results[3])->toBeArray()
+        ->and($results[3]['imdb_id'])->toBe('tt0000004')
+        ->and($results[3]['runtime'])->toBeNull();
 
     // Fifth entry: valid movie (array)
     expect($results[4])->toBeArray()
