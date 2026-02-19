@@ -6,7 +6,8 @@ use App\Support\Formatters;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component {
+new class extends Component
+{
     public Movie $movie;
 
     public bool $inCart = false;
@@ -44,6 +45,7 @@ new class extends Component {
         return "https://www.imdb.com/title/{$this->movie->imdb_id}/";
     }
 
+    #[Computed]
     public function releaseDate(): ?string
     {
         if ($this->movie->release_date) {
@@ -68,6 +70,7 @@ new class extends Component {
         return $this->movie->contentRating();
     }
 
+    #[Computed]
     public function formattedRuntime(): ?string
     {
         return Formatters::runtime($this->movie->runtime);
