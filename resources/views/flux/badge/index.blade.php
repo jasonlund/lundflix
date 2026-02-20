@@ -68,7 +68,9 @@
                     'pink' => 'text-white bg-pink-600 [&:is(button)]:hover:bg-pink-500',
                     'rose' => 'text-white bg-rose-600 [&:is(button)]:hover:bg-rose-500',
                 }
-                : match ($color) {
+                : // The ! (important) modifiers on [&_button] selectors are from Flux's original component source.
+                // They're needed to override Flux's internal button text color when a button is nested inside a badge.
+                match ($color) {
                     default => 'text-zinc-200 [&_button]:text-zinc-200! bg-zinc-400/40 [&:is(button)]:hover:bg-zinc-400/50',
                     'lundflix' => 'text-white bg-lundflix/75',
                     'red' => 'text-red-200 [&_button]:text-red-200! bg-red-400/40 [&:is(button)]:hover:bg-red-400/50',
@@ -93,31 +95,31 @@
 @endphp
 
 <flux:button-or-div :attributes="$attributes->class($classes)" data-flux-badge>
-    <?php if (is_string($icon) && $icon !== ''): ?>
+    <?php if (is_string($icon) && $icon !== '') { ?>
 
     <flux:icon :$icon :variant="$iconVariant" :class="$iconClasses" data-flux-badge-icon />
 
-    <?php else: ?>
+    <?php } else { ?>
 
     {{ $icon }}
 
-    <?php endif; ?>
+    <?php } ?>
 
     {{ $slot }}
 
-    <?php if ($iconTrailing): ?>
+    <?php if ($iconTrailing) { ?>
 
     <div class="flex items-center ps-1" data-flux-badge-icon:trailing>
-        <?php if (is_string($iconTrailing)): ?>
+        <?php if (is_string($iconTrailing)) { ?>
 
         <flux:icon :icon="$iconTrailing" :variant="$iconVariant" :class="$iconClasses" />
 
-        <?php else: ?>
+        <?php } else { ?>
 
         {{ $iconTrailing }}
 
-        <?php endif; ?>
+        <?php } ?>
     </div>
 
-    <?php endif; ?>
+    <?php } ?>
 </flux:button-or-div>
