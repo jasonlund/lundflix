@@ -19,7 +19,7 @@ class ListPlexServers extends ListRecords
         return [
             Action::make('sync')
                 ->label('Sync Servers')
-                ->icon('heroicon-o-arrow-path')
+                ->icon('lucide-refresh-cw')
                 ->action(function () {
                     Artisan::call('plex:sync-servers');
 

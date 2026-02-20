@@ -13,14 +13,13 @@ use App\Models\Show;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class ShowResource extends Resource
 {
     protected static ?string $model = Show::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTv;
+    protected static string|BackedEnum|null $navigationIcon = 'lucide-tv';
 
     public static function infolist(Schema $schema): Schema
     {

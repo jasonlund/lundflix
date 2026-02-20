@@ -5,7 +5,6 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
-use Filament\Support\Icons\Heroicon;
 
 enum ShowStatus: string implements HasColor, HasIcon, HasLabel
 {
@@ -29,20 +28,15 @@ enum ShowStatus: string implements HasColor, HasIcon, HasLabel
         };
     }
 
-    public function getIcon(): Heroicon
+    public function getIcon(): string
     {
-        return match ($this) {
-            self::Running => Heroicon::PlayCircle,
-            self::Ended => Heroicon::CheckCircle,
-            self::ToBeDetermined => Heroicon::QuestionMarkCircle,
-            self::InDevelopment => Heroicon::Wrench,
-        };
+        return 'lucide-'.$this->icon();
     }
 
     public function icon(): string
     {
         return match ($this) {
-            self::Running => 'circle-play',
+            self::Running => 'tv-minimal-play',
             self::Ended => 'circle-check',
             self::ToBeDetermined => 'circle-alert',
             self::InDevelopment => 'hammer',

@@ -57,7 +57,6 @@ it('creates request on submit', function () {
         ->test('cart.checkout')
         ->set('notes', 'Please add soon!')
         ->call('submit')
-        ->assertDispatched('toast-show')
         ->assertDispatched('cart-updated')
         ->assertRedirect(route('home'));
 
@@ -75,8 +74,6 @@ it('creates request without notes', function () {
     Livewire::actingAs($user)
         ->test('cart.checkout')
         ->call('submit')
-        ->assertDispatched('toast-show')
-        ->assertDispatched('cart-updated')
         ->assertRedirect(route('home'));
 
     expect(Request::count())->toBe(1)

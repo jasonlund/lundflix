@@ -19,20 +19,16 @@ return [
         'cart_dropdown' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
         'cart_checkout' => "Mmm yeah… your cart is empty. Search for movies and shows to add to your request. That'd be great.",
         'search_prompt' => 'Yeah… go ahead and type at least two characters to start searching.',
-        'search_no_results' => 'Mmm yeah… nothing matched that search. Try another title.',
+        'search_no_results' => "Mmm yeah… that search didn't turn up anything.",
+        'search_no_results_filter' => "I'm gonna need you to refine your search term and... mmm.... filter by language.",
+        'imdb_not_found' => "Yeah… so, we couldn't find that IMDb ID. I'm gonna need you to go ahead and come in tomorrow and… double-check it. That'd be great.",
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
-        'search_imdb_hint' => "Yeah… if you can't find what you're looking for, go ahead and try an :imdb_link ID instead. That'd be great.",
     ],
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
     ],
-    'toast' => [
-        'cart_added' => "Yeah… so, :title has been added to your cart. If you could add more or check out, that'd be great.",
-        'cart_removed' => 'Mmm yeah… :title has been removed from your cart. So… yeah.',
-        'episodes_added' => '{1} Yeah… so, :count episode of :title has been added to your cart. So… yeah.|[2,*] Yeah… so, :count episodes of :title have been added to your cart. So… yeah.',
-        'episodes_removed' => '{1} Mmm yeah… :count episode of :title has been removed from your cart.|[2,*] Mmm yeah… :count episodes of :title have been removed from your cart.',
-        'episodes_swapped' => "Yeah… so, your :title episodes have been updated. If you could go ahead and review your cart, that'd be great.",
-        'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
+    'error' => [
+        'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

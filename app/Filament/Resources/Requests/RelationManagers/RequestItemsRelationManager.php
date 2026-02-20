@@ -8,7 +8,6 @@ use App\Models\Request;
 use Filament\Actions\BulkAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -24,7 +23,7 @@ class RequestItemsRelationManager extends RelationManager
             ->groupedBulkActions([
                 BulkAction::make('markFulfilled')
                     ->label('Mark as Fulfilled')
-                    ->icon(Heroicon::CheckCircle)
+                    ->icon('lucide-circle-check')
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Mark items as fulfilled')
@@ -51,7 +50,7 @@ class RequestItemsRelationManager extends RelationManager
 
                 BulkAction::make('markRejected')
                     ->label('Mark as Rejected')
-                    ->icon(Heroicon::XCircle)
+                    ->icon('lucide-circle-x')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->modalHeading('Mark items as rejected')
@@ -78,7 +77,7 @@ class RequestItemsRelationManager extends RelationManager
 
                 BulkAction::make('markNotFound')
                     ->label('Mark as Not Found')
-                    ->icon(Heroicon::QuestionMarkCircle)
+                    ->icon('lucide-circle-help')
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalHeading('Mark items as not found')
@@ -105,7 +104,7 @@ class RequestItemsRelationManager extends RelationManager
 
                 BulkAction::make('markPending')
                     ->label('Mark as Pending')
-                    ->icon(Heroicon::ArrowPath)
+                    ->icon('lucide-refresh-cw')
                     ->color('gray')
                     ->requiresConfirmation()
                     ->modalHeading('Mark items as pending')

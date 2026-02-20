@@ -40,7 +40,7 @@ class MovieShowSeeder extends Seeder
             $port = config('database.connections.mysql.port');
 
             $cmd = sprintf(
-                'mysql -h%s -P%s -u%s %s < %s',
+                'mysql --default-character-set=utf8mb4 -h%s -P%s -u%s %s < %s',
                 escapeshellarg($host),
                 escapeshellarg($port),
                 escapeshellarg($username),
@@ -55,10 +55,31 @@ class MovieShowSeeder extends Seeder
             }
 
             $this->command->info('Seeded movies and shows from: '.basename($gzPath));
+
+            $this->repairDoubleEncodedUtf8();
         } finally {
             if (file_exists($tempSql)) {
                 unlink($tempSql);
             }
+        }
+    }
+
+    /**
+     * Repair double-encoded UTF-8 in text columns caused by older seed dumps
+     * that were imported without --default-character-set=utf8mb4.
+     */
+    private function repairDoubleEncodedUtf8(): void
+    {
+        $affected = DB::update('
+            UPDATE movies
+            SET original_title = CONVERT(BINARY CONVERT(original_title USING latin1) USING utf8mb4)
+            WHERE original_title IS NOT NULL
+            AND BINARY original_title = BINARY CONVERT(CONVERT(original_title USING latin1) USING utf8mb4)
+            AND HEX(original_title) != HEX(CONVERT(BINARY CONVERT(original_title USING latin1) USING utf8mb4))
+        ');
+
+        if ($affected > 0) {
+            $this->command->info("Repaired double-encoded UTF-8 in {$affected} movie original titles.");
         }
     }
 

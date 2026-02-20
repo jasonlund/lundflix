@@ -1,12 +1,11 @@
 <?php
 
-use App\Actions\Tv\PrepareEpisodesForDisplay;
 use App\Actions\Tv\UpsertEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\TVMazeService;
+use App\Support\Formatters;
 use Carbon\Carbon;
-use Flux\Flux;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -74,18 +73,23 @@ new class extends Component {
         try {
             $apiEpisodes = $tvMaze->episodes($this->show->tvmaze_id);
         } catch (RequestException $e) {
-            if ($e->response->status() !== 404) {
-                Cache::put($cacheKey, true, now()->addHour());
+            if ($e->response->status() === 404) {
+                $this->error = null;
+            } else {
                 $this->error = __('lundbergh.error.episodes_backoff');
+                Cache::put($cacheKey, true, now()->addHour());
             }
-            $apiEpisodes = [];
+
+            $this->episodes = collect();
+
+            return;
         }
 
         if (! empty($apiEpisodes)) {
             app(UpsertEpisodes::class)->fromApi($this->show, $apiEpisodes);
         }
 
-        $this->episodes = collect(app(PrepareEpisodesForDisplay::class)->prepare($apiEpisodes));
+        $this->episodes = collect($apiEpisodes);
     }
 
     public function dehydrate(): void
@@ -194,48 +198,8 @@ new class extends Component {
             }
         }
 
-        $previousCodes = collect(app(CartService::class)->episodes())
-            ->where('show_id', $this->show->id)
-            ->pluck('code')
-            ->map(fn ($c) => strtolower($c))
-            ->sort()
-            ->values()
-            ->all();
-
         app(CartService::class)->syncShowEpisodes($this->show->id, $orderedCodes);
         $this->dispatch('cart-updated');
-
-        $newCodes = collect($orderedCodes)
-            ->map(fn ($c) => strtolower($c))
-            ->sort()
-            ->values()
-            ->all();
-
-        if ($previousCodes === $newCodes) {
-            return;
-        }
-
-        $delta = count($orderedCodes) - count($previousCodes);
-
-        if ($delta > 0) {
-            Flux::toast(
-                text: trans_choice('lundbergh.toast.episodes_added', $delta, [
-                    'title' => $this->show->name,
-                ]),
-            );
-        } elseif ($delta < 0) {
-            Flux::toast(
-                text: trans_choice('lundbergh.toast.episodes_removed', abs($delta), [
-                    'title' => $this->show->name,
-                ]),
-            );
-        } else {
-            Flux::toast(
-                text: __('lundbergh.toast.episodes_swapped', [
-                    'title' => $this->show->name,
-                ]),
-            );
-        }
     }
 
     /**
@@ -281,18 +245,6 @@ new class extends Component {
     public function pad(int $number): string
     {
         return str_pad((string) $number, 2, '0', STR_PAD_LEFT);
-    }
-
-    public function formatRuntime(int $minutes): string
-    {
-        if ($minutes < 60) {
-            return $this->pad($minutes) . 'm';
-        }
-
-        $hours = intdiv($minutes, 60);
-        $remainder = $minutes % 60;
-
-        return $remainder > 0 ? "{$hours}h" . $this->pad($remainder) . 'm' : "{$hours}h";
     }
 };
 ?>
@@ -373,11 +325,11 @@ new class extends Component {
                                                     <span class="font-mono">
                                                         {{ \App\Models\Episode::displayCode($episode) }}
                                                     </span>
-                                                    <span class="font-serif">{{ $episode['name'] }}</span>
+                                                    {{ $episode['name'] }}
                                                 </span>
                                                 <span class="ml-auto shrink-0 font-mono text-sm text-zinc-500">
                                                     @if ($episode['runtime'] ?? null)
-                                                        {{ $this->formatRuntime($episode['runtime']) }}
+                                                        {{ Formatters::runtime($episode['runtime']) }}
                                                     @endif
 
                                                     @if ($episode['airdate'])

@@ -55,7 +55,7 @@ it('displays formatted runtime', function () {
 
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
-        ->assertSee('2h 28m');
+        ->assertSee('2h28m');
 });
 
 it('displays genres as badges', function () {
@@ -308,7 +308,6 @@ describe('cart', function () {
             ->assertSet('inCart', false)
             ->call('toggleCart')
             ->assertSet('inCart', true)
-            ->assertDispatched('toast-show')
             ->assertDispatched('cart-updated');
 
         expect(app(CartService::class)->has($movie->id))->toBeTrue();
@@ -324,7 +323,6 @@ describe('cart', function () {
             ->assertSet('inCart', true)
             ->call('toggleCart')
             ->assertSet('inCart', false)
-            ->assertDispatched('toast-show')
             ->assertDispatched('cart-updated');
 
         expect(app(CartService::class)->has($movie->id))->toBeFalse();

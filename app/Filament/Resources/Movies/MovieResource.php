@@ -12,14 +12,13 @@ use BackedEnum;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class MovieResource extends Resource
 {
     protected static ?string $model = Movie::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFilm;
+    protected static string|BackedEnum|null $navigationIcon = 'lucide-film';
 
     public static function infolist(Schema $schema): Schema
     {

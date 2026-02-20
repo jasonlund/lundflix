@@ -43,10 +43,3 @@ php artisan storage:link --no-interaction
 # -----------------------------------------------------------------------------
 npm install
 npm run build
-
-# -----------------------------------------------------------------------------
-# Search Index Setup
-# -----------------------------------------------------------------------------
-php artisan scout:sync-index-settings --no-interaction
-php artisan scout:import 'App\Models\Movie' --no-interaction
-php artisan scout:import 'App\Models\Show' --no-interaction

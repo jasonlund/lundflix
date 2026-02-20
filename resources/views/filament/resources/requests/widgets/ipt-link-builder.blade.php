@@ -107,7 +107,7 @@
                 x-show="url !== ''"
                 target="_blank"
                 rel="noopener noreferrer"
-                icon="heroicon-m-arrow-top-right-on-square"
+                icon="lucide-external-link"
                 color="gray"
                 label="Open in New Tab"
             />

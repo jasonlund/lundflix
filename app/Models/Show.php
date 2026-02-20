@@ -45,8 +45,8 @@ class Show extends Model
             'id' => $this->id,
             'imdb_id' => $this->imdb_id,
             'name' => $this->name,
-            'year' => $this->premiered?->year, // @phpstan-ignore property.nonObject (casted to Carbon)
             'num_votes' => $this->num_votes,
+            'language' => $this->language?->value, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
     }
 

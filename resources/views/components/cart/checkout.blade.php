@@ -7,7 +7,6 @@ use App\Events\RequestSubmitted;
 use App\Models\Episode;
 use App\Services\CartService;
 use App\Support\RequestItemFormatter;
-use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -80,8 +79,6 @@ new #[Layout('components.layouts.app')] class extends Component {
             return;
         }
 
-        $count = $cart->count();
-
         $request = DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
             $request = $createRequest->create(Auth::user(), $this->notes ?: null);
 
@@ -104,9 +101,9 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         RequestSubmitted::dispatch($request);
 
-        Flux::toast(text: trans_choice('lundbergh.toast.request_submitted', $count, ['count' => $count]));
-
         $this->dispatch('cart-updated');
+
+        session()->flash('message', 'Your request has been submitted!');
         $this->redirect(route('home'), navigate: true);
     }
 
@@ -135,6 +132,10 @@ new #[Layout('components.layouts.app')] class extends Component {
         <flux:button as="a" href="{{ route('home') }}" wire:navigate variant="ghost" icon="arrow-left" />
         <flux:heading size="xl">Checkout</flux:heading>
     </div>
+
+    @if (session('message'))
+        <flux:callout variant="success">{{ session('message') }}</flux:callout>
+    @endif
 
     @error('cart')
         <flux:callout variant="danger">{{ $message }}</flux:callout>

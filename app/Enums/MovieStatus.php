@@ -5,7 +5,6 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
-use Filament\Support\Icons\Heroicon;
 
 enum MovieStatus: string implements HasColor, HasIcon, HasLabel
 {
@@ -40,35 +39,24 @@ enum MovieStatus: string implements HasColor, HasIcon, HasLabel
         };
     }
 
-    public function getIcon(): Heroicon
+    public function getIcon(): string
     {
-        return match ($this) {
-            self::Rumored => Heroicon::ChatBubbleLeftEllipsis,
-            self::Planned => Heroicon::ClipboardDocumentList,
-            self::InProduction => Heroicon::Film,
-            self::PostProduction => Heroicon::AdjustmentsHorizontal,
-            self::FestivalRelease => Heroicon::Sparkles,
-            self::LimitedRelease => Heroicon::MapPin,
-            self::Upcoming => Heroicon::Calendar,
-            self::InTheaters => Heroicon::Ticket,
-            self::Released => Heroicon::CheckCircle,
-            self::Canceled => Heroicon::XCircle,
-        };
+        return 'lucide-'.$this->icon();
     }
 
     public function icon(): string
     {
         return match ($this) {
-            self::Rumored => 'chat-bubble-left-ellipsis',
-            self::Planned => 'clipboard-document-list',
+            self::Rumored => 'message-circle',
+            self::Planned => 'hammer',
             self::InProduction => 'film',
-            self::PostProduction => 'adjustments-horizontal',
-            self::FestivalRelease => 'sparkles',
+            self::PostProduction => 'sliders-horizontal',
+            self::FestivalRelease => 'drama',
             self::LimitedRelease => 'map-pin',
             self::Upcoming => 'calendar',
             self::InTheaters => 'ticket',
-            self::Released => 'check-circle',
-            self::Canceled => 'x-circle',
+            self::Released => 'videotape',
+            self::Canceled => 'circle-x',
         };
     }
 
