@@ -50,6 +50,7 @@ class ExportSeedData extends Command
             return Command::FAILURE;
         }
 
+        $this->write("SET NAMES utf8mb4;\n");
         $this->write("SET FOREIGN_KEY_CHECKS=0;\n\n");
 
         // Export movies

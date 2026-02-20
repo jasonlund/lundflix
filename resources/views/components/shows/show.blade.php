@@ -2,6 +2,7 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use App\Support\Formatters;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -19,38 +20,6 @@ new class extends Component {
     public function imdbUrl(): string
     {
         return "https://www.imdb.com/title/{$this->show->imdb_id}/";
-    }
-
-    public function yearRange(): ?string
-    {
-        if (! $this->show->premiered) {
-            return null;
-        }
-
-        $startYear = $this->show->premiered->year;
-
-        if ($this->show->ended) {
-            return "{$startYear}–{$this->show->ended->year}";
-        }
-
-        if ($this->show->status === ShowStatus::Running) {
-            return "{$startYear}–present";
-        }
-
-        return (string) $startYear;
-    }
-
-    public function runtimeText(): ?string
-    {
-        $runtime = $this->show->displayRuntime();
-
-        if (! $runtime) {
-            return null;
-        }
-
-        $prefix = $runtime['approximate'] ? '~' : '';
-
-        return "{$prefix}{$runtime['value']} min";
     }
 
     #[Computed]
@@ -213,25 +182,19 @@ new class extends Component {
             </div>
 
             <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-300">
-                @if ($this->yearRange())
-                    <span>{{ $this->yearRange() }}</span>
+                @if (Formatters::yearLabel($show))
+                    <span>{{ Formatters::yearLabel($show) }}</span>
                 @endif
 
-                <flux:tooltip :content="$show->status->value">
-                    <x-dynamic-component
-                        :component="'flux::icon.' . $show->status->icon()"
-                        variant="mini"
-                        :class="$show->status->iconColorClass()"
-                    />
-                </flux:tooltip>
+                <x-media-status :status="$show->status" />
 
                 @if ($show->status !== ShowStatus::Ended && $this->scheduleLabel())
                     <span>{{ $this->scheduleLabel() }}</span>
                 @endif
 
-                @if ($this->runtimeText())
+                @if (Formatters::runtimeFor($show))
                     <flux:icon.dot variant="micro" class="text-zinc-300" />
-                    <span>{{ $this->runtimeText() }}</span>
+                    <span>{{ Formatters::runtimeFor($show) }}</span>
                 @endif
 
                 @foreach ($this->networkInfoItems() as $info)

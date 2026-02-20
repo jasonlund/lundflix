@@ -5,7 +5,6 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
-use Filament\Support\Icons\Heroicon;
 
 enum UserRole: string implements HasColor, HasIcon, HasLabel
 {
@@ -31,12 +30,12 @@ enum UserRole: string implements HasColor, HasIcon, HasLabel
         };
     }
 
-    public function getIcon(): Heroicon
+    public function getIcon(): string
     {
         return match ($this) {
-            self::Admin => Heroicon::ShieldCheck,
-            self::ServerOwner => Heroicon::Server,
-            self::Member => Heroicon::User,
+            self::Admin => 'lucide-shield-check',
+            self::ServerOwner => 'lucide-server',
+            self::Member => 'lucide-user',
         };
     }
 }

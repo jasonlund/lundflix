@@ -10,8 +10,8 @@ it('returns a non-empty color for every case', function (MovieStatus $status) {
     expect($status->getColor())->toBeString()->not->toBeEmpty();
 })->with(MovieStatus::cases());
 
-it('returns a heroicon for every case', function (MovieStatus $status) {
-    expect($status->getIcon())->toBeInstanceOf(\Filament\Support\Icons\Heroicon::class);
+it('returns a lucide icon for every case', function (MovieStatus $status) {
+    expect($status->getIcon())->toBeString()->toStartWith('lucide-');
 })->with(MovieStatus::cases());
 
 it('returns a non-empty icon string for every case', function (MovieStatus $status) {

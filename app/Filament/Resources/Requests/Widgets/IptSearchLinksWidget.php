@@ -7,7 +7,6 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\RequestItem;
 use Filament\Actions\Action;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -57,12 +56,12 @@ class IptSearchLinksWidget extends TableWidget
             ->recordActions([
                 Action::make('search')
                     ->label('Search')
-                    ->icon('heroicon-m-arrow-top-right-on-square')
+                    ->icon('lucide-external-link')
                     ->url(fn (RequestItem $record): string => $this->buildSearchUrl($record, $this->getQueryForItem($record)))
                     ->openUrlInNewTab(),
                 Action::make('buildLink')
                     ->label('Build Link')
-                    ->icon(Heroicon::OutlinedWrenchScrewdriver)
+                    ->icon('lucide-wrench')
                     ->color('gray')
                     ->modalHeading('IPT Link Builder')
                     ->modalSubmitAction(false)

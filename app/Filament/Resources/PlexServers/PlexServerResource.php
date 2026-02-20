@@ -7,14 +7,13 @@ use App\Filament\Resources\PlexServers\Tables\PlexServersTable;
 use App\Models\PlexMediaServer;
 use BackedEnum;
 use Filament\Resources\Resource;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class PlexServerResource extends Resource
 {
     protected static ?string $model = PlexMediaServer::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedServer;
+    protected static string|BackedEnum|null $navigationIcon = 'lucide-server';
 
     protected static ?string $navigationLabel = 'Plex Servers';
 

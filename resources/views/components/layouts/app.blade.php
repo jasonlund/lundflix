@@ -41,11 +41,9 @@
             ></div>
 
             <div class="relative z-20">
-                @persist('toast')
-                    <flux:toast.group>
-                        <flux:toast />
-                    </flux:toast.group>
-                @endpersist
+                <flux:toast.group>
+                    <flux:toast />
+                </flux:toast.group>
 
                 <flux:header
                     x-data="{ scrolled: false }"
@@ -53,10 +51,10 @@
                     x-on:scroll.window.passive="scrolled = window.scrollY > $el.offsetHeight / 2"
                     x-bind:class="
                         scrolled
-                            ? 'bg-zinc-900/75 backdrop-blur-sm border-b border-zinc-700'
-                            : 'border-b border-transparent'
+                            ? 'bg-zinc-900/75 backdrop-blur-sm border-zinc-700'
+                            : 'border-transparent'
                     "
-                    class="sticky top-0 z-20 -mt-px transition-[background-color,backdrop-filter,border-color] duration-300 ease-out"
+                    class="sticky top-0 z-20 -mt-px border-b border-transparent transition-[background-color,backdrop-filter,border-color] duration-300 ease-out"
                 >
                     <flux:brand
                         href="{{ route('home') }}"
@@ -74,7 +72,7 @@
                         <flux:modal.trigger name="search" shortcut="cmd.k">
                             <flux:button variant="ghost" icon="search">
                                 <span class="sr-only sm:not-sr-only">Search</span>
-                                <flux:badge size="sm" class="bg-lundflix/75 ml-1 text-white">⌘K</flux:badge>
+                                <flux:badge size="sm" color="lundflix" class="ml-1">⌘K</flux:badge>
                             </flux:button>
                         </flux:modal.trigger>
 

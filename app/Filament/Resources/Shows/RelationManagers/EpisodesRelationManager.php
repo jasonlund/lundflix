@@ -9,7 +9,6 @@ use App\Services\TVMazeService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Http\Client\RequestException;
 
@@ -25,7 +24,7 @@ class EpisodesRelationManager extends RelationManager
                     ->label(fn () => $this->getShow()->episodes()->exists()
                         ? 'Refresh Episodes'
                         : 'Fetch Episodes')
-                    ->icon(Heroicon::ArrowPathRoundedSquare)
+                    ->icon('lucide-refresh-cw')
                     ->action(function (TVMazeService $tvMaze, UpsertEpisodes $upsertEpisodes): void {
                         $show = $this->getShow();
 

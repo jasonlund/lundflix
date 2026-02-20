@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\UserRole;
-use Filament\Support\Icons\Heroicon;
 
 it('has exactly three roles', function () {
     expect(UserRole::cases())->toHaveCount(3);
@@ -27,6 +26,6 @@ it('returns a color for every role', function () {
 
 it('returns an icon for every role', function () {
     foreach (UserRole::cases() as $case) {
-        expect($case->getIcon())->toBeInstanceOf(Heroicon::class);
+        expect($case->getIcon())->toBeString()->toStartWith('lucide-');
     }
 });

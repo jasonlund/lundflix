@@ -116,10 +116,16 @@ return [
         'id' => env('ALGOLIA_APP_ID', ''),
         'secret' => env('ALGOLIA_SECRET', ''),
         'index-settings' => [
-            // 'users' => [
-            //     'searchableAttributes' => ['id', 'name', 'email'],
-            //     'attributesForFaceting'=> ['filterOnly(email)'],
-            // ],
+            'shows' => [
+                'searchableAttributes' => ['name'],
+                'attributesForFaceting' => ['filterOnly(imdb_id)', 'filterOnly(language)'],
+                'customRanking' => ['desc(num_votes)'],
+            ],
+            'movies' => [
+                'searchableAttributes' => ['title'],
+                'attributesForFaceting' => ['filterOnly(imdb_id)', 'filterOnly(year)', 'filterOnly(original_language)'],
+                'customRanking' => ['desc(num_votes)'],
+            ],
         ],
     ],
 
@@ -139,34 +145,6 @@ return [
     'meilisearch' => [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
-        'index-settings' => [
-            App\Models\Show::class => [
-                'filterableAttributes' => ['imdb_id', 'year'],
-                'sortableAttributes' => ['name', 'year', 'num_votes'],
-                'rankingRules' => [
-                    'words',
-                    'typo',
-                    'proximity',
-                    'num_votes:desc',
-                    'attribute',
-                    'sort',
-                    'exactness',
-                ],
-            ],
-            App\Models\Movie::class => [
-                'filterableAttributes' => ['imdb_id', 'year'],
-                'sortableAttributes' => ['title', 'year', 'num_votes'],
-                'rankingRules' => [
-                    'words',
-                    'typo',
-                    'proximity',
-                    'num_votes:desc',
-                    'attribute',
-                    'sort',
-                    'exactness',
-                ],
-            ],
-        ],
     ],
 
     /*

@@ -11,7 +11,6 @@ use App\Services\FanartTVService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,7 +34,7 @@ class SeasonArtworkRelationManager extends RelationManager
                     ->label(fn () => $this->getShow()->media()->exists()
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
-                    ->icon(Heroicon::ArrowPathRoundedSquare)
+                    ->icon('lucide-refresh-cw')
                     ->action(function (FanartTVService $fanart): void {
                         $show = $this->getShow();
 

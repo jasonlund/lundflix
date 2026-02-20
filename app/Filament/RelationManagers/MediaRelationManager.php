@@ -10,7 +10,6 @@ use App\Services\FanartTVService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Http\Client\RequestException;
 
@@ -28,7 +27,7 @@ class MediaRelationManager extends RelationManager
                     ->label(fn () => $this->getMediableOwner()->media()->exists()
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
-                    ->icon(Heroicon::ArrowPathRoundedSquare)
+                    ->icon('lucide-refresh-cw')
                     ->action(function (FanartTVService $fanart): void {
                         $owner = $this->getMediableOwner();
 

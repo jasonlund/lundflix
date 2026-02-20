@@ -43,7 +43,7 @@ it('displays show details', function () {
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Breaking Bad')
         ->assertSee('Ended')
-        ->assertSee('60 min')
+        ->assertSee('1h')
         ->assertSeeHtml('class="relative h-[16rem] overflow-hidden"');
 });
 
@@ -55,7 +55,7 @@ it('displays approximate runtime when only average_runtime is set', function () 
     ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('~49 min');
+        ->assertSee('~49m');
 });
 
 it('displays exact runtime without tilde when runtime is set', function () {
@@ -66,8 +66,8 @@ it('displays exact runtime without tilde when runtime is set', function () {
     ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('60 min')
-        ->assertDontSee('~60 min');
+        ->assertSee('1h')
+        ->assertDontSee('~1h');
 });
 
 it('displays no runtime when neither runtime nor average_runtime is set', function () {
@@ -79,7 +79,7 @@ it('displays no runtime when neither runtime nor average_runtime is set', functi
     expect($show->displayRuntime())->toBeNull();
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertDontSeeHtml(' min</span>');
+        ->assertDontSee('m</span>');
 });
 
 it('displays show with all details', function () {
