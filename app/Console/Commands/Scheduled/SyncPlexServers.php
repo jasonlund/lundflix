@@ -25,16 +25,28 @@ class SyncPlexServers extends Command
         $resources = $plex->getUserResources($adminToken);
         $servers = $resources->filter(fn (array $r): bool => ($r['provides'] ?? '') === 'server');
 
+        $adminThumb = $plex->getUserInfo($adminToken)['thumb'];
+        $friendThumbs = $plex->getFriends($adminToken)->pluck('thumb', 'id');
+
         foreach ($servers as $server) {
+            $owned = $server['owned'] ?? false;
+
             PlexMediaServer::updateOrCreate(
                 ['client_identifier' => $server['clientIdentifier']],
                 [
                     'name' => $server['name'],
                     'access_token' => $server['accessToken'],
-                    'owned' => $server['owned'] ?? false,
+                    'owned' => $owned,
                     'is_online' => $server['presence'] ?? false,
                     'connections' => $server['connections'] ?? [],
                     'uri' => $this->selectBestConnection($server['connections'] ?? []),
+                    'source_title' => $server['sourceTitle'] ?? null,
+                    'owner_thumb' => $owned ? $adminThumb : $friendThumbs->get($server['ownerId'] ?? null),
+                    'owner_id' => $server['ownerId'] ?? null,
+                    'product_version' => $server['productVersion'] ?? null,
+                    'platform' => $server['platform'] ?? null,
+                    'platform_version' => $server['platformVersion'] ?? null,
+                    'plex_last_seen_at' => $server['lastSeenAt'] ?? null,
                     'last_seen_at' => now(),
                 ]
             );
