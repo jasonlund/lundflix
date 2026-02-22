@@ -92,6 +92,13 @@ class CartService
         return count($this->movies()) + count($this->episodes());
     }
 
+    public function countEpisodesForShow(int $showId): int
+    {
+        return collect($this->episodes())
+            ->filter(fn ($ep) => $ep['show_id'] === $showId)
+            ->count();
+    }
+
     public function clear(): void
     {
         session()->forget(self::SESSION_KEY);
