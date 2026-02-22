@@ -95,8 +95,7 @@ it('displays show with all details', function () {
         ->assertSee('Game of Thrones')
         ->assertSee('Drama')
         ->assertSee('Fantasy')
-        ->assertSee('HBO')
-        ->assertSee('IMDb');
+        ->assertSee('HBO');
 });
 
 it('displays compact schedule with single day and time', function () {

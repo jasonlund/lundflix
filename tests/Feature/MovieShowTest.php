@@ -71,17 +71,6 @@ it('displays genres as badges', function () {
         ->assertSee('Thriller');
 });
 
-it('displays IMDB link with correct URL', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'imdb_id' => 'tt0133093',
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSee('https://www.imdb.com/title/tt0133093/');
-});
-
 it('displays only original language when spoken languages match', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([

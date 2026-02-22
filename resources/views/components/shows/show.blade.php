@@ -10,7 +10,8 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-new class extends Component {
+new class extends Component
+{
     public Show $show;
 
     public int $cartEpisodeCount = 0;
@@ -35,11 +36,6 @@ new class extends Component {
         return $this->show->episodes;
     }
 
-    public function imdbUrl(): string
-    {
-        return "https://www.imdb.com/title/{$this->show->imdb_id}/";
-    }
-
     #[Computed]
     public function backgroundUrl(): ?string
     {
@@ -50,6 +46,24 @@ new class extends Component {
     public function logoUrl(): ?string
     {
         return $this->show->artUrl('logo');
+    }
+
+    #[Computed]
+    public function yearLabel(): ?string
+    {
+        return Formatters::yearLabel($this->show);
+    }
+
+    #[Computed]
+    public function runtime(): ?string
+    {
+        return Formatters::runtimeFor($this->show);
+    }
+
+    #[Computed]
+    public function isScheduleVisible(): bool
+    {
+        return $this->show->status !== ShowStatus::Ended && $this->scheduleLabel() !== null;
     }
 
     /**
@@ -64,7 +78,7 @@ new class extends Component {
             $name = $this->show->network['name'];
             $tooltip = $name;
             if (isset($this->show->network['country']['name'])) {
-                $tooltip .= ' (' . $this->abbreviateCountry($this->show->network['country']['name']) . ')';
+                $tooltip .= ' ('.$this->abbreviateCountry($this->show->network['country']['name']).')';
             }
 
             $items[] = ['name' => $name, 'tooltip' => $tooltip, 'logoUrl' => $this->show->networkLogoUrl()];
@@ -140,7 +154,7 @@ new class extends Component {
 
         $parts = array_map(function (array $range) {
             if (count($range) >= 3) {
-                return $range[0] . '–' . end($range);
+                return $range[0].'–'.end($range);
             }
 
             return implode(', ', $range);
@@ -158,10 +172,10 @@ new class extends Component {
         $suffix = $carbon->format('a')[0];
 
         if ((int) $carbon->format('i') === 0) {
-            return $carbon->format('g') . $suffix;
+            return $carbon->format('g').$suffix;
         }
 
-        return $carbon->format('g:i') . $suffix;
+        return $carbon->format('g:i').$suffix;
     }
 
     public function render(): mixed
@@ -175,102 +189,11 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        @if ($show->imdb_id)
-            <div class="absolute top-4 right-4 z-10">
-                <flux:tooltip content="View on IMDb">
-                    <a
-                        href="{{ $this->imdbUrl() }}"
-                        target="_blank"
-                        class="flex items-center justify-center rounded-lg border-1 border-zinc-600 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                    >
-                        <flux:icon.imdb class="size-8" />
-                    </a>
-                </flux:tooltip>
-            </div>
-        @endif
-
-        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
-            <div class="max-w-4xl">
-                <x-artwork
-                    :model="$show"
-                    type="logo"
-                    :alt="$show->name . ' logo'"
-                    class="h-24 drop-shadow sm:h-28 md:h-40"
-                >
-                    <flux:heading size="xl">{{ $show->name }}</flux:heading>
-                </x-artwork>
-            </div>
-
-            <div class="truncate">
-                <flux:heading size="xl" class="inline">{{ $show->name }}</flux:heading>
-            </div>
-
-            <div class="truncate text-zinc-200">
-                @if (Formatters::yearLabel($show))
-                    <span>{{ Formatters::yearLabel($show) }}</span>
-                @endif
-
-                @if ($show->status)
-                    @if (Formatters::yearLabel($show))
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
-
-                    <span class="{{ $show->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
-                        <x-dynamic-component :component="'flux::icon.' . $show->status->icon()" variant="mini" />
-                        {{ $show->status->getLabel() }}
-                    </span>
-                @endif
-
-                @if ($show->status !== ShowStatus::Ended && $this->scheduleLabel())
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    <span>{{ $this->scheduleLabel() }}</span>
-                @endif
-            </div>
-
-            @if ($show->genres && count($show->genres))
-                <div class="flex gap-4 truncate text-zinc-200">
-                    @foreach ($show->genres as $genre)
-                        <span class="inline-flex items-center gap-1 align-middle">
-                            <x-dynamic-component
-                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
-                                variant="mini"
-                            />
-                            {{ \App\Enums\Genre::labelFor($genre) }}
-                        </span>
-                    @endforeach
-                </div>
-            @endif
-
-            <div class="truncate text-sm text-zinc-200">
-                @if (Formatters::runtimeFor($show))
-                    <span>{{ Formatters::runtimeFor($show) }}</span>
-                @endif
-
-                @foreach ($this->networkInfoItems() as $info)
-                    @if (Formatters::runtimeFor($show) || ! $loop->first)
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
-
-                    @if ($info['logoUrl'])
-                        <flux:tooltip :content="$info['tooltip']">
-                            <img
-                                src="{{ $info['logoUrl'] }}"
-                                alt="{{ $info['tooltip'] }}"
-                                class="inline-block h-5 w-auto object-contain align-middle"
-                            />
-                        </flux:tooltip>
-                    @else
-                        <span>{{ $info['tooltip'] }}</span>
-                    @endif
-                @endforeach
-            </div>
-        </div>
-
         <div
             x-data="{ syncing: false }"
             @cart-syncing.window="syncing = true"
             @cart-updated.window="syncing = false"
-            class="absolute right-4 bottom-4 z-10"
+            class="absolute top-4 right-4 z-10"
         >
             <flux:tooltip content="Add/Remove Episodes Below">
                 <div
@@ -292,6 +215,83 @@ new class extends Component {
                     <flux:icon.shopping-cart class="size-4" />
                 </div>
             </flux:tooltip>
+        </div>
+
+        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
+            <div class="max-w-4xl">
+                <x-artwork
+                    :model="$show"
+                    type="logo"
+                    :alt="$show->name . ' logo'"
+                    class="h-24 drop-shadow sm:h-28 md:h-40"
+                >
+                    <flux:heading size="xl">{{ $show->name }}</flux:heading>
+                </x-artwork>
+            </div>
+
+            <div class="truncate">
+                <flux:heading size="xl" class="inline">{{ $show->name }}</flux:heading>
+            </div>
+
+            <div class="truncate text-zinc-200">
+                @if ($this->yearLabel())
+                    <span>{{ $this->yearLabel() }}</span>
+                @endif
+
+                @if ($show->status)
+                    @if ($this->yearLabel())
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
+
+                    <span class="{{ $show->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
+                        <x-dynamic-component :component="'flux::icon.' . $show->status->icon()" variant="mini" />
+                        {{ $show->status->getLabel() }}
+                    </span>
+                @endif
+
+                @if ($this->isScheduleVisible())
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <span>{{ $this->scheduleLabel() }}</span>
+                @endif
+            </div>
+
+            @if ($show->genres && count($show->genres))
+                <div class="flex gap-4 truncate text-zinc-200">
+                    @foreach ($show->genres as $genre)
+                        <span class="inline-flex items-center gap-1 align-middle">
+                            <x-dynamic-component
+                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                                variant="mini"
+                            />
+                            {{ \App\Enums\Genre::labelFor($genre) }}
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="truncate text-sm text-zinc-200">
+                @if ($this->runtime())
+                    <span>{{ $this->runtime() }}</span>
+                @endif
+
+                @foreach ($this->networkInfoItems() as $info)
+                    @if ($this->runtime() || ! $loop->first)
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
+
+                    @if ($info['logoUrl'])
+                        <flux:tooltip :content="$info['tooltip']">
+                            <img
+                                src="{{ $info['logoUrl'] }}"
+                                alt="{{ $info['tooltip'] }}"
+                                class="inline-block h-5 w-auto object-contain align-middle"
+                            />
+                        </flux:tooltip>
+                    @else
+                        <span>{{ $info['tooltip'] }}</span>
+                    @endif
+                @endforeach
+            </div>
         </div>
     </div>
 

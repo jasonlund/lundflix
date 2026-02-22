@@ -40,11 +40,6 @@ new class extends Component
         $this->dispatch('cart-updated');
     }
 
-    public function imdbUrl(): string
-    {
-        return "https://www.imdb.com/title/{$this->movie->imdb_id}/";
-    }
-
     #[Computed]
     public function releaseDate(): ?string
     {
@@ -87,19 +82,47 @@ new class extends Component
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        @if ($movie->imdb_id)
-            <div class="absolute top-4 right-4 z-10">
-                <flux:tooltip content="View on IMDb">
-                    <a
-                        href="{{ $this->imdbUrl() }}"
-                        target="_blank"
-                        class="flex items-center justify-center rounded-lg border-1 border-zinc-600 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+        <div
+            x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
+            @cart-syncing.window="syncing = true"
+            @cart-updated.window="syncing = false"
+            class="absolute top-4 right-4 z-10"
+        >
+            @if ($this->isCartDisabled)
+                <flux:tooltip content="Not yet released">
+                    <div
+                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
                     >
-                        <flux:icon.imdb class="size-8" />
-                    </a>
+                        <div class="relative flex min-w-4 items-center justify-center">
+                            <span>+</span>
+                        </div>
+                        <flux:icon.shopping-cart class="size-4" />
+                    </div>
                 </flux:tooltip>
-            </div>
-        @endif
+            @else
+                <flux:tooltip :content="$inCart ? 'Remove from Cart' : 'Add to Cart'">
+                    <button
+                        x-on:click="
+                            inCart = ! inCart
+                            syncing = true
+                            window.dispatchEvent(new CustomEvent('cart-syncing'))
+                            $wire.toggleCart()
+                        "
+                        class="flex cursor-pointer items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                    >
+                        <div class="relative flex min-w-4 items-center justify-center">
+                            <span class="invisible">+</span>
+                            <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
+                                <flux:icon.check class="size-4" />
+                            </span>
+                            <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">+</span>
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                        </div>
+                        <flux:icon.shopping-cart class="size-4" />
+                    </button>
+                </flux:tooltip>
+            @endif
+        </div>
 
         <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
             <div class="max-w-4xl">
@@ -172,48 +195,6 @@ new class extends Component
                     <span>{{ $this->contentRating() }}</span>
                 @endif
             </div>
-        </div>
-
-        <div
-            x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
-            @cart-syncing.window="syncing = true"
-            @cart-updated.window="syncing = false"
-            class="absolute right-4 bottom-4 z-10"
-        >
-            @if ($this->isCartDisabled)
-                <flux:tooltip content="Not yet released">
-                    <div
-                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            <span>-</span>
-                        </div>
-                        <flux:icon.shopping-cart class="size-4" />
-                    </div>
-                </flux:tooltip>
-            @else
-                <flux:tooltip content="Add/Remove from Cart">
-                    <button
-                        x-on:click="
-                            inCart = ! inCart
-                            syncing = true
-                            window.dispatchEvent(new CustomEvent('cart-syncing'))
-                            $wire.toggleCart()
-                        "
-                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            <span class="invisible">-</span>
-                            <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
-                                <flux:icon.check class="size-4" />
-                            </span>
-                            <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">-</span>
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                        </div>
-                        <flux:icon.shopping-cart class="size-4" />
-                    </button>
-                </flux:tooltip>
-            @endif
         </div>
     </div>
 
