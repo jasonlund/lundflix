@@ -13,6 +13,14 @@ class PlexMediaServer extends Model
 
     protected $guarded = [];
 
+    /**
+     * Get the Plex web app URL for this server's dashboard.
+     */
+    public function webUrl(): string
+    {
+        return "https://app.plex.tv/desktop/#!/media/{$this->client_identifier}/com.plexapp.plugins.library?key=%2Fhubs&pageType=hub";
+    }
+
     protected static function booted(): void
     {
         static::saved(fn () => Cache::forget('plex:visible-servers'));
@@ -30,6 +38,7 @@ class PlexMediaServer extends Model
             'visible' => 'boolean',
             'connections' => 'array',
             'last_seen_at' => 'datetime',
+            'plex_last_seen_at' => 'datetime',
         ];
     }
 }

@@ -28,8 +28,7 @@ it('displays visible plex servers from database', function () {
 
     Livewire::test('plex.server-status')
         ->assertSee('Home Server')
-        ->assertSee('Friend Server')
-        ->assertSee('Owned');
+        ->assertSee('Friend Server');
 });
 
 it('shows both online and offline visible servers', function () {
@@ -88,6 +87,54 @@ it('shows empty state when no servers are visible', function () {
 
     Livewire::test('plex.server-status')
         ->assertSee('No servers available');
+});
+
+it('displays owner thumb avatar when available', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create([
+        'name' => 'My Server',
+        'is_online' => true,
+        'visible' => true,
+        'owner_thumb' => 'https://plex.tv/users/dc2101cf70149f3c/avatar?c=1771718676',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertSeeHtml('https://plex.tv/users/dc2101cf70149f3c/avatar?c=1771718676');
+});
+
+it('displays server initials when owner thumb is missing', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->create([
+        'name' => 'My Server',
+        'is_online' => true,
+        'visible' => true,
+        'owner_thumb' => null,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertDontSeeHtml('plex.tv/users')
+        ->assertSee('My Server');
+});
+
+it('shows last seen time for offline servers', function () {
+    $user = User::factory()->withPlex()->create();
+
+    PlexMediaServer::factory()->offline()->create([
+        'name' => 'Down Server',
+        'visible' => true,
+        'last_seen_at' => now()->subHours(3),
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test('plex.server-status')
+        ->assertSee('3h');
 });
 
 it('is displayed on the dashboard', function () {

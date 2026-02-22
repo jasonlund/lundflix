@@ -22,7 +22,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 };
 ?>
 
-<div class="mx-auto max-w-2xl space-y-12 p-8">
+<div class="mx-auto max-w-2xl space-y-12 py-8">
     <flux:heading size="xl">Component Demo</flux:heading>
 
     {{-- Error Component --}}

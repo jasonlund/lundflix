@@ -87,6 +87,19 @@ class PlexService
     }
 
     /**
+     * Get the authenticated user's friends list.
+     *
+     * @return Collection<int, array{id: int, uuid: string, title: string, username: string, thumb: string|null, email: string}>
+     */
+    public function getFriends(string $token): Collection
+    {
+        $response = $this->client($token)
+            ->get(self::BASE_URL.'/friends');
+
+        return collect($response->json());
+    }
+
+    /**
      * Get all resources (servers, players) the user has access to.
      */
     public function getUserResources(string $token): Collection

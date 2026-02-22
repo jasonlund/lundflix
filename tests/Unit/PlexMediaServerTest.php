@@ -63,6 +63,64 @@ it('has offline factory state', function () {
         ->and($server->last_seen_at->lt(now()->subHour()))->toBeTrue();
 });
 
+it('returns the plex web app url', function () {
+    $server = PlexMediaServer::factory()->create([
+        'client_identifier' => 'abc123',
+    ]);
+
+    expect($server->webUrl())->toBe(
+        'https://app.plex.tv/desktop/#!/media/abc123/com.plexapp.plugins.library?key=%2Fhubs&pageType=hub'
+    );
+});
+
+it('casts plex_last_seen_at as datetime', function () {
+    $server = PlexMediaServer::factory()->create();
+
+    expect($server->plex_last_seen_at)->toBeInstanceOf(\Carbon\Carbon::class);
+});
+
+it('stores plex resource fields', function () {
+    $server = PlexMediaServer::factory()->create([
+        'source_title' => 'jgamboa',
+        'owner_thumb' => 'https://plex.tv/users/12345/avatar',
+        'owner_id' => '12345',
+        'product_version' => '1.41.2.9200',
+        'platform' => 'Linux',
+        'platform_version' => '22.04',
+    ]);
+
+    $server->refresh();
+
+    expect($server->source_title)->toBe('jgamboa')
+        ->and($server->owner_thumb)->toBe('https://plex.tv/users/12345/avatar')
+        ->and($server->owner_id)->toBe('12345')
+        ->and($server->product_version)->toBe('1.41.2.9200')
+        ->and($server->platform)->toBe('Linux')
+        ->and($server->platform_version)->toBe('22.04');
+});
+
+it('allows nullable plex resource fields', function () {
+    $server = PlexMediaServer::factory()->create([
+        'source_title' => null,
+        'owner_thumb' => null,
+        'owner_id' => null,
+        'product_version' => null,
+        'platform' => null,
+        'platform_version' => null,
+        'plex_last_seen_at' => null,
+    ]);
+
+    $server->refresh();
+
+    expect($server->source_title)->toBeNull()
+        ->and($server->owner_thumb)->toBeNull()
+        ->and($server->owner_id)->toBeNull()
+        ->and($server->product_version)->toBeNull()
+        ->and($server->platform)->toBeNull()
+        ->and($server->platform_version)->toBeNull()
+        ->and($server->plex_last_seen_at)->toBeNull();
+});
+
 it('has unique client identifier', function () {
     $server1 = PlexMediaServer::factory()->create([
         'client_identifier' => 'unique-id-123',

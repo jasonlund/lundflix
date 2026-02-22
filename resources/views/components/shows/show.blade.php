@@ -171,7 +171,7 @@ new class extends Component {
             </div>
         @endif
 
-        <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+        <div class="relative flex h-full flex-col gap-4 py-5 sm:py-6">
             <div class="max-w-4xl">
                 <x-artwork
                     :model="$show"
@@ -224,7 +224,7 @@ new class extends Component {
         </div>
     </div>
 
-    <div class="flex flex-col gap-8 px-4 sm:px-6">
+    <div class="flex flex-col gap-8">
         @if ($show->imdb_id)
             <livewire:shows.plex-availability :show="$show" lazy />
         @endif

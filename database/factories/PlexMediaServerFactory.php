@@ -31,6 +31,13 @@ class PlexMediaServerFactory extends Factory
                 ['uri' => 'http://'.fake()->localIpv4().':32400', 'local' => true],
                 ['uri' => 'http://'.$domain.':32400', 'local' => false],
             ],
+            'source_title' => fake()->userName(),
+            'owner_thumb' => 'https://plex.tv/users/'.fake()->randomNumber(5).'/avatar',
+            'owner_id' => (string) fake()->randomNumber(8),
+            'product_version' => fake()->numerify('#.##.#.####'),
+            'platform' => fake()->randomElement(['Linux', 'Windows', 'macOS']),
+            'platform_version' => fake()->numerify('##.##'),
+            'plex_last_seen_at' => now()->subMinutes(fake()->numberBetween(1, 120)),
             'last_seen_at' => now(),
         ];
     }
