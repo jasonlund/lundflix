@@ -53,6 +53,25 @@ it('displays movie title in cart dropdown', function () {
         ->assertSee('Test Movie Title');
 });
 
+it('renders inline count instead of badge when items present', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create();
+    app(CartService::class)->toggleMovie($movie->id);
+
+    Livewire::actingAs($user)
+        ->test('cart.dropdown')
+        ->assertDontSeeHtml('data-flux-badge')
+        ->assertSeeHtml('tabular-nums');
+});
+
+it('does not render inline count when cart is empty', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test('cart.dropdown')
+        ->assertDontSeeHtml('data-flux-badge');
+});
+
 it('shows checkout button when items in cart', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();

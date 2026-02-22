@@ -66,13 +66,13 @@
                     <flux:spacer />
 
                     <div
-                        class="**:data-[flux-button]:drop-shadow-glow flex items-center gap-1 **:data-[flux-button]:transition-[filter] **:data-[flux-button]:duration-300 **:data-[flux-button]:ease-out"
+                        class="**:data-[flux-button]:drop-shadow-glow flex items-center gap-1 **:data-[flux-button]:cursor-pointer **:data-[flux-button]:bg-white/10 **:data-[flux-button]:backdrop-blur-sm **:data-[flux-button]:transition-[filter,background-color] **:data-[flux-button]:duration-300 **:data-[flux-button]:ease-out **:data-[flux-button]:hover:bg-white/20"
                         x-bind:class="{ '**:data-[flux-button]:drop-shadow-none': scrolled }"
                     >
                         <flux:modal.trigger name="search" shortcut="cmd.k">
-                            <flux:button variant="ghost" icon="search">
+                            <flux:button variant="ghost">
+                                <flux:icon name="search" class="text-lundflix size-4" />
                                 <span class="sr-only sm:not-sr-only">Search</span>
-                                <flux:badge size="sm" color="lundflix" class="ml-1">⌘K</flux:badge>
                             </flux:button>
                         </flux:modal.trigger>
 

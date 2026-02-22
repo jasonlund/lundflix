@@ -19,6 +19,7 @@ new class extends Component {
     public function refreshCount(CartService $cart): void
     {
         $this->itemCount = $cart->count();
+        $this->js('$data.syncing = false');
     }
 
     #[Computed]
@@ -61,15 +62,24 @@ new class extends Component {
 };
 ?>
 
-<div x-data="{ syncing: false }" @cart-syncing.window="syncing = true" @cart-updated.window="syncing = false">
+<div x-data="{ syncing: false }" @cart-syncing.window="syncing = true">
     <flux:dropdown align="end">
         <flux:button variant="ghost" ::disabled="syncing">
-            <flux:icon.loading x-show="syncing" class="size-4" />
-            <flux:icon name="shopping-cart" x-show="!syncing" x-cloak class="size-4" />
+            <flux:icon.loading x-show="syncing" x-cloak class="size-4" />
+            <flux:icon
+                name="shopping-cart"
+                x-show="!syncing && !$wire.itemCount"
+                x-cloak
+                class="text-lundflix size-4"
+            />
+            <span
+                x-show="! syncing && $wire.itemCount > 0"
+                x-cloak
+                class="text-lundflix inline-flex size-4 items-center justify-center text-sm font-bold tabular-nums"
+            >
+                {{ $itemCount }}
+            </span>
             <span class="sr-only sm:not-sr-only">Cart</span>
-            <flux:badge size="sm" color="lundflix" class="ml-1">
-                {{ $itemCount > 0 ? $itemCount : '-' }}
-            </flux:badge>
         </flux:button>
 
         <flux:popover class="w-80">
