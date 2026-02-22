@@ -6,7 +6,8 @@ use App\Support\Formatters;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component {
+new class extends Component
+{
     public Movie $movie;
 
     public bool $inCart = false;
@@ -86,32 +87,8 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        <div
-            x-data="{ inCart: {{ Js::from($inCart) }} }"
-            class="absolute top-4 right-4 z-10 flex flex-col items-center gap-2"
-        >
-            @if ($this->isCartDisabled)
-                <flux:tooltip content="Not yet released">
-                    <div
-                        class="flex size-12 items-center justify-center rounded-lg bg-white/10 p-2 text-white/50 backdrop-blur-sm"
-                    >
-                        <flux:icon.check class="size-8" />
-                    </div>
-                </flux:tooltip>
-            @else
-                <button
-                    x-on:click="
-                        inCart = ! inCart
-                        window.dispatchEvent(new CustomEvent('cart-syncing'))
-                        $wire.toggleCart()
-                    "
-                    class="flex size-12 items-center justify-center rounded-lg border-2 border-zinc-200 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                >
-                    <flux:icon.check x-show="inCart" x-cloak class="size-8" />
-                    <div x-show="!inCart" class="size-8"></div>
-                </button>
-            @endif
-            @if ($movie->imdb_id)
+        @if ($movie->imdb_id)
+            <div class="absolute top-4 right-4 z-10">
                 <flux:tooltip content="View on IMDb">
                     <a
                         href="{{ $this->imdbUrl() }}"
@@ -121,8 +98,8 @@ new class extends Component {
                         <flux:icon.imdb class="size-8" />
                     </a>
                 </flux:tooltip>
-            @endif
-        </div>
+            </div>
+        @endif
 
         <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
             <div class="max-w-4xl">
@@ -195,6 +172,48 @@ new class extends Component {
                     <span>{{ $this->contentRating() }}</span>
                 @endif
             </div>
+        </div>
+
+        <div
+            x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
+            @cart-syncing.window="syncing = true"
+            @cart-updated.window="syncing = false"
+            class="absolute right-4 bottom-4 z-10"
+        >
+            @if ($this->isCartDisabled)
+                <flux:tooltip content="Not yet released">
+                    <div
+                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
+                    >
+                        <div class="relative flex min-w-4 items-center justify-center">
+                            <span>-</span>
+                        </div>
+                        <flux:icon.shopping-cart class="size-4" />
+                    </div>
+                </flux:tooltip>
+            @else
+                <flux:tooltip content="Add/Remove from Cart">
+                    <button
+                        x-on:click="
+                            inCart = ! inCart
+                            syncing = true
+                            window.dispatchEvent(new CustomEvent('cart-syncing'))
+                            $wire.toggleCart()
+                        "
+                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                    >
+                        <div class="relative flex min-w-4 items-center justify-center">
+                            <span class="invisible">-</span>
+                            <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
+                                <flux:icon.check class="size-4" />
+                            </span>
+                            <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">-</span>
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                        </div>
+                        <flux:icon.shopping-cart class="size-4" />
+                    </button>
+                </flux:tooltip>
+            @endif
         </div>
     </div>
 
