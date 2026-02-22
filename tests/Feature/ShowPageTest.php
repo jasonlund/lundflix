@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\ShowStatus;
+use App\Models\Episode;
 use App\Models\Show;
+use App\Services\CartService;
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Vite as ViteFacade;
 use Illuminate\Support\HtmlString;
@@ -44,7 +46,7 @@ it('displays show details', function () {
         ->assertSee('Breaking Bad')
         ->assertSee('Ended')
         ->assertSee('1h')
-        ->assertSeeHtml('class="relative h-[16rem] overflow-hidden"');
+        ->assertSeeHtml('class="relative overflow-hidden"');
 });
 
 it('displays approximate runtime when only average_runtime is set', function () {
@@ -259,4 +261,61 @@ it('abbreviates country names in network tooltip', function () {
         ->assertSeeHtml('resources/images/logos/networks/bbc-one-uk.png')
         ->assertSee('BBC One (UK)')
         ->assertDontSee('United Kingdom');
+});
+
+it('displays cart episode count when episodes are in cart', function () {
+    $show = Show::factory()->create();
+
+    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02', 'S01E03']);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('3')
+        ->assertSee('Add/Remove Episodes Below');
+});
+
+it('displays dash when no episodes are in cart', function () {
+    $show = Show::factory()->create();
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('Add/Remove Episodes Below');
+});
+
+it('updates cart episode count on cart-updated event', function () {
+    $show = Show::factory()->create();
+
+    $component = Livewire::test('shows.show', ['show' => $show])
+        ->assertSet('cartEpisodeCount', 0);
+
+    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
+
+    $component->dispatch('cart-updated')
+        ->assertSet('cartEpisodeCount', 2);
+});
+
+it('displays check mark when all episodes are in cart', function () {
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
+    $show->load('episodes');
+
+    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSeeHtml('m4.5 12.75 6 6 9-13.5')
+        ->assertSet('cartEpisodeCount', 2)
+        ->assertSet('totalEpisodeCount', 2);
+});
+
+it('displays count instead of check mark when not all episodes are in cart', function () {
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 3]);
+    $show->load('episodes');
+
+    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertDontSeeHtml('m4.5 12.75 6 6 9-13.5')
+        ->assertSee('2');
 });

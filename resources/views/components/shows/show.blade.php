@@ -2,14 +2,32 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use App\Services\CartService;
 use App\Support\Formatters;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
     public Show $show;
+
+    public int $cartEpisodeCount = 0;
+
+    public int $totalEpisodeCount = 0;
+
+    public function mount(CartService $cart): void
+    {
+        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
+        $this->totalEpisodeCount = $this->show->episodes->count();
+    }
+
+    #[On('cart-updated')]
+    public function refreshCartCount(CartService $cart): void
+    {
+        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
+    }
 
     #[Computed]
     public function episodes(): Collection
@@ -156,14 +174,14 @@ new class extends Component {
 ?>
 
 <div class="flex flex-col">
-    <div class="relative h-[16rem] overflow-hidden">
+    <div class="relative overflow-hidden">
         @if ($show->imdb_id)
             <div class="absolute top-4 right-4 z-10">
                 <flux:tooltip content="View on IMDb">
                     <a
                         href="{{ $this->imdbUrl() }}"
                         target="_blank"
-                        class="flex items-center justify-center rounded-lg bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                        class="flex items-center justify-center rounded-lg border-1 border-zinc-600 bg-white/10 p-2 text-white backdrop-blur-sm transition hover:bg-white/20"
                     >
                         <flux:icon.imdb class="size-8" />
                     </a>
@@ -171,41 +189,74 @@ new class extends Component {
             </div>
         @endif
 
-        <div class="relative flex h-full flex-col gap-4 px-4 py-5 sm:px-6 sm:py-6">
+        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
             <div class="max-w-4xl">
                 <x-artwork
                     :model="$show"
                     type="logo"
                     :alt="$show->name . ' logo'"
-                    class="h-12 drop-shadow sm:h-14 md:h-20"
-                />
+                    class="h-24 drop-shadow sm:h-28 md:h-40"
+                >
+                    <flux:heading size="xl">{{ $show->name }}</flux:heading>
+                </x-artwork>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-300">
+            <div class="truncate">
+                <flux:heading size="xl" class="inline">{{ $show->name }}</flux:heading>
+            </div>
+
+            <div class="truncate text-zinc-200">
                 @if (Formatters::yearLabel($show))
                     <span>{{ Formatters::yearLabel($show) }}</span>
                 @endif
 
-                <x-media-status :status="$show->status" />
+                @if ($show->status)
+                    @if (Formatters::yearLabel($show))
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
 
-                @if ($show->status !== ShowStatus::Ended && $this->scheduleLabel())
-                    <span>{{ $this->scheduleLabel() }}</span>
+                    <span class="{{ $show->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
+                        <x-dynamic-component :component="'flux::icon.' . $show->status->icon()" variant="mini" />
+                        {{ $show->status->getLabel() }}
+                    </span>
                 @endif
 
+                @if ($show->status !== ShowStatus::Ended && $this->scheduleLabel())
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <span>{{ $this->scheduleLabel() }}</span>
+                @endif
+            </div>
+
+            @if ($show->genres && count($show->genres))
+                <div class="flex gap-4 truncate text-zinc-200">
+                    @foreach ($show->genres as $genre)
+                        <span class="inline-flex items-center gap-1 align-middle">
+                            <x-dynamic-component
+                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                                variant="mini"
+                            />
+                            {{ \App\Enums\Genre::labelFor($genre) }}
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="truncate text-sm text-zinc-200">
                 @if (Formatters::runtimeFor($show))
-                    <flux:icon.dot variant="micro" class="text-zinc-300" />
                     <span>{{ Formatters::runtimeFor($show) }}</span>
                 @endif
 
                 @foreach ($this->networkInfoItems() as $info)
-                    <flux:icon.dot variant="micro" class="text-zinc-300" />
+                    @if (Formatters::runtimeFor($show) || ! $loop->first)
+                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    @endif
 
                     @if ($info['logoUrl'])
                         <flux:tooltip :content="$info['tooltip']">
                             <img
                                 src="{{ $info['logoUrl'] }}"
                                 alt="{{ $info['tooltip'] }}"
-                                class="h-5 w-auto object-contain"
+                                class="inline-block h-5 w-auto object-contain align-middle"
                             />
                         </flux:tooltip>
                     @else
@@ -213,14 +264,34 @@ new class extends Component {
                     @endif
                 @endforeach
             </div>
+        </div>
 
-            @if ($show->genres && count($show->genres))
-                <div class="flex flex-wrap gap-2">
-                    @foreach ($show->genres as $genre)
-                        <x-genre-badge :$genre />
-                    @endforeach
+        <div
+            x-data="{ syncing: false }"
+            @cart-syncing.window="syncing = true"
+            @cart-updated.window="syncing = false"
+            class="absolute right-4 bottom-4 z-10"
+        >
+            <flux:tooltip content="Add/Remove Episodes Below">
+                <div
+                    class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
+                >
+                    <div class="relative flex min-w-4 items-center justify-center">
+                        @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
+                            <span class="invisible">{{ $cartEpisodeCount }}</span>
+                            <span :class="syncing && 'opacity-0'" class="absolute">
+                                <flux:icon.check class="size-4" />
+                            </span>
+                        @else
+                            <span :class="syncing && 'opacity-0'">
+                                {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
+                            </span>
+                        @endif
+                        <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                    </div>
+                    <flux:icon.shopping-cart class="size-4" />
                 </div>
-            @endif
+            </flux:tooltip>
         </div>
     </div>
 
