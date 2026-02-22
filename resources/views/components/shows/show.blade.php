@@ -10,8 +10,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public Show $show;
 
     public int $cartEpisodeCount = 0;
@@ -78,7 +77,7 @@ new class extends Component
             $name = $this->show->network['name'];
             $tooltip = $name;
             if (isset($this->show->network['country']['name'])) {
-                $tooltip .= ' ('.$this->abbreviateCountry($this->show->network['country']['name']).')';
+                $tooltip .= ' (' . $this->abbreviateCountry($this->show->network['country']['name']) . ')';
             }
 
             $items[] = ['name' => $name, 'tooltip' => $tooltip, 'logoUrl' => $this->show->networkLogoUrl()];
@@ -154,7 +153,7 @@ new class extends Component
 
         $parts = array_map(function (array $range) {
             if (count($range) >= 3) {
-                return $range[0].'–'.end($range);
+                return $range[0] . '–' . end($range);
             }
 
             return implode(', ', $range);
@@ -172,10 +171,10 @@ new class extends Component
         $suffix = $carbon->format('a')[0];
 
         if ((int) $carbon->format('i') === 0) {
-            return $carbon->format('g').$suffix;
+            return $carbon->format('g') . $suffix;
         }
 
-        return $carbon->format('g:i').$suffix;
+        return $carbon->format('g:i') . $suffix;
     }
 
     public function render(): mixed

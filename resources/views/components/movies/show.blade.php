@@ -6,8 +6,7 @@ use App\Support\Formatters;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public Movie $movie;
 
     public bool $inCart = false;
