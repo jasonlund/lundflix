@@ -264,6 +264,10 @@ it('does not show create button due to policy', function () {
 });
 ```
 
+### Actions
+
+- Use `$action->halt()` to abort early from action closures — never use bare `return;`. Inject the action via `Action $action` in the closure signature.
+
 ## Laravel Pennant
 
 - Pennant is a lightweight feature flag package for incremental rollouts and A/B testing.
