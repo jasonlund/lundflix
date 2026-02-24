@@ -28,7 +28,7 @@ class MediaRelationManager extends RelationManager
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
                     ->icon('lucide-refresh-cw')
-                    ->action(function (FanartTVService $fanart): void {
+                    ->action(function (Action $action, FanartTVService $fanart): void {
                         $owner = $this->getMediableOwner();
 
                         if ($owner instanceof Movie && ! $owner->imdb_id) {
@@ -38,7 +38,7 @@ class MediaRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         if ($owner instanceof Show && ! $owner->thetvdb_id) {
@@ -48,8 +48,10 @@ class MediaRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
+
+                        $response = null;
 
                         try {
                             $response = match (true) {
@@ -63,7 +65,7 @@ class MediaRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         if ($response === null) {
@@ -73,7 +75,7 @@ class MediaRelationManager extends RelationManager
                                 ->warning()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         StoreFanart::dispatchSync($owner);

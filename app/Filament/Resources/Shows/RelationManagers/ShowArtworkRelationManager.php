@@ -34,7 +34,7 @@ class ShowArtworkRelationManager extends RelationManager
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
                     ->icon('lucide-refresh-cw')
-                    ->action(function (FanartTVService $fanart): void {
+                    ->action(function (Action $action, FanartTVService $fanart): void {
                         $show = $this->getShow();
 
                         if (! $show->thetvdb_id) {
@@ -44,8 +44,10 @@ class ShowArtworkRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
+
+                        $response = null;
 
                         try {
                             $response = $fanart->show($show->thetvdb_id);
@@ -56,7 +58,7 @@ class ShowArtworkRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         if ($response === null) {
@@ -66,7 +68,7 @@ class ShowArtworkRelationManager extends RelationManager
                                 ->warning()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         StoreFanart::dispatchSync($show);
