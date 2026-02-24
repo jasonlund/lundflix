@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Actions\Movie;
+namespace App\Actions\IMDB;
 
 use App\Models\Movie;
 
-class UpsertMovies
+class UpsertIMDBMovies
 {
     /**
      * @param  array<int, array{imdb_id: string, title: string, year: ?int, runtime: ?int, genres: ?array}>  $movies

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\Movie;
+namespace App\Actions\TMDB;
 
 use App\Enums\TMDBReleaseType;
 use App\Models\Movie;

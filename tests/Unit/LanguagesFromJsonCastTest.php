@@ -1,11 +1,11 @@
 <?php
 
-use App\Casts\SpokenLanguages;
+use App\Casts\LanguagesFromJson;
 use App\Enums\Language;
 use App\Models\Movie;
 
 it('casts JSON array of TMDB objects to Language enums on get', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     $json = json_encode([
@@ -18,21 +18,21 @@ it('casts JSON array of TMDB objects to Language enums on get', function () {
 });
 
 it('returns empty array for null on get', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     expect($cast->get($model, 'spoken_languages', null, []))->toBe([]);
 });
 
 it('returns empty array for empty string on get', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     expect($cast->get($model, 'spoken_languages', '', []))->toBe([]);
 });
 
 it('filters out unrecognized ISO codes on get', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     $json = json_encode([
@@ -46,7 +46,7 @@ it('filters out unrecognized ISO codes on get', function () {
 });
 
 it('converts array of Language enums to TMDB-style JSON on set', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     $result = $cast->set($model, 'spoken_languages', [Language::English, Language::French], []);
@@ -58,14 +58,14 @@ it('converts array of Language enums to TMDB-style JSON on set', function () {
 });
 
 it('returns null for null on set', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     expect($cast->set($model, 'spoken_languages', null, []))->toBeNull();
 });
 
 it('passes through raw TMDB array on set', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     $raw = [
@@ -78,7 +78,7 @@ it('passes through raw TMDB array on set', function () {
 });
 
 it('passes through JSON string on set', function () {
-    $cast = new SpokenLanguages;
+    $cast = new LanguagesFromJson;
     $model = new Movie;
 
     $json = '[{"iso_639_1":"en","english_name":"English","name":"English"}]';

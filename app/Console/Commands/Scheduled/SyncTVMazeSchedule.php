@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Tv\UpsertEpisodes;
+use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Console\Command;
@@ -17,7 +17,7 @@ class SyncTVMazeSchedule extends Command
 
     protected $description = 'Sync upcoming episodes from TVMaze full schedule for shows with existing episodes';
 
-    public function handle(TVMazeService $tvmaze, UpsertEpisodes $upsertEpisodes): int
+    public function handle(TVMazeService $tvmaze, UpsertTVMazeEpisodes $upsertEpisodes): int
     {
         DB::disableQueryLog();
 

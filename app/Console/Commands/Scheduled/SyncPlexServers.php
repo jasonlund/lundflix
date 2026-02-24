@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
 use App\Models\PlexMediaServer;
 use App\Services\PlexService;

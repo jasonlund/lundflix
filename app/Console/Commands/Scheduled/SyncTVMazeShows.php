@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Tv\UpsertShows;
+use App\Actions\TVMaze\UpsertTVMazeShows;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Console\Command;
@@ -19,7 +19,7 @@ class SyncTVMazeShows extends Command
 
     private const ESTIMATED_PAGES = 360;
 
-    public function handle(TVMazeService $tvmaze, UpsertShows $upsertShows): int
+    public function handle(TVMazeService $tvmaze, UpsertTVMazeShows $upsertShows): int
     {
         DB::disableQueryLog();
 
@@ -42,7 +42,7 @@ class SyncTVMazeShows extends Command
 
             $batch = $shows->map(fn ($show) => [
                 'tvmaze_id' => $show['id'],
-                ...UpsertShows::mapFromApi($show),
+                ...UpsertTVMazeShows::mapFromApi($show),
             ])->all();
 
             $count = count($batch);

@@ -19,8 +19,6 @@ class Show extends Model
     /** @use HasFactory<\Database\Factories\ShowFactory> */
     use HasArtwork, HasFactory, Searchable;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [

@@ -48,7 +48,7 @@ When committing changes, use this format:
 
 ## Models
 
-- Use `protected $guarded = [];` instead of `$fillable` for mass assignment protection
+- Mass assignment is globally unguarded via `Model::unguard()` in `AppServiceProvider`. Never add `$guarded` or `$fillable` to any model — remove them if found.
 
 ## Environment Variables
 

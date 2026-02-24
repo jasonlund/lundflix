@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Actions\Tv;
+namespace App\Actions\TVMaze;
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
 
-class UpsertShows
+class UpsertTVMazeShows
 {
     /**
      * @param  array<int, array{tvmaze_id: int, name: string, ...}>  $shows

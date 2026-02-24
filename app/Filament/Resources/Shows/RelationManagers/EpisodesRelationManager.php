@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Shows\RelationManagers;
 
-use App\Actions\Tv\UpsertEpisodes;
+use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Filament\Resources\Shows\Tables\EpisodesTable;
 use App\Models\Show;
 use App\Services\TVMazeService;
@@ -25,7 +25,7 @@ class EpisodesRelationManager extends RelationManager
                         ? 'Refresh Episodes'
                         : 'Fetch Episodes')
                     ->icon('lucide-refresh-cw')
-                    ->action(function (TVMazeService $tvMaze, UpsertEpisodes $upsertEpisodes): void {
+                    ->action(function (TVMazeService $tvMaze, UpsertTVMazeEpisodes $upsertEpisodes): void {
                         $show = $this->getShow();
 
                         try {
