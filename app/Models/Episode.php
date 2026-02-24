@@ -14,8 +14,6 @@ class Episode extends Model
     /** @use HasFactory<\Database\Factories\EpisodeFactory> */
     use HasFactory;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [

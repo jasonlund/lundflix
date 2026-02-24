@@ -2,6 +2,7 @@
 
 namespace App\Filament\Tables;
 
+use App\Actions\Media\ActivateMedia;
 use App\Enums\MovieArtwork;
 use App\Enums\TvArtwork;
 use App\Models\Media;
@@ -82,7 +83,7 @@ class MediaTable
                     ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
                     ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-check')
                     ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
-                    ->action(fn (Media $record) => $record->activate())
+                    ->action(fn (Media $record) => app(ActivateMedia::class)->activate($record))
                     ->disabled(fn (Media $record): bool => $record->is_active),
                 Action::make('preview')
                     ->label('Preview')

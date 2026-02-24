@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Request\MarkRequestItems;
 use App\Enums\RequestItemStatus;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -16,7 +17,8 @@ it('computes status as partially fulfilled when some items are fulfilled', funct
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
-    $request->markItemsFulfilled([$request->items->first()->id]);
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, [$request->items->first()->id], RequestItemStatus::Fulfilled);
 
     expect($request->status)->toBe('partially fulfilled');
 });
@@ -25,7 +27,8 @@ it('computes status as fulfilled when all items are fulfilled', function () {
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
-    $request->markAllItemsFulfilled();
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled);
 
     expect($request->status)->toBe('fulfilled');
 });
@@ -42,7 +45,8 @@ it('detects when request has rejected items', function () {
 
     expect($request->has_rejected_items)->toBeFalse();
 
-    $request->markItemsRejected([$request->items->first()->id]);
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, [$request->items->first()->id], RequestItemStatus::Rejected);
 
     expect($request->has_rejected_items)->toBeTrue();
 });
@@ -53,7 +57,8 @@ it('detects when request has not found items', function () {
 
     expect($request->has_not_found_items)->toBeFalse();
 
-    $request->markItemsNotFound([$request->items->first()->id]);
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, [$request->items->first()->id], RequestItemStatus::NotFound);
 
     expect($request->has_not_found_items)->toBeTrue();
 });
@@ -62,9 +67,11 @@ it('computes status based only on fulfilled items ignoring rejected and not foun
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
+    $markItems = app(MarkRequestItems::class);
+
     // Mark one as rejected and one as not found
-    $request->markItemsRejected([$request->items[0]->id]);
-    $request->markItemsNotFound([$request->items[1]->id]);
+    $markItems->markAs($request, [$request->items[0]->id], RequestItemStatus::Rejected);
+    $markItems->markAs($request, [$request->items[1]->id], RequestItemStatus::NotFound);
 
     // Status should still be pending since 0/3 are fulfilled
     expect($request->status)->toBe('pending');
@@ -72,7 +79,7 @@ it('computes status based only on fulfilled items ignoring rejected and not foun
     expect($request->has_not_found_items)->toBeTrue();
 
     // Mark the last item as fulfilled
-    $request->markItemsFulfilled([$request->items[2]->id]);
+    $markItems->markAs($request, [$request->items[2]->id], RequestItemStatus::Fulfilled);
 
     // Now status should be partially fulfilled (1/3 fulfilled)
     expect($request->status)->toBe('partially fulfilled');
@@ -92,8 +99,9 @@ it('marks specific items as fulfilled with user tracking', function () {
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->count(3)->create();
 
+    $markItems = app(MarkRequestItems::class);
     $itemIds = $items->take(2)->pluck('id')->toArray();
-    $updated = $request->markItemsFulfilled($itemIds, $user->id);
+    $updated = $markItems->markAs($request, $itemIds, RequestItemStatus::Fulfilled, $user->id);
 
     expect($updated)->toBe(2);
 
@@ -112,7 +120,8 @@ it('marks all items as fulfilled with user tracking', function () {
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
-    $updated = $request->markAllItemsFulfilled($user->id);
+    $markItems = app(MarkRequestItems::class);
+    $updated = $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled, $user->id);
 
     expect($updated)->toBe(3);
     expect($request->items->every(fn ($item) => $item->status === RequestItemStatus::Fulfilled &&
@@ -127,7 +136,8 @@ it('marks items as fulfilled using authenticated user when no user provided', fu
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->count(3)->create();
 
-    $request->markAllItemsFulfilled();
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled);
 
     expect($request->items->every(fn ($item) => $item->actioned_by === $user->id))->toBeTrue();
 });
@@ -137,8 +147,9 @@ it('marks items as rejected with user tracking', function () {
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->count(3)->create();
 
+    $markItems = app(MarkRequestItems::class);
     $itemIds = $items->pluck('id')->toArray();
-    $request->markItemsRejected($itemIds, $user->id);
+    $markItems->markAs($request, $itemIds, RequestItemStatus::Rejected, $user->id);
 
     expect($request->items->every(fn ($item) => $item->status === RequestItemStatus::Rejected &&
         $item->actioned_by === $user->id &&
@@ -150,8 +161,9 @@ it('marks items as not found with user tracking', function () {
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->count(3)->create();
 
+    $markItems = app(MarkRequestItems::class);
     $itemIds = $items->pluck('id')->toArray();
-    $request->markItemsNotFound($itemIds, $user->id);
+    $markItems->markAs($request, $itemIds, RequestItemStatus::NotFound, $user->id);
 
     expect($request->items->every(fn ($item) => $item->status === RequestItemStatus::NotFound &&
         $item->actioned_by === $user->id &&
@@ -162,8 +174,9 @@ it('marks items as pending and clears tracking', function () {
     $request = Request::factory()->create();
     $items = RequestItem::factory()->for($request)->count(3)->fulfilled()->create();
 
+    $markItems = app(MarkRequestItems::class);
     $itemIds = $items->pluck('id')->toArray();
-    $request->markItemsPending($itemIds);
+    $markItems->markAs($request, $itemIds, RequestItemStatus::Pending);
 
     expect($request->items->every(fn ($item) => $item->status === RequestItemStatus::Pending &&
         $item->actioned_by === null &&
@@ -178,8 +191,10 @@ it('only updates items belonging to the request', function () {
     $items1 = RequestItem::factory()->for($request1)->count(2)->create();
     $items2 = RequestItem::factory()->for($request2)->count(2)->create();
 
+    $markItems = app(MarkRequestItems::class);
+
     // Try to mark request2's items through request1 (should not work)
-    $request1->markItemsFulfilled($items2->pluck('id')->toArray(), $user->id);
+    $markItems->markAs($request1, $items2->pluck('id')->toArray(), RequestItemStatus::Fulfilled, $user->id);
 
     // Request2's items should still be pending
     expect($items2->fresh()->every(fn ($item) => $item->status === RequestItemStatus::Pending))->toBeTrue();
@@ -192,7 +207,8 @@ it('automatically refreshes request after marking items', function () {
 
     expect($request->status)->toBe('pending');
 
-    $request->markAllItemsFulfilled($user->id);
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled, $user->id);
 
     // Should be refreshed automatically, no manual refresh needed
     expect($request->status)->toBe('fulfilled');

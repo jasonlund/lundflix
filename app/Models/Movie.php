@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Casts\SpokenLanguages;
+use App\Casts\LanguagesFromJson;
 use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
@@ -27,8 +27,6 @@ class Movie extends Model
     /** @use HasFactory<\Database\Factories\MovieFactory> */
     use HasArtwork, HasFactory, Searchable;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [
@@ -40,7 +38,7 @@ class Movie extends Model
             'release_date' => 'date',
             'digital_release_date' => 'date',
             'production_companies' => 'array',
-            'spoken_languages' => SpokenLanguages::class,
+            'spoken_languages' => LanguagesFromJson::class,
             'alternative_titles' => 'array',
             'original_language' => Language::class,
             'budget' => 'integer',

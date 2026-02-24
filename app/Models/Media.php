@@ -12,8 +12,6 @@ class Media extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [
@@ -46,31 +44,5 @@ class Media extends Model
     public function getTypeLabel(): string
     {
         return $this->getArtwork()?->getLabel() ?? $this->type;
-    }
-
-    /**
-     * Activate this media item, deactivating any siblings with the same type and season.
-     * Downloads and stores the image if not already stored.
-     */
-    public function activate(): void
-    {
-        // Deactivate siblings with same type and season
-        static::query()
-            ->where('mediable_type', $this->mediable_type)
-            ->where('mediable_id', $this->mediable_id)
-            ->where('type', $this->type)
-            ->where('season', $this->season)
-            ->where('id', '!=', $this->id)
-            ->update(['is_active' => false]);
-
-        $this->update(['is_active' => true, 'path' => $this->path]);
-    }
-
-    /**
-     * Deactivate this media item.
-     */
-    public function deactivate(): void
-    {
-        $this->update(['is_active' => false]);
     }
 }

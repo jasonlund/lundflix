@@ -11,8 +11,6 @@ class PlexMediaServer extends Model
     /** @use HasFactory<\Database\Factories\PlexMediaServerFactory> */
     use HasFactory;
 
-    protected $guarded = [];
-
     protected static function booted(): void
     {
         static::saved(fn () => Cache::forget('plex:visible-servers'));

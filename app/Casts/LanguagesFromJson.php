@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @implements CastsAttributes<array<int, Language>, array<int, Language|array<string, mixed>>|string|null>
  */
-class SpokenLanguages implements CastsAttributes
+class LanguagesFromJson implements CastsAttributes
 {
     /**
      * @return array<int, Language>

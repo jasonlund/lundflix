@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Movie\UpsertMovies;
+use App\Actions\IMDB\UpsertIMDBMovies;
 use App\Services\IMDBService;
 use Illuminate\Console\Command;
 
@@ -15,7 +15,7 @@ class SyncIMDBMovies extends Command
 
     protected $description = 'Sync movies from IMDb daily export';
 
-    public function handle(IMDBService $imdb, UpsertMovies $upsertMovies): int
+    public function handle(IMDBService $imdb, UpsertIMDBMovies $upsertMovies): int
     {
         // Download export file
         $file = spin(

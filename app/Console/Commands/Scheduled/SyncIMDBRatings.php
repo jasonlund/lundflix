@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Movie\SyncMovieRatings;
-use App\Actions\Tv\SyncShowRatings;
+use App\Actions\IMDB\SyncIMDBMovieRatings;
+use App\Actions\IMDB\SyncIMDBShowRatings;
 use App\Services\IMDBService;
 use Illuminate\Console\Command;
 
@@ -18,8 +18,8 @@ class SyncIMDBRatings extends Command
 
     public function handle(
         IMDBService $imdb,
-        SyncMovieRatings $syncMovieRatings,
-        SyncShowRatings $syncShowRatings
+        SyncIMDBMovieRatings $syncMovieRatings,
+        SyncIMDBShowRatings $syncShowRatings
     ): int {
         // Download ratings file
         $file = spin(

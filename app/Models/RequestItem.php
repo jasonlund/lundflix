@@ -13,8 +13,6 @@ class RequestItem extends Model
     /** @use HasFactory<\Database\Factories\RequestItemFactory> */
     use HasFactory;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [

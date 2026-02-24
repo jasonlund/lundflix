@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Media\ActivateMedia;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
@@ -13,7 +14,7 @@ it('can activate a media item', function () {
         'is_active' => false,
     ]);
 
-    $media->activate();
+    app(ActivateMedia::class)->activate($media);
 
     expect($media->fresh()->is_active)->toBeTrue();
 });
@@ -25,7 +26,7 @@ it('can deactivate a media item', function () {
         'is_active' => true,
     ]);
 
-    $media->deactivate();
+    app(ActivateMedia::class)->deactivate($media);
 
     expect($media->fresh()->is_active)->toBeFalse();
 });
@@ -44,7 +45,7 @@ it('deactivates siblings when activating for same type', function () {
         'is_active' => false,
     ]);
 
-    $media2->activate();
+    app(ActivateMedia::class)->activate($media2);
 
     expect($media1->fresh()->is_active)->toBeFalse()
         ->and($media2->fresh()->is_active)->toBeTrue();
@@ -70,7 +71,7 @@ it('does not deactivate media of different types', function () {
         'is_active' => false,
     ]);
 
-    $newPoster->activate();
+    app(ActivateMedia::class)->activate($newPoster);
 
     expect($poster->fresh()->is_active)->toBeFalse()
         ->and($logo->fresh()->is_active)->toBeTrue()
@@ -92,7 +93,7 @@ it('does not deactivate media of different mediables', function () {
         'is_active' => false,
     ]);
 
-    $media2->activate();
+    app(ActivateMedia::class)->activate($media2);
 
     expect($media1->fresh()->is_active)->toBeTrue()
         ->and($media2->fresh()->is_active)->toBeTrue();
@@ -126,7 +127,7 @@ it('allows one active per type per season for shows', function () {
         'is_active' => true,
     ]);
 
-    $season1Poster2->activate();
+    app(ActivateMedia::class)->activate($season1Poster2);
 
     expect($season1Poster1->fresh()->is_active)->toBeFalse()
         ->and($season1Poster2->fresh()->is_active)->toBeTrue()
@@ -153,7 +154,7 @@ it('treats all seasons as separate from specific seasons', function () {
         'is_active' => false,
     ]);
 
-    $season1Poster->activate();
+    app(ActivateMedia::class)->activate($season1Poster);
 
     expect($allSeasonsPoster->fresh()->is_active)->toBeTrue()
         ->and($season1Poster->fresh()->is_active)->toBeTrue();
@@ -171,7 +172,7 @@ it('activates media without downloading when path is missing', function () {
         'is_active' => false,
     ]);
 
-    $media->activate();
+    app(ActivateMedia::class)->activate($media);
 
     expect($media->fresh()->path)->toBeNull()
         ->and($media->fresh()->is_active)->toBeTrue();
@@ -192,7 +193,7 @@ it('keeps existing path when activating media with a stored path', function () {
         'is_active' => false,
     ]);
 
-    $media->activate();
+    app(ActivateMedia::class)->activate($media);
 
     expect($media->fresh()->path)->toBe($existingPath)
         ->and($media->fresh()->is_active)->toBeTrue();

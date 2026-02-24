@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Actions\Tv;
+namespace App\Actions\IMDB;
 
 use Illuminate\Support\Facades\DB;
 
-class SyncShowRatings
+class SyncIMDBShowRatings
 {
     /**
      * @param  array<string, int>  $ratings  IMDb ID => num_votes

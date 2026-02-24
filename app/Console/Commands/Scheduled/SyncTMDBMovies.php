@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Movie\UpsertTMDBData;
+use App\Actions\TMDB\UpsertTMDBData;
 use App\Models\Movie;
 use App\Services\TMDBService;
 use Illuminate\Console\Command;

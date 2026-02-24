@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Actions\Movie;
+namespace App\Actions\IMDB;
 
 use Illuminate\Support\Facades\DB;
 
-class SyncMovieRatings
+class SyncIMDBMovieRatings
 {
     /**
      * @param  array<string, int>  $ratings  IMDb ID => num_votes

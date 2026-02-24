@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Tv\UpsertShows;
+use App\Actions\TVMaze\UpsertTVMazeShows;
 use App\Models\Show;
 use App\Services\TVMazeService;
 use Illuminate\Console\Command;
@@ -16,7 +16,7 @@ class SyncTVMazeUpdates extends Command
 
     protected $description = 'Sync recently updated TV shows from TVMaze';
 
-    public function handle(TVMazeService $tvmaze, UpsertShows $upsertShows): int
+    public function handle(TVMazeService $tvmaze, UpsertTVMazeShows $upsertShows): int
     {
         $since = $this->option('since');
 
@@ -51,7 +51,7 @@ class SyncTVMazeUpdates extends Command
 
                 $batch[] = [
                     'tvmaze_id' => $show['id'],
-                    ...UpsertShows::mapFromApi($show),
+                    ...UpsertTVMazeShows::mapFromApi($show),
                 ];
 
                 // Process in batches of 100
