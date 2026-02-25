@@ -59,6 +59,10 @@ select:focus[data-flux-control] {
     @apply size-4;
 } */
 
+ui-toast-group {
+    @apply mx-auto w-full max-w-screen-lg;
+}
+
 @utility drop-shadow-glow {
     filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.7)) drop-shadow(0 2px 6px rgb(0 0 0 / 0.4));
 }

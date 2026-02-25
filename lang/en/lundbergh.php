@@ -15,9 +15,12 @@ return [
         'email_description' => "Yeah… if you could use the address associated with your Plex account, that'd be great.",
         'plex_redirect' => "Mmm yeah… so you're gonna be redirected to plex.tv to authenticate your account and verify your access for registration.\n\nYeah… if you don't already have access to the lundflix server, I'm gonna need you to go ahead and not waste everyone's time here. That'd be great.",
     ],
+    'cart' => [
+        'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",
+        'request_submitted' => "Yeah… so, your request has been submitted.",
+    ],
     'empty' => [
         'cart_dropdown' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
-        'cart_checkout' => "Mmm yeah… your cart is empty. Search for movies and shows to add to your request. That'd be great.",
         'search_prompt' => 'Yeah… go ahead and type at least two characters to start searching.',
         'search_no_results' => "Mmm yeah… that search didn't turn up anything.",
         'search_no_results_filter' => "I'm gonna need you to refine your search term and... mmm.... filter by language.",

@@ -1,8 +1,14 @@
 <?php
 
+use App\Actions\Request\CreateRequest;
+use App\Actions\Request\CreateRequestItems;
+use App\Events\RequestSubmitted;
 use App\Services\CartService;
 use App\Support\RequestItemFormatter;
+use Flux\Flux;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -59,6 +65,43 @@ new class extends Component {
         app(CartService::class)->toggleMovie($movieId);
         $this->dispatch('cart-updated');
     }
+
+    public function submit(CreateRequest $createRequest, CreateRequestItems $createRequestItems): void
+    {
+        $cart = app(CartService::class);
+
+        if ($cart->isEmpty()) {
+            return;
+        }
+
+        $request = DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
+            $request = $createRequest->create(Auth::user());
+
+            $items = $cart
+                ->loadItems()
+                ->map(
+                    fn ($item) => [
+                        'type' => $item->getMediaType(),
+                        'id' => $item->id,
+                    ],
+                )
+                ->all();
+
+            $createRequestItems->create($request, $items);
+
+            $cart->clear();
+
+            return $request;
+        });
+
+        RequestSubmitted::dispatch($request);
+
+        $this->dispatch('cart-updated');
+
+        $this->modal('cart')->close();
+
+        Flux::toast(text: __('lundbergh.cart.request_submitted'), variant: 'success');
+    }
 };
 ?>
 
@@ -108,6 +151,22 @@ new class extends Component {
                         </x-lundbergh-bubble>
                     </div>
                 </x-slot>
+
+                @if ($itemCount > 0)
+                    <x-slot:footer>
+                        <div class="p-3">
+                            <button
+                                wire:click="submit"
+                                wire:loading.attr="disabled"
+                                class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-50"
+                            >
+                                <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
+                                <span wire:loading.remove wire:target="submit">Submit Request</span>
+                                <span wire:loading wire:target="submit">Submitting…</span>
+                            </button>
+                        </div>
+                    </x-slot>
+                @endif
 
                 {{-- Movies --}}
                 @foreach ($this->groupedCartItems['movies'] as $movie)
@@ -199,6 +258,14 @@ new class extends Component {
                         </div>
                     </a>
                 @endforeach
+
+                @if ($itemCount > 0)
+                    <div class="border-b-0 px-3 py-2">
+                        <x-lundbergh-bubble :with-margin="false" contentTag="div">
+                            {{ __('lundbergh.cart.checkout_hint') }}
+                        </x-lundbergh-bubble>
+                    </div>
+                @endif
             </x-command-panel>
         </flux:modal>
     @endteleport

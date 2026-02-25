@@ -117,10 +117,12 @@
             @endif
 
             {{ $slot }}
-
-            @if (isset($footer))
-                {{ $footer }}
-            @endif
         </div>
+
+        @if (isset($footer))
+            <div class="border-t border-zinc-700/70">
+                {{ $footer }}
+            </div>
+        @endif
     </div>
 </div>
