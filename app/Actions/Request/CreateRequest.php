@@ -11,7 +11,6 @@ class CreateRequest
     {
         return Request::create([
             'user_id' => $user->id,
-            'status' => 'pending',
             'notes' => $notes,
         ]);
     }

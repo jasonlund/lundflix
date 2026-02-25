@@ -1,0 +1,92 @@
+{
+    "Movie3d": {
+        "label": "3D"
+    },
+    "Movie480p": {
+        "label": "480p"
+    },
+    "Movie4k": {
+        "label": "4K"
+    },
+    "MovieBdR": {
+        "label": "BD-R"
+    },
+    "MovieBdRip": {
+        "label": "BD Rip"
+    },
+    "MovieCam": {
+        "label": "Cam"
+    },
+    "MovieDvdR": {
+        "label": "DVD-R"
+    },
+    "MovieHdBluray": {
+        "label": "HD Blu-ray"
+    },
+    "MovieKids": {
+        "label": "Kids"
+    },
+    "MovieMp4": {
+        "label": "MP4"
+    },
+    "MovieNonEnglish": {
+        "label": "Non-English"
+    },
+    "MoviePacks": {
+        "label": "Packs"
+    },
+    "MovieWebDl": {
+        "label": "Web-DL"
+    },
+    "MovieX265": {
+        "label": "x265"
+    },
+    "MovieXvid": {
+        "label": "XviD"
+    },
+    "Documentaries": {
+        "label": "Documentaries"
+    },
+    "Sports": {
+        "label": "Sports"
+    },
+    "Tv480p": {
+        "label": "480p"
+    },
+    "TvBd": {
+        "label": "BD"
+    },
+    "TvDvdR": {
+        "label": "DVD-R"
+    },
+    "TvDvdRip": {
+        "label": "DVD Rip"
+    },
+    "TvMobile": {
+        "label": "Mobile"
+    },
+    "TvNonEnglish": {
+        "label": "Non-English"
+    },
+    "TvPacks": {
+        "label": "Packs"
+    },
+    "TvPacksNonEnglish": {
+        "label": "Packs (Non-English)"
+    },
+    "TvSdX264": {
+        "label": "SD x264"
+    },
+    "TvWebDl": {
+        "label": "Web-DL"
+    },
+    "TvX264": {
+        "label": "x264"
+    },
+    "TvX265": {
+        "label": "x265"
+    },
+    "TvXvid": {
+        "label": "XviD"
+    }
+}

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\EpisodeType;
 use App\Models\Show;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,7 +24,7 @@ class EpisodeFactory extends Factory
             'season' => fake()->numberBetween(1, 10),
             'number' => fake()->numberBetween(1, 24),
             'name' => fake()->sentence(3),
-            'type' => 'regular',
+            'type' => EpisodeType::Regular,
             'airdate' => fake()->date(),
             'airtime' => fake()->time('H:i'),
             'runtime' => fake()->randomElement([30, 45, 60, 90]),
@@ -39,7 +40,7 @@ class EpisodeFactory extends Factory
     public function special(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'significant_special',
+            'type' => EpisodeType::SignificantSpecial,
         ]);
     }
 }

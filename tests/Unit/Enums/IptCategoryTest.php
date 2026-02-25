@@ -14,12 +14,6 @@ it('builds query string for a single category', function () {
     expect($result)->toBe('100=');
 });
 
-it('returns a label for every category', function () {
-    foreach (IptCategory::cases() as $case) {
-        expect($case->label())->toBeString()->not->toBeEmpty();
-    }
-});
-
 it('returns only movie cases from movieCases', function () {
     $cases = IptCategory::movieCases();
 

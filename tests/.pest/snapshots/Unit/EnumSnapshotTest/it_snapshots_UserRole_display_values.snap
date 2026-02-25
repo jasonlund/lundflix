@@ -1,0 +1,17 @@
+{
+    "Admin": {
+        "label": "Admin",
+        "color": "warning",
+        "icon": "lucide-shield-check"
+    },
+    "ServerOwner": {
+        "label": "Server Owner",
+        "color": "info",
+        "icon": "lucide-server"
+    },
+    "Member": {
+        "label": "Member",
+        "color": "gray",
+        "icon": "lucide-user"
+    }
+}

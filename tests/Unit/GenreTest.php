@@ -6,29 +6,6 @@ it('has 37 genre cases', function () {
     expect(Genre::cases())->toHaveCount(37);
 });
 
-it('returns correct labels for standard genres', function (Genre $genre, string $expected) {
-    expect($genre->getLabel())->toBe($expected);
-})->with([
-    [Genre::Action, 'Action'],
-    [Genre::Comedy, 'Comedy'],
-    [Genre::Drama, 'Drama'],
-    [Genre::Horror, 'Horror'],
-    [Genre::Romance, 'Romance'],
-    [Genre::Thriller, 'Thriller'],
-    [Genre::Western, 'Western'],
-]);
-
-it('returns correct labels for special-cased genres', function (Genre $genre, string $expected) {
-    expect($genre->getLabel())->toBe($expected);
-})->with([
-    [Genre::DIY, 'DIY'],
-    [Genre::FilmNoir, 'Film Noir'],
-    [Genre::GameShow, 'Game Show'],
-    [Genre::RealityTV, 'Reality TV'],
-    [Genre::SciFi, 'Sci-Fi'],
-    [Genre::TalkShow, 'Talk Show'],
-]);
-
 it('resolves genres from string case-insensitively', function (string $input, Genre $expected) {
     expect(Genre::tryFromString($input))->toBe($expected);
 })->with([
@@ -78,48 +55,6 @@ it('title-cases unknown genres via labelFor', function (string $input, string $e
     ['weird_category', 'Weird Category'],
     ['something', 'Something'],
     ['multi-word-thing', 'Multi Word Thing'],
-]);
-
-it('returns correct icon for each genre', function (Genre $genre, string $expected) {
-    expect($genre->icon())->toBe($expected);
-})->with([
-    [Genre::Action, 'swords'],
-    [Genre::Adult, 'circle-alert'],
-    [Genre::Adventure, 'compass'],
-    [Genre::Animation, 'clapperboard'],
-    [Genre::Anime, 'sparkles'],
-    [Genre::Biography, 'book-user'],
-    [Genre::Children, 'baby'],
-    [Genre::Comedy, 'laugh'],
-    [Genre::Crime, 'shield-alert'],
-    [Genre::DIY, 'hammer'],
-    [Genre::Documentary, 'video'],
-    [Genre::Drama, 'drama'],
-    [Genre::Espionage, 'eye'],
-    [Genre::Family, 'users'],
-    [Genre::Fantasy, 'wand-sparkles'],
-    [Genre::FilmNoir, 'moon'],
-    [Genre::Food, 'utensils'],
-    [Genre::GameShow, 'gamepad-2'],
-    [Genre::History, 'landmark'],
-    [Genre::Horror, 'skull'],
-    [Genre::Legal, 'gavel'],
-    [Genre::Medical, 'stethoscope'],
-    [Genre::Music, 'music'],
-    [Genre::Musical, 'mic-vocal'],
-    [Genre::Mystery, 'search'],
-    [Genre::Nature, 'tree-deciduous'],
-    [Genre::News, 'newspaper'],
-    [Genre::RealityTV, 'tv'],
-    [Genre::Romance, 'heart'],
-    [Genre::SciFi, 'rocket'],
-    [Genre::Sport, 'trophy'],
-    [Genre::Supernatural, 'ghost'],
-    [Genre::TalkShow, 'mic'],
-    [Genre::Thriller, 'zap'],
-    [Genre::Travel, 'plane'],
-    [Genre::War, 'bomb'],
-    [Genre::Western, 'sunset'],
 ]);
 
 it('returns icon for known genres via iconFor', function (string $input, string $expected) {

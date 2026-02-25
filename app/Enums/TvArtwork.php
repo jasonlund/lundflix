@@ -2,10 +2,11 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum TvArtwork: string implements HasLabel
+enum TvArtwork: string implements HasColor, HasLabel
 {
     case HdClearLogo = 'hdtvlogo';
     case Poster = 'tvposter';
@@ -37,6 +38,16 @@ enum TvArtwork: string implements HasLabel
             self::SeasonThumbs => 'Season Thumbs',
             self::Background4k => '4K Background',
             default => Str::headline($this->name),
+        };
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::HdClearLogo, self::HdClearArt => 'info',
+            self::Poster, self::SeasonPoster => 'success',
+            self::Background, self::Background4k => 'warning',
+            default => 'primary',
         };
     }
 

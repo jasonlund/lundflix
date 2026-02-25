@@ -2,26 +2,6 @@
 
 use App\Enums\MovieStatus;
 
-it('returns a non-empty label for every case', function (MovieStatus $status) {
-    expect($status->getLabel())->toBeString()->not->toBeEmpty();
-})->with(MovieStatus::cases());
-
-it('returns a non-empty color for every case', function (MovieStatus $status) {
-    expect($status->getColor())->toBeString()->not->toBeEmpty();
-})->with(MovieStatus::cases());
-
-it('returns a lucide icon for every case', function (MovieStatus $status) {
-    expect($status->getIcon())->toBeString()->toStartWith('lucide-');
-})->with(MovieStatus::cases());
-
-it('returns a non-empty icon string for every case', function (MovieStatus $status) {
-    expect($status->icon())->toBeString()->not->toBeEmpty();
-})->with(MovieStatus::cases());
-
-it('returns a tailwind color class for every case', function (MovieStatus $status) {
-    expect($status->iconColorClass())->toBeString()->toStartWith('text-');
-})->with(MovieStatus::cases());
-
 it('reports released as cartable', function () {
     expect(MovieStatus::Released->isCartable())->toBeTrue();
 });

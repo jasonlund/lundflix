@@ -25,6 +25,13 @@ Code must pass the following checks before being committed:
 - `composer audit` - PHP security vulnerabilities
 - `npm audit --audit-level=high` - JS security vulnerabilities
 - `npm run lint` - No `dark:` Tailwind classes (always dark mode)
+- `php artisan test --compact` - Full test suite must pass
+
+## Tests
+
+- **The test suite must always be green.** Never leave failing tests — fix them before moving on. A failing test is a blocker, not a TODO.
+- **Don't over-test.** Only write tests for code with meaningful logic that could actually break — conditional behavior, computed state, filtering, non-obvious transformations, integration between components. Don't write tests that just prove PHP language features work (e.g., match statements return hardcoded values), verify framework/vendor code behaves as documented (e.g., Filament's `HasLabel` returns the label you gave it), or assert trivial mappings where the test is a mirror image of the implementation. If the only way a test can fail is by changing the hardcoded value it asserts against, it's not testing anything useful.
+- **Enum display values use snapshot tests.** Use `toMatchSnapshot()` for enum display values (labels, colors, icons) — see `tests/Unit/EnumSnapshotTest.php`. Don't manually assert hardcoded enum values; snapshots handle this automatically. Run `--update-snapshots` when display values change intentionally.
 
 ## Git Commits
 
@@ -49,6 +56,7 @@ When committing changes, use this format:
 ## Models
 
 - Mass assignment is globally unguarded via `Model::unguard()` in `AppServiceProvider`. Never add `$guarded` or `$fillable` to any model — remove them if found.
+- Computed attributes (`Attribute::make()`) that are accessed multiple times on the same model instance must use `->shouldCache()` to avoid redundant recomputation.
 
 ## Environment Variables
 
@@ -123,7 +131,9 @@ public string $password = '';
 
 ## Enums
 
-- Enums used in Filament tables, infolists, or forms must implement `HasLabel` from `Filament\Support\Contracts\`. Optionally implement `HasColor`, `HasIcon`, and/or `HasDescription` when the enum needs colors, icons, or descriptions in the UI. This lets Filament auto-detect these values — never manually map them in table columns or infolist entries.
+- All enums with display values (labels, colors, icons) must implement the corresponding Filament contracts (`HasLabel`, `HasColor`, `HasIcon`) from `Filament\Support\Contracts\` — even when consumed outside Filament (e.g., Flux frontend). This gives a single, consistent API: `$enum->getLabel()`, `$enum->getColor()`, `$enum->getIcon()`.
+- Optionally implement `HasDescription` when the enum needs descriptions in the UI.
+- **When an enum is displayed as a badge** (via `->badge()` on a TextColumn or TextEntry), the enum **must** implement `HasColor`. Never use `->color(fn (...) => match ...)` to manually map colors — define them on the enum's `getColor()` method instead. This keeps color definitions in one place and lets Filament auto-detect them.
 
 ## Livewire Best Practices (Project-Specific)
 

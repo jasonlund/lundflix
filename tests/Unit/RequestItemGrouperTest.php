@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
@@ -66,7 +67,7 @@ it('detects a full season when all episodes are in cart', function () {
     )->create([
         'show_id' => $show->id,
         'season' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
 
     // Add all to cart
@@ -89,7 +90,7 @@ it('detects partial season when not all episodes are in cart', function () {
     )->create([
         'show_id' => $show->id,
         'season' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
 
     // Only get first 2 episodes
@@ -109,35 +110,35 @@ it('finds consecutive runs based on airdate order', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-01',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 2,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-08',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 3,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-15',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 4,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-22',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 5,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-29',
     ]);
 
@@ -163,21 +164,21 @@ it('includes specials in runs when consecutive by airdate', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 7,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-02-01',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 8,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-02-08',
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'type' => 'significant_special',
+        'type' => EpisodeType::SignificantSpecial,
         'airdate' => '2024-02-15',
     ]);
 
@@ -220,24 +221,24 @@ it('excludes insignificant specials from full season calculation', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 2,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'type' => 'insignificant_special',
+        'type' => EpisodeType::InsignificantSpecial,
     ]);
 
     // Cart has only the 2 regular episodes
     $episodes = Episode::with('show')
-        ->where('type', '!=', 'insignificant_special')
+        ->where('type', '!=', EpisodeType::InsignificantSpecial)
         ->get();
 
     $grouper = new RequestItemGrouper;
@@ -255,21 +256,21 @@ it('sorts runs by airdate order', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 3,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-15',
     ]);
     $ep1 = Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-01',
     ]);
     $ep2 = Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
         'number' => 2,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
         'airdate' => '2024-01-08',
     ]);
 

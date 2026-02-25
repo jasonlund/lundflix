@@ -1,0 +1,26 @@
+{
+    "Running": {
+        "label": "Running",
+        "color": "green",
+        "icon": "lucide-tv-minimal-play",
+        "iconColorClass": "text-green-400"
+    },
+    "Ended": {
+        "label": "Ended",
+        "color": "red",
+        "icon": "lucide-circle-check",
+        "iconColorClass": "text-red-400"
+    },
+    "ToBeDetermined": {
+        "label": "To Be Determined",
+        "color": "yellow",
+        "icon": "lucide-circle-alert",
+        "iconColorClass": "text-yellow-400"
+    },
+    "InDevelopment": {
+        "label": "In Development",
+        "color": "blue",
+        "icon": "lucide-hammer",
+        "iconColorClass": "text-blue-400"
+    }
+}

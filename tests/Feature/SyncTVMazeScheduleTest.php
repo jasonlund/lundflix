@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Show;
 use Illuminate\Support\Facades\Http;
@@ -266,6 +267,6 @@ it('handles special episodes correctly', function () {
     $special = Episode::where('tvmaze_id', 1001)->first();
 
     expect($special)->not->toBeNull()
-        ->and($special->type)->toBe('significant_special')
+        ->and($special->type)->toBe(EpisodeType::SignificantSpecial)
         ->and($special->number)->toBe(1); // Assigned by UpsertEpisodes
 });

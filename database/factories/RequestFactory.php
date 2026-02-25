@@ -19,28 +19,7 @@ class RequestFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'status' => 'pending',
             'notes' => fake()->optional()->sentence(),
         ];
-    }
-
-    /**
-     * Indicate that the request has been fulfilled.
-     */
-    public function fulfilled(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'fulfilled',
-        ]);
-    }
-
-    /**
-     * Indicate that the request has been rejected.
-     */
-    public function rejected(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'rejected',
-        ]);
     }
 }

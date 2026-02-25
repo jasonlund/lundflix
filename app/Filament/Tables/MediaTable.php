@@ -37,7 +37,7 @@ class MediaTable
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
-                    ->color(fn (string $state): string => self::getTypeColor($state)),
+                    ->color(fn (Media $record): string => $record->getArtwork()?->getColor() ?? 'primary'),
                 TextColumn::make('url')
                     ->label('URL')
                     ->limit(50)
@@ -63,7 +63,11 @@ class MediaTable
                         ->distinct()
                         ->orderBy('type')
                         ->pluck('type', 'type')
-                        ->mapWithKeys(fn ($type) => [$type => self::getTypeLabel($type)])
+                        ->mapWithKeys(fn ($type) => [
+                            $type => TvArtwork::tryFrom($type)?->getLabel()
+                                ?? MovieArtwork::tryFrom($type)?->getLabel()
+                                ?? $type,
+                        ])
                         ->toArray()
                     ),
                 SelectFilter::make('lang')
@@ -109,27 +113,5 @@ class MediaTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
-    }
-
-    private static function getTypeLabel(string $type): string
-    {
-        return TvArtwork::tryFrom($type)?->getLabel()
-            ?? MovieArtwork::tryFrom($type)?->getLabel()
-            ?? $type;
-    }
-
-    private static function getTypeColor(string $type): string
-    {
-        $artwork = TvArtwork::tryFrom($type) ?? MovieArtwork::tryFrom($type);
-
-        return match ($artwork) {
-            TvArtwork::HdClearLogo, MovieArtwork::HdClearLogo,
-            TvArtwork::HdClearArt, MovieArtwork::HdClearArt => 'info',
-            TvArtwork::Poster, TvArtwork::SeasonPoster, MovieArtwork::Poster => 'success',
-            TvArtwork::Background, TvArtwork::Background4k,
-            MovieArtwork::Background, MovieArtwork::Background4k => 'warning',
-            MovieArtwork::CdArt => 'gray',
-            default => 'primary',
-        };
     }
 }

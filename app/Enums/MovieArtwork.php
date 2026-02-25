@@ -2,10 +2,11 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum MovieArtwork: string implements HasLabel
+enum MovieArtwork: string implements HasColor, HasLabel
 {
     case HdClearLogo = 'hdmovielogo';
     case Poster = 'movieposter';
@@ -19,6 +20,17 @@ enum MovieArtwork: string implements HasLabel
     public function level(): MovieArtworkLevel
     {
         return MovieArtworkLevel::Movie;
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::HdClearLogo, self::HdClearArt => 'info',
+            self::Poster => 'success',
+            self::Background, self::Background4k => 'warning',
+            self::CdArt => 'gray',
+            default => 'primary',
+        };
     }
 
     public function getLabel(): string

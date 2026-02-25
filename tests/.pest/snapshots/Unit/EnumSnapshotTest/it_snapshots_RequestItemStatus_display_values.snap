@@ -1,0 +1,18 @@
+{
+    "Pending": {
+        "label": "Pending",
+        "color": "gray"
+    },
+    "Fulfilled": {
+        "label": "Fulfilled",
+        "color": "success"
+    },
+    "Rejected": {
+        "label": "Rejected",
+        "color": "danger"
+    },
+    "NotFound": {
+        "label": "Not Found",
+        "color": "warning"
+    }
+}

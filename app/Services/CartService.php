@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Support\EpisodeCode;
@@ -146,7 +147,7 @@ class CartService
                 ->where(function ($query) use ($episodeEntries) {
                     foreach ($episodeEntries as $ep) {
                         $parsed = EpisodeCode::parse($ep['code']);
-                        $type = $parsed['is_special'] ? 'significant_special' : 'regular';
+                        $type = $parsed['is_special'] ? EpisodeType::SignificantSpecial : EpisodeType::Regular;
                         $query->orWhere(function ($q) use ($ep, $parsed, $type) {
                             $q->where('show_id', $ep['show_id'])
                                 ->where('season', $parsed['season'])
@@ -201,7 +202,7 @@ class CartService
             ];
         }
 
-        $isSpecial = ($item['type'] ?? 'regular') === 'significant_special';
+        $isSpecial = ($item['type'] ?? 'regular') === EpisodeType::SignificantSpecial->value;
 
         return [
             'show_id' => $item['show_id'],

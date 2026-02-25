@@ -1,0 +1,186 @@
+{
+    "NbcUs": {
+        "file": "nbc-us.png",
+        "source": "countries\/united-states\/nbc-us.png"
+    },
+    "CbsUs": {
+        "file": "cbs-logo-white-us.png",
+        "source": "countries\/united-states\/cbs-logo-white-us.png"
+    },
+    "AbcUs": {
+        "file": "abc-us.png",
+        "source": "countries\/united-states\/abc-us.png"
+    },
+    "FoxUs": {
+        "file": "fox-us.png",
+        "source": "countries\/united-states\/fox-us.png"
+    },
+    "TheCwUs": {
+        "file": "the-cw-us.png",
+        "source": "countries\/united-states\/the-cw-us.png"
+    },
+    "HboUs": {
+        "file": "hbo-us.png",
+        "source": "countries\/united-states\/hbo-us.png"
+    },
+    "ShowtimeUs": {
+        "file": "showtime-us.png",
+        "source": "countries\/united-states\/showtime-us.png"
+    },
+    "AdultSwimUs": {
+        "file": "adult-swim-us.png",
+        "source": "countries\/united-states\/adult-swim-us.png"
+    },
+    "CartoonNetworkUs": {
+        "file": "cartoon-network-us.png",
+        "source": "countries\/united-states\/cartoon-network-us.png"
+    },
+    "FxUs": {
+        "file": "fx-us.png",
+        "source": "countries\/united-states\/fx-us.png"
+    },
+    "TntUs": {
+        "file": "tnt-us.png",
+        "source": "countries\/united-states\/tnt-us.png"
+    },
+    "SyfyUs": {
+        "file": "syfy-us.png",
+        "source": "countries\/united-states\/syfy-us.png"
+    },
+    "StarzUs": {
+        "file": "starz-us.png",
+        "source": "countries\/united-states\/starz-us.png"
+    },
+    "LifetimeUs": {
+        "file": "lifetime-us.png",
+        "source": "countries\/united-states\/lifetime-us.png"
+    },
+    "AmcUs": {
+        "file": "amc-us.png",
+        "source": "countries\/united-states\/amc-us.png"
+    },
+    "MtvUs": {
+        "file": "mtv-us.png",
+        "source": "countries\/united-states\/mtv-us.png"
+    },
+    "ComedyCentralUs": {
+        "file": "comedy-central-us.png",
+        "source": "countries\/united-states\/comedy-central-us.png"
+    },
+    "DisneyXdUs": {
+        "file": "disney-xd-us.png",
+        "source": "countries\/united-states\/disney-xd-us.png"
+    },
+    "FreeformUs": {
+        "file": "freeform-us.png",
+        "source": "countries\/united-states\/freeform-us.png"
+    },
+    "NickelodeonUs": {
+        "file": "nickelodeon-us.png",
+        "source": "countries\/united-states\/nickelodeon-us.png"
+    },
+    "AAndEUs": {
+        "file": "a-and-e-us.png",
+        "source": "countries\/united-states\/a-and-e-us.png"
+    },
+    "UsaUs": {
+        "file": "usa-us.png",
+        "source": "countries\/united-states\/usa-us.png"
+    },
+    "TbsUs": {
+        "file": "tbs-us.png",
+        "source": "countries\/united-states\/tbs-us.png"
+    },
+    "ParamountNetworkUs": {
+        "file": "paramount-network-us.png",
+        "source": "countries\/united-states\/paramount-network-us.png"
+    },
+    "CnnUs": {
+        "file": "cnn-us.png",
+        "source": "countries\/united-states\/cnn-us.png"
+    },
+    "NationalGeographicUs": {
+        "file": "national-geographic-us.png",
+        "source": "countries\/united-states\/national-geographic-us.png"
+    },
+    "BravoUs": {
+        "file": "bravo-us.png",
+        "source": "countries\/united-states\/bravo-us.png"
+    },
+    "HistoryChannelUs": {
+        "file": "history-channel-us.png",
+        "source": "countries\/united-states\/history-channel-us.png"
+    },
+    "BetUs": {
+        "file": "bet-us.png",
+        "source": "countries\/united-states\/bet-us.png"
+    },
+    "DiscoveryChannelUs": {
+        "file": "discovery-channel-us.png",
+        "source": "countries\/united-states\/discovery-channel-us.png"
+    },
+    "DisneyChannelUs": {
+        "file": "disney-channel-us.png",
+        "source": "countries\/united-states\/disney-channel-us.png"
+    },
+    "TlcUs": {
+        "file": "tlc-us.png",
+        "source": "countries\/united-states\/tlc-us.png"
+    },
+    "FoodNetworkUs": {
+        "file": "food-network-us.png",
+        "source": "countries\/united-states\/food-network-us.png"
+    },
+    "TravelChannelUs": {
+        "file": "travel-channel-us.png",
+        "source": "countries\/united-states\/travel-channel-us.png"
+    },
+    "PbsUs": {
+        "file": "pbs-us.png",
+        "source": "countries\/united-states\/pbs-us.png"
+    },
+    "InvestigationDiscoveryUs": {
+        "file": "investigation-discovery-us.png",
+        "source": "countries\/united-states\/investigation-discovery-us.png"
+    },
+    "AnimalPlanetUs": {
+        "file": "animal-planet-us.png",
+        "source": "countries\/united-states\/animal-planet-us.png"
+    },
+    "HgtvUs": {
+        "file": "hgtv-us.png",
+        "source": "countries\/united-states\/hgtv-us.png"
+    },
+    "BbcOneUk": {
+        "file": "bbc-one-uk.png",
+        "source": "countries\/united-kingdom\/bbc-one-uk.png"
+    },
+    "Itv1Uk": {
+        "file": "itv-1-uk.png",
+        "source": "countries\/united-kingdom\/itv-1-uk.png"
+    },
+    "BbcTwoUk": {
+        "file": "bbc-two-uk.png",
+        "source": "countries\/united-kingdom\/bbc-two-uk.png"
+    },
+    "Channel4Uk": {
+        "file": "channel-4-uk.png",
+        "source": "countries\/united-kingdom\/channel-4-uk.png"
+    },
+    "BbcFourUk": {
+        "file": "bbc-four-uk.png",
+        "source": "countries\/united-kingdom\/bbc-four-uk.png"
+    },
+    "Channel5Uk": {
+        "file": "channel-5-uk.png",
+        "source": "countries\/united-kingdom\/channel-5-uk.png"
+    },
+    "AbcAu": {
+        "file": "abc-au.png",
+        "source": "countries\/australia\/abc-au.png"
+    },
+    "SbsAu": {
+        "file": "sbs-au.png",
+        "source": "countries\/australia\/sbs-au.png"
+    }
+}

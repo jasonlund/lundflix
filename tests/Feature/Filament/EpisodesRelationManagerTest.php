@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EpisodeType;
 use App\Filament\Resources\Shows\Pages\ViewShow;
 use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
 use App\Models\Episode;
@@ -72,7 +73,7 @@ it('can filter episodes by season', function () {
 
 it('can filter episodes by type', function () {
     $show = Show::factory()->create();
-    $regular = Episode::factory()->create(['show_id' => $show->id, 'season' => 1, 'number' => 1, 'type' => 'regular']);
+    $regular = Episode::factory()->create(['show_id' => $show->id, 'season' => 1, 'number' => 1, 'type' => EpisodeType::Regular]);
     $special = Episode::factory()->special()->create(['show_id' => $show->id, 'season' => 1, 'number' => 2]);
 
     Livewire::test(EpisodesRelationManager::class, [

@@ -2,6 +2,7 @@
 
 use App\Actions\Request\MarkRequestItems;
 use App\Enums\RequestItemStatus;
+use App\Enums\RequestStatus;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\User;
@@ -10,7 +11,7 @@ it('computes status as pending when all items are pending', function () {
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
-    expect($request->status)->toBe('pending');
+    expect($request->status)->toBe(RequestStatus::Pending);
 });
 
 it('computes status as partially fulfilled when some items are fulfilled', function () {
@@ -20,7 +21,7 @@ it('computes status as partially fulfilled when some items are fulfilled', funct
     $markItems = app(MarkRequestItems::class);
     $markItems->markAs($request, [$request->items->first()->id], RequestItemStatus::Fulfilled);
 
-    expect($request->status)->toBe('partially fulfilled');
+    expect($request->status)->toBe(RequestStatus::PartiallyFulfilled);
 });
 
 it('computes status as fulfilled when all items are fulfilled', function () {
@@ -30,13 +31,34 @@ it('computes status as fulfilled when all items are fulfilled', function () {
     $markItems = app(MarkRequestItems::class);
     $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled);
 
-    expect($request->status)->toBe('fulfilled');
+    expect($request->status)->toBe(RequestStatus::Fulfilled);
 });
 
 it('computes status as pending when no items exist', function () {
     $request = Request::factory()->create();
 
-    expect($request->status)->toBe('pending');
+    expect($request->status)->toBe(RequestStatus::Pending);
+});
+
+it('computes status as rejected when all items are rejected or not found', function () {
+    $request = Request::factory()->create();
+    RequestItem::factory()->for($request)->count(3)->create();
+
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Rejected);
+
+    expect($request->status)->toBe(RequestStatus::Rejected);
+});
+
+it('computes status as rejected when items are a mix of rejected and not found', function () {
+    $request = Request::factory()->create();
+    RequestItem::factory()->for($request)->count(2)->create();
+
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, [$request->items[0]->id], RequestItemStatus::Rejected);
+    $markItems->markAs($request, [$request->items[1]->id], RequestItemStatus::NotFound);
+
+    expect($request->status)->toBe(RequestStatus::Rejected);
 });
 
 it('detects when request has rejected items', function () {
@@ -73,8 +95,8 @@ it('computes status based only on fulfilled items ignoring rejected and not foun
     $markItems->markAs($request, [$request->items[0]->id], RequestItemStatus::Rejected);
     $markItems->markAs($request, [$request->items[1]->id], RequestItemStatus::NotFound);
 
-    // Status should still be pending since 0/3 are fulfilled
-    expect($request->status)->toBe('pending');
+    // Status should still be pending since 0/3 are fulfilled and 1 item is unactioned
+    expect($request->status)->toBe(RequestStatus::Pending);
     expect($request->has_rejected_items)->toBeTrue();
     expect($request->has_not_found_items)->toBeTrue();
 
@@ -82,7 +104,7 @@ it('computes status based only on fulfilled items ignoring rejected and not foun
     $markItems->markAs($request, [$request->items[2]->id], RequestItemStatus::Fulfilled);
 
     // Now status should be partially fulfilled (1/3 fulfilled)
-    expect($request->status)->toBe('partially fulfilled');
+    expect($request->status)->toBe(RequestStatus::PartiallyFulfilled);
 });
 
 it('always eager loads items', function () {
@@ -205,11 +227,11 @@ it('automatically refreshes request after marking items', function () {
     $request = Request::factory()->create();
     RequestItem::factory()->for($request)->count(3)->create();
 
-    expect($request->status)->toBe('pending');
+    expect($request->status)->toBe(RequestStatus::Pending);
 
     $markItems = app(MarkRequestItems::class);
     $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled, $user->id);
 
     // Should be refreshed automatically, no manual refresh needed
-    expect($request->status)->toBe('fulfilled');
+    expect($request->status)->toBe(RequestStatus::Fulfilled);
 });

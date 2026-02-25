@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -9,7 +10,7 @@ it('has a code accessor for regular episodes', function () {
     $episode = Episode::factory()->create([
         'season' => 2,
         'number' => 5,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
 
     expect($episode->code)->toBe('s02e05');
@@ -28,7 +29,7 @@ it('formats single digit season and episode with zero padding', function () {
     $episode = Episode::factory()->create([
         'season' => 1,
         'number' => 1,
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
 
     expect($episode->code)->toBe('s01e01');
@@ -36,7 +37,7 @@ it('formats single digit season and episode with zero padding', function () {
 
 it('identifies regular episodes as not special', function () {
     $episode = Episode::factory()->create([
-        'type' => 'regular',
+        'type' => EpisodeType::Regular,
     ]);
 
     expect($episode->isSpecial())->toBeFalse();

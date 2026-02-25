@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
@@ -45,7 +46,7 @@ class RequestItemGrouper
         // Prefetch all episodes for all shows at once to avoid N+1 queries
         $showIds = $byShow->keys()->all();
         $allShowEpisodes = Episode::whereIn('show_id', $showIds)
-            ->where('type', '!=', 'insignificant_special')
+            ->where('type', '!=', EpisodeType::InsignificantSpecial)
             ->get()
             ->groupBy('show_id');
 

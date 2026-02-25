@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Shows\Tables;
 
+use App\Enums\EpisodeType;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -19,12 +20,7 @@ class EpisodesTable
                     ->searchable()
                     ->limit(50),
                 TextColumn::make('type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'regular' => 'gray',
-                        'significant_special' => 'warning',
-                        default => 'gray',
-                    }),
+                    ->badge(),
                 TextColumn::make('airdate')
                     ->date()
                     ->sortable(),
@@ -47,10 +43,7 @@ class EpisodesTable
                         ->toArray()
                     ),
                 SelectFilter::make('type')
-                    ->options([
-                        'regular' => 'Regular',
-                        'significant_special' => 'Special',
-                    ]),
+                    ->options(EpisodeType::class),
             ])
             // TODO: Fix multi-column sorting - chained defaultSort() calls override each other.
             // Use ->modifyQueryUsing(fn ($query) => $query->orderBy('season')->orderBy('number'))
