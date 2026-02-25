@@ -17,7 +17,7 @@ return [
     ],
     'cart' => [
         'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",
-        'request_submitted' => "Yeah… so, your request has been submitted.",
+        'request_submitted' => 'Yeah… so, your request has been submitted.',
     ],
     'empty' => [
         'cart_dropdown' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
