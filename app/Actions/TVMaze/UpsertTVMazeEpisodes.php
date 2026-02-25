@@ -2,6 +2,7 @@
 
 namespace App\Actions\TVMaze;
 
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Support\EpisodeCode;
@@ -67,7 +68,7 @@ class UpsertTVMazeEpisodes
     {
         return array_values(array_filter(
             $episodes,
-            fn (array $ep): bool => ($ep['type'] ?? 'regular') !== 'insignificant_special'
+            fn (array $ep): bool => ($ep['type'] ?? 'regular') !== EpisodeType::InsignificantSpecial->value
         ));
     }
 
@@ -84,7 +85,7 @@ class UpsertTVMazeEpisodes
         $specials = [];
 
         foreach ($episodes as $ep) {
-            if (($ep['type'] ?? 'regular') === 'significant_special') {
+            if (($ep['type'] ?? 'regular') === EpisodeType::SignificantSpecial->value) {
                 $specials[] = $ep;
             } else {
                 $regular[] = $ep;

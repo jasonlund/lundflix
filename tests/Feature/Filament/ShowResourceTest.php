@@ -115,10 +115,11 @@ it('imports episodes synchronously when fetch episodes action is called', functi
 it('shows warning when API returns no episodes', function () {
     $show = Show::factory()->create(['tvmaze_id' => 456]);
 
+    // Filament v5 re-executes the action closure when $action->halt() is called
     $this->mock(TVMazeService::class)
         ->shouldReceive('episodes')
         ->with(456)
-        ->once()
+        ->twice()
         ->andReturn([]);
 
     Livewire::test(EpisodesRelationManager::class, [
@@ -132,10 +133,11 @@ it('shows warning when API returns no episodes', function () {
 it('shows error when API request fails', function () {
     $show = Show::factory()->create(['tvmaze_id' => 789]);
 
+    // Filament v5 re-executes the action closure when $action->halt() is called
     $this->mock(TVMazeService::class)
         ->shouldReceive('episodes')
         ->with(789)
-        ->once()
+        ->twice()
         ->andThrow(new RequestException(new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(500))));
 
     Livewire::test(EpisodesRelationManager::class, [

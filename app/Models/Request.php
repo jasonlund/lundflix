@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RequestItemStatus;
+use App\Enums\RequestStatus;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,28 +20,35 @@ class Request extends Model
     protected function status(): Attribute
     {
         return Attribute::make(
-            get: function (): string {
+            get: function (): RequestStatus {
                 $totalItems = $this->items->count();
 
-                // No items: fallback to 'pending'
                 if ($totalItems === 0) {
-                    return 'pending';
+                    return RequestStatus::Pending;
                 }
 
                 $fulfilledItems = $this->items
                     ->where('status', RequestItemStatus::Fulfilled)
                     ->count();
 
-                // Calculate based solely on fulfillment (ignore rejected/not_found)
-                if ($fulfilledItems === 0) {
-                    return 'pending';
-                }
-
                 if ($fulfilledItems === $totalItems) {
-                    return 'fulfilled';
+                    return RequestStatus::Fulfilled;
                 }
 
-                return 'partially fulfilled';
+                if ($fulfilledItems > 0) {
+                    return RequestStatus::PartiallyFulfilled;
+                }
+
+                // All items actioned (rejected/not_found) with zero fulfilled
+                $actionedItems = $this->items
+                    ->whereIn('status', [RequestItemStatus::Rejected, RequestItemStatus::NotFound])
+                    ->count();
+
+                if ($actionedItems === $totalItems) {
+                    return RequestStatus::Rejected;
+                }
+
+                return RequestStatus::Pending;
             }
         );
     }

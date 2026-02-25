@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
+use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Show;
 
@@ -64,7 +65,7 @@ it('stores all episode fields correctly', function () {
     expect($episode->show_id)->toBe($show->id)
         ->and($episode->season)->toBe(2)
         ->and($episode->number)->toBe(5)
-        ->and($episode->type)->toBe('regular')
+        ->and($episode->type)->toBe(EpisodeType::Regular)
         ->and($episode->runtime)->toBe(45)
         ->and($episode->rating)->toBe(['average' => 8.5])
         ->and($episode->summary)->toBe('<p>Test summary</p>');

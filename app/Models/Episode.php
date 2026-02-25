@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EpisodeType;
 use App\Enums\MediaType;
 use App\Support\EpisodeCode;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -9,6 +10,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property EpisodeType $type
+ */
 class Episode extends Model
 {
     /** @use HasFactory<\Database\Factories\EpisodeFactory> */
@@ -17,6 +21,7 @@ class Episode extends Model
     protected function casts(): array
     {
         return [
+            'type' => EpisodeType::class,
             'season' => 'integer',
             'number' => 'integer',
             'runtime' => 'integer',
@@ -52,7 +57,7 @@ class Episode extends Model
                 $this->number,
                 $this->isSpecial()
             ),
-        );
+        )->shouldCache();
     }
 
     /**
@@ -60,7 +65,7 @@ class Episode extends Model
      */
     public function isSpecial(): bool
     {
-        return $this->type === 'significant_special';
+        return $this->type === EpisodeType::SignificantSpecial;
     }
 
     /**
@@ -76,7 +81,7 @@ class Episode extends Model
         }
 
         // API array data
-        $isSpecial = ($episode['type'] ?? 'regular') === 'significant_special';
+        $isSpecial = ($episode['type'] ?? 'regular') === EpisodeType::SignificantSpecial->value;
 
         return strtoupper(EpisodeCode::generate(
             $episode['season'],
