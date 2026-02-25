@@ -72,12 +72,12 @@ it('does not render inline count when cart is empty', function () {
         ->assertDontSeeHtml('data-flux-badge');
 });
 
-it('shows checkout button when items in cart', function () {
+it('shows cart heading with count when items in cart', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create();
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
         ->test('cart.dropdown')
-        ->assertSee('Checkout');
+        ->assertSee('Your Cart (1)');
 });

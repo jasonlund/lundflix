@@ -70,6 +70,11 @@ it('uses active styling in search results', function () {
         ->assertSee('group-data-active/item:text-zinc-400');
 });
 
+it('enables auto-highlight first result in command panel', function () {
+    Livewire::test('media-search')
+        ->assertSeeHtml('autoHighlightFirst: true');
+});
+
 it('renders stable keys for search results', function (string $type, callable $factory): void {
     $model = $factory();
 

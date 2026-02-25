@@ -2,6 +2,7 @@
     'name',
     'panelClass' => '',
     'itemsClass' => '',
+    'autoHighlightFirst' => false,
 ])
 
 <div
@@ -9,6 +10,7 @@
     class="h-full"
     x-data="{
         usingKeyboard: false,
+        autoHighlightFirst: {{ $autoHighlightFirst ? 'true' : 'false' }},
         init() {
             this.$el.addEventListener(
                 'keydown',
@@ -25,6 +27,21 @@
                 () => (this.usingKeyboard = false),
                 { capture: true },
             )
+
+            if (this.autoHighlightFirst) {
+                this.highlightFirst()
+
+                new MutationObserver(() => this.highlightFirst()).observe(
+                    this.$refs.items,
+                    { childList: true, subtree: true },
+                )
+            }
+        },
+        highlightFirst() {
+            const items = this.getItems()
+            if (items.length > 0) {
+                this.activate(items[0])
+            }
         },
         getItems() {
             return [
@@ -78,7 +95,16 @@
 >
     <div @class(['flex w-full flex-col overflow-hidden', $panelClass])>
         @if (isset($header))
-            {{ $header }}
+            <div class="flex h-14 items-center gap-2 border-b border-zinc-700/70 bg-zinc-900/75 ps-3 pe-2">
+                {{ $header }}
+                <flux:button
+                    size="sm"
+                    variant="subtle"
+                    icon="x-mark"
+                    class="-mr-1"
+                    x-on:click="$dispatch('modal-close', { name: '{{ $name }}' })"
+                />
+            </div>
         @endif
 
         <div x-ref="items" @class(['min-h-0 flex-1', $itemsClass])>

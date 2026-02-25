@@ -122,8 +122,9 @@ new class extends Component {
     >
         <x-command-panel
             name="search"
-            panelClass="h-full bg-zinc-900/75 backdrop-blur-sm"
+            panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
             itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
+            :autoHighlightFirst="true"
         >
             <x-slot:header>
                 <flux:input
@@ -131,67 +132,56 @@ new class extends Component {
                     icon="magnifying-glass"
                     placeholder="Search shows & movies and filter by language..."
                     autofocus
-                    class="bg-transparent"
-                    class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400 pe-36"
-                >
-                    <x-slot:iconTrailing>
-                        @if (! SearchService::isImdbId($query))
-                            <div
-                                class="flex rounded-md bg-zinc-800 p-0.5 text-xs font-medium"
-                                role="group"
-                                aria-label="Language filter"
+                    class="min-w-0 flex-1 bg-transparent"
+                    class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400"
+                />
+                @if (! SearchService::isImdbId($query))
+                    <div
+                        class="flex shrink-0 rounded-md bg-zinc-800 p-0.5 text-xs font-medium"
+                        role="group"
+                        aria-label="Language filter"
+                    >
+                        <flux:tooltip content="English" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', 'en')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === 'en',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'en',
+                                ])
                             >
-                                <flux:tooltip content="English" class="text-xs">
-                                    <button
-                                        type="button"
-                                        wire:click="$set('language', 'en')"
-                                        @class([
-                                            'rounded p-1.5 transition-colors',
-                                            'bg-zinc-600 text-white' => $language === 'en',
-                                            'text-zinc-400 hover:text-zinc-200' => $language !== 'en',
-                                        ])
-                                    >
-                                        <flux:icon.a-large-small variant="micro" />
-                                    </button>
-                                </flux:tooltip>
-                                <flux:tooltip content="Foreign" class="text-xs">
-                                    <button
-                                        type="button"
-                                        wire:click="$set('language', 'foreign')"
-                                        @class([
-                                            'rounded p-1.5 transition-colors',
-                                            'bg-zinc-600 text-white' => $language === 'foreign',
-                                            'text-zinc-400 hover:text-zinc-200' => $language !== 'foreign',
-                                        ])
-                                    >
-                                        <flux:icon.languages variant="micro" />
-                                    </button>
-                                </flux:tooltip>
-                                <flux:tooltip content="All" class="text-xs">
-                                    <button
-                                        type="button"
-                                        wire:click="$set('language', '')"
-                                        @class([
-                                            'rounded p-1.5 transition-colors',
-                                            'bg-zinc-600 text-white' => $language === '',
-                                            'text-zinc-400 hover:text-zinc-200' => $language !== '',
-                                        ])
-                                    >
-                                        <flux:icon.globe-americas variant="micro" />
-                                    </button>
-                                </flux:tooltip>
-                            </div>
-                        @endif
-
-                        <flux:button
-                            size="sm"
-                            variant="subtle"
-                            icon="x-mark"
-                            class="-mr-1"
-                            x-on:click="$dispatch('modal-close', { name: 'search' })"
-                        />
-                    </x-slot>
-                </flux:input>
+                                <flux:icon.a-large-small variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                        <flux:tooltip content="Foreign" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', 'foreign')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === 'foreign',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'foreign',
+                                ])
+                            >
+                                <flux:icon.languages variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                        <flux:tooltip content="All" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', '')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === '',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== '',
+                                ])
+                            >
+                                <flux:icon.globe-americas variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                    </div>
+                @endif
             </x-slot>
 
             <x-slot:empty>
