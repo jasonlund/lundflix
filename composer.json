@@ -13,6 +13,7 @@
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.42",
+        "laravel/nightwatch": "*",
         "laravel/pennant": "^1.18",
         "laravel/scout": "^10.23",
         "laravel/slack-notification-channel": "^3.7",
