@@ -15,7 +15,6 @@ new #[Layout('components.layouts.guest')] class extends Component {
     #[Validate('required|string|max:255')]
     public string $name = '';
 
-    #[Validate]
     public string $password = '';
 
     public string $password_confirmation = '';

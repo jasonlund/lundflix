@@ -159,6 +159,38 @@ it('validates name maximum length', function () {
         ->assertHasErrors(['name' => 'max']);
 });
 
+it('does not show password confirmation error on blur before confirmation is filled', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('password', 'password123')
+        ->assertHasNoErrors('password');
+});
+
+it('validates name in real-time on blur', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', '')
+        ->assertHasErrors(['name' => 'required']);
+});
+
 it('validates password is required', function () {
     $this->withSession([
         'plex_registration' => [
