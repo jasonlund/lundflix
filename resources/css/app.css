@@ -55,24 +55,22 @@ select:focus[data-flux-control] {
     @apply ring-accent ring-offset-accent-foreground ring-2 ring-offset-2 outline-hidden;
 }
 
-@layer components {
-    dialog[data-modal='search'] [data-flux-command] {
-        @apply rounded-none border-0 shadow-none;
-    }
-
-    dialog[data-modal='search'] [data-flux-command-items] {
-        padding: 0;
-    }
-
-    dialog[data-modal='search'] [data-flux-command-items] > [data-flux-command-item] {
-        @apply h-auto rounded-none p-0;
-    }
-}
-
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
 
+ui-toast-group {
+    @apply mx-auto w-full max-w-screen-lg;
+}
+
 @utility drop-shadow-glow {
     filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.7)) drop-shadow(0 2px 6px rgb(0 0 0 / 0.4));
+}
+
+.search-input[data-flux-control] {
+    @apply bg-transparent text-sm ring-0 ring-offset-0 outline-hidden;
+}
+
+.search-input[data-flux-control]:focus {
+    @apply ring-0 ring-offset-0 outline-hidden;
 }

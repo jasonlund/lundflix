@@ -58,6 +58,14 @@ When committing changes, use this format:
 
 - The app name is always styled as "lundflix" (lowercase)
 
+## Lundberghese
+
+- All user-facing copy (error messages, toasts, empty states, hints, confirmations) must be written in "Lundberghese" — the voice of Bill Lumbergh from Office Space
+- Strings live in `lang/en/lundbergh.php`, organized by context (e.g., `cart`, `empty`, `error`, `loading`)
+- Common patterns: "Yeah… so,", "Mmm yeah…", "I'm gonna need you to", "That'd be great.", "So… yeah."
+- Use `__('lundbergh.section.key')` to reference strings in Blade templates and PHP
+- Never hardcode user-facing text — always use the lang file
+
 ## Blade Components
 
 - **Blade directives inside component attributes**: `@js()`, `@if()`, and other Blade directives do NOT work inside `<x-component>` attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.

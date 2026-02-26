@@ -15,7 +15,6 @@ if (app()->environment(['local', 'staging', 'testing'])) {
 
 Route::livewire('/shows/{show}', 'shows.show')->middleware('auth')->name('shows.show');
 Route::livewire('/movies/{movie}', 'movies.show')->middleware('auth')->name('movies.show');
-Route::livewire('/cart/checkout', 'cart.checkout')->middleware('auth')->name('cart.checkout');
 
 Route::get('/art/{mediable}/{id}/{type}', ArtController::class)
     ->whereIn('mediable', ['movie', 'show'])
