@@ -7,26 +7,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
 });
 
-it('redirects to plex for authentication', function () {
-    Http::fake([
-        'clients.plex.tv/api/v2/pins?strong=true' => Http::response([
-            'id' => 12345,
-            'code' => 'ABC123',
-        ]),
-    ]);
-
-    $response = $this->get('/auth/plex');
-
-    $response->assertRedirect();
-    $response->assertRedirectContains('app.plex.tv/auth');
-    $response->assertRedirectContains('ABC123');
-
-    expect(session('plex_pin_id'))->toBe(12345);
-});
-
 it('redirects new users to registration', function () {
-    $this->withSession(['plex_pin_id' => 12345]);
-
     Http::fake([
         'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => 'test-plex-token',
@@ -46,7 +27,7 @@ it('redirects new users to registration', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback');
+    $response = $this->get('/auth/plex/callback?pin_id=12345');
 
     $response->assertRedirect(route('register'));
     $this->assertGuest();
@@ -67,8 +48,6 @@ it('redirects existing plex user to login with error', function () {
         'name' => 'Existing User',
     ]);
 
-    $this->withSession(['plex_pin_id' => 12345]);
-
     Http::fake([
         'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => 'new-plex-token',
@@ -88,7 +67,7 @@ it('redirects existing plex user to login with error', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback');
+    $response = $this->get('/auth/plex/callback?pin_id=12345');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.already_linked')]);
@@ -98,8 +77,6 @@ it('redirects existing plex user to login with error', function () {
 });
 
 it('rejects users without server access', function () {
-    $this->withSession(['plex_pin_id' => 12345]);
-
     Http::fake([
         'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => 'test-plex-token',
@@ -119,14 +96,14 @@ it('rejects users without server access', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback');
+    $response = $this->get('/auth/plex/callback?pin_id=12345');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.no_access')]);
     $this->assertGuest();
 });
 
-it('handles missing pin session', function () {
+it('handles missing pin_id parameter', function () {
     $response = $this->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
@@ -134,16 +111,22 @@ it('handles missing pin session', function () {
     $this->assertGuest();
 });
 
-it('handles unclaimed pin', function () {
-    $this->withSession(['plex_pin_id' => 12345]);
+it('handles non-integer pin_id', function () {
+    $response = $this->get('/auth/plex/callback?pin_id=abc');
 
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
+    $this->assertGuest();
+});
+
+it('handles unclaimed pin', function () {
     Http::fake([
         'clients.plex.tv/api/v2/pins/12345' => Http::response([
             'authToken' => null,
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback');
+    $response = $this->get('/auth/plex/callback?pin_id=12345');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);

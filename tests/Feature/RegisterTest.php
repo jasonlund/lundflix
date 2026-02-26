@@ -22,9 +22,9 @@ it('displays the registration form with plex data', function () {
         ->assertSee('plexuser@example.com');
 });
 
-it('redirects to plex auth without session data', function () {
+it('redirects to login without session data', function () {
     Livewire::test('auth.register')
-        ->assertRedirect(route('auth.plex'));
+        ->assertRedirect(route('login'));
 });
 
 it('creates a user on successful registration', function () {
@@ -96,7 +96,7 @@ it('validates password confirmation', function () {
         ->assertHasErrors(['password' => 'confirmed']);
 });
 
-it('redirects to plex auth if session expires during registration', function () {
+it('redirects to login if session expires during registration', function () {
     $this->withSession([
         'plex_registration' => [
             'plex_id' => 999,
@@ -116,7 +116,7 @@ it('redirects to plex auth if session expires during registration', function () 
     session()->forget('plex_registration');
 
     $component->call('register')
-        ->assertRedirect(route('auth.plex'));
+        ->assertRedirect(route('login'));
 
     expect(User::count())->toBe(0);
 });
