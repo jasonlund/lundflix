@@ -9,9 +9,11 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen overflow-x-hidden bg-zinc-950">
-        <div class="relative min-h-screen bg-zinc-900 md:mx-auto md:max-w-screen-md md:border-y md:border-zinc-800/70">
+        <div
+            class="relative min-h-screen overflow-x-hidden bg-zinc-900 md:mx-auto md:max-w-screen-md md:border-y md:border-zinc-800/70"
+        >
             <div
-                class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
+                class="md:min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
             >
                 <img
                     src="{{ $backgroundImage }}"
