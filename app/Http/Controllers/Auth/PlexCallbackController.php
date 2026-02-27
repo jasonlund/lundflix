@@ -6,16 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\PlexService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use InvalidArgumentException;
 
 class PlexCallbackController extends Controller
 {
-    public function __invoke(PlexService $plex): RedirectResponse
+    public function __invoke(Request $request, PlexService $plex): RedirectResponse
     {
-        $pinId = session()->pull('plex_pin_id');
+        $pinId = $request->integer('pin_id');
 
         if (! $pinId) {
-            report(new InvalidArgumentException('Plex auth failed: missing pin_id from session'));
+            report(new InvalidArgumentException('Plex auth failed: missing pin_id from request'));
 
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);

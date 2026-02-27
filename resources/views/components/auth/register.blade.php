@@ -34,7 +34,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
         $plexData = session('plex_registration');
 
         if (! $plexData) {
-            $this->redirect(route('auth.plex'));
+            $this->redirect(route('login'));
 
             return;
         }
@@ -49,7 +49,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
         $plexData = session()->pull('plex_registration');
 
         if (! $plexData) {
-            $this->redirect(route('auth.plex'));
+            $this->redirect(route('login'));
 
             return;
         }
