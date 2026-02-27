@@ -68,7 +68,7 @@ ui-toast-group {
 }
 
 .search-input[data-flux-control] {
-    @apply bg-transparent text-sm ring-0 ring-offset-0 outline-hidden;
+    @apply bg-transparent text-base ring-0 ring-offset-0 outline-hidden;
 }
 
 .search-input[data-flux-control]:focus {
