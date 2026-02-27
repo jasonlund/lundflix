@@ -56,7 +56,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
 };
 ?>
 
-<div class="flex min-h-screen items-center justify-center">
+<div class="flex min-h-screen items-center justify-center px-4">
     <div class="w-full max-w-md">
         <flux:card>
             <img src="{{ Vite::image('logo.png') }}" alt="Lundflix" class="mx-auto h-12" />
