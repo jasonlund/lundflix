@@ -45,12 +45,12 @@
                 },
             );
     } elseif ($useBubble) {
-        $classes = Flux::classes()->add("p-0 m-auto bg-transparent border-0 ring-0 shadow-none [:where(&)]:max-w-xl [:where(&)]:min-w-xs");
+        $classes = Flux::classes()->add("p-0 m-auto px-4 bg-transparent border-0 ring-0 shadow-none w-full max-w-screen-md");
     } else {
         $classes = Flux::classes()
             ->add(
                 match ($variant) {
-                    default => "p-6 [:where(&)]:max-w-xl [:where(&)]:min-w-xs shadow-lg rounded-xl",
+                    default => "p-6 m-auto px-4 w-full max-w-screen-md shadow-lg rounded-xl",
                     "bare" => "",
                 },
             )
