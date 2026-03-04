@@ -353,7 +353,7 @@ new class extends Component {
                         </div>
 
                         <div class="flex min-w-0 flex-1 flex-col gap-1">
-                            <p class="truncate text-base leading-snug text-white">
+                            <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
                                 {{ $result['title'] }}
                                 @if ($result['originalTitle'])
                                     <span class="text-[0.6875rem] text-zinc-500">

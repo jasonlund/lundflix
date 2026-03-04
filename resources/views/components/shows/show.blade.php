@@ -224,12 +224,12 @@ new class extends Component {
                     :alt="$show->name . ' logo'"
                     class="h-24 drop-shadow sm:h-28 md:h-40"
                 >
-                    <flux:heading size="xl">{{ $show->name }}</flux:heading>
+                    <flux:heading size="xl" class="font-serif tracking-wide">{{ $show->name }}</flux:heading>
                 </x-artwork>
             </div>
 
             <div class="truncate">
-                <flux:heading size="xl" class="inline">{{ $show->name }}</flux:heading>
+                <flux:heading size="xl" class="inline font-serif tracking-wide">{{ $show->name }}</flux:heading>
             </div>
 
             <div class="truncate text-zinc-200">

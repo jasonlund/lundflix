@@ -366,7 +366,9 @@ new class extends Component {
                                                     <span class="font-mono">
                                                         {{ \App\Models\Episode::displayCode($episode) }}
                                                     </span>
-                                                    {{ $episode['name'] }}
+                                                    <span class="font-serif tracking-wide">
+                                                        {{ $episode['name'] }}
+                                                    </span>
                                                 </span>
                                                 <span class="ml-auto shrink-0 font-mono text-sm text-zinc-500">
                                                     @if ($episode['runtime'] ?? null)
