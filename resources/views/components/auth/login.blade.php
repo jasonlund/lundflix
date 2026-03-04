@@ -56,7 +56,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
 };
 ?>
 
-<div class="flex min-h-screen items-center justify-center px-4">
+<div class="flex min-h-screen items-center justify-center">
     <div class="w-full max-w-md">
         <flux:card>
             <img src="{{ Vite::image('logo.png') }}" alt="Lundflix" class="mx-auto h-12" />
@@ -97,7 +97,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
                 </flux:modal.trigger>
             </div>
 
-            <flux:modal name="plex-register" class="md:w-full md:max-w-lg">
+            <flux:modal name="plex-register">
                 <div
                     class="space-y-6"
                     x-data="{

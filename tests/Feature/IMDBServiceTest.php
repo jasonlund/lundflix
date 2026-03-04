@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\IMDBService;
+use App\Services\ThirdParty\IMDBService;
 
 it('parses tsv export file correctly', function () {
     // Create a test gzip file with TSV content (IMDb format)

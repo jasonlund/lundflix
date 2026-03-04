@@ -19,7 +19,7 @@ it('dispatches RequestSubmitted event on successful submit', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
     Event::assertDispatched(RequestSubmitted::class, function ($event) {
@@ -33,7 +33,7 @@ it('does not dispatch RequestSubmitted event when cart is empty', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
     Event::assertNotDispatched(RequestSubmitted::class);

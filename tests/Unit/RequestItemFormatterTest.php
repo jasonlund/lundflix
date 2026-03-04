@@ -2,7 +2,7 @@
 
 use App\Models\Episode;
 use App\Models\Show;
-use App\Support\RequestItemFormatter;
+use App\Support\Formatters;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -16,7 +16,7 @@ it('formats a single regular episode', function () {
         'type' => 'regular',
     ]);
 
-    expect(RequestItemFormatter::formatRun([$episode]))->toBe('S01E05');
+    expect(Formatters::formatRun([$episode]))->toBe('S01E05');
 });
 
 it('formats a single special episode', function () {
@@ -28,7 +28,7 @@ it('formats a single special episode', function () {
         'type' => 'significant_special',
     ]);
 
-    expect(RequestItemFormatter::formatRun([$episode]))->toBe('S02S03');
+    expect(Formatters::formatRun([$episode]))->toBe('S02S03');
 });
 
 it('formats a run of consecutive regular episodes', function () {
@@ -43,7 +43,7 @@ it('formats a run of consecutive regular episodes', function () {
         'type' => 'regular',
     ]);
 
-    expect(RequestItemFormatter::formatRun($episodes))->toBe('S01E01-E03');
+    expect(Formatters::formatRun($episodes))->toBe('S01E01-E03');
 });
 
 it('formats a run ending with a special episode', function () {
@@ -69,7 +69,7 @@ it('formats a run ending with a special episode', function () {
         ]),
     ]);
 
-    expect(RequestItemFormatter::formatRun($episodes))->toBe('S01E07-S01');
+    expect(Formatters::formatRun($episodes))->toBe('S01E07-S01');
 });
 
 it('formats a run of consecutive special episodes', function () {
@@ -84,7 +84,7 @@ it('formats a run of consecutive special episodes', function () {
         'type' => 'significant_special',
     ]);
 
-    expect(RequestItemFormatter::formatRun($episodes))->toBe('S01S01-S03');
+    expect(Formatters::formatRun($episodes))->toBe('S01S01-S03');
 });
 
 it('formats a run starting with a special episode', function () {
@@ -110,11 +110,11 @@ it('formats a run starting with a special episode', function () {
         ]),
     ]);
 
-    expect(RequestItemFormatter::formatRun($episodes))->toBe('S02S01-E02');
+    expect(Formatters::formatRun($episodes))->toBe('S02S01-E02');
 });
 
 it('returns empty string for empty input', function () {
-    expect(RequestItemFormatter::formatRun([]))->toBe('');
+    expect(Formatters::formatRun([]))->toBe('');
 });
 
 it('accepts a Collection as input', function () {
@@ -128,11 +128,11 @@ it('accepts a Collection as input', function () {
         'type' => 'regular',
     ]);
 
-    expect(RequestItemFormatter::formatRun($episodes))->toBe('S03E04-E05');
+    expect(Formatters::formatRun($episodes))->toBe('S03E04-E05');
 });
 
 it('formats a season label', function () {
-    expect(RequestItemFormatter::formatSeason(1))->toBe('S01');
-    expect(RequestItemFormatter::formatSeason(12))->toBe('S12');
-    expect(RequestItemFormatter::formatSeason(2024))->toBe('S2024');
+    expect(Formatters::formatSeason(1))->toBe('S01');
+    expect(Formatters::formatSeason(12))->toBe('S12');
+    expect(Formatters::formatSeason(2024))->toBe('S2024');
 });

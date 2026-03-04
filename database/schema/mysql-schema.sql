@@ -127,6 +127,7 @@ CREATE TABLE `media` (
   `season` smallint unsigned DEFAULT NULL,
   `disc` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `disc_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -151,18 +152,34 @@ DROP TABLE IF EXISTS `movies`;
 CREATE TABLE `movies` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `imdb_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `year` smallint unsigned DEFAULT NULL,
   `runtime` smallint unsigned DEFAULT NULL,
   `genres` json DEFAULT NULL,
   `num_votes` int unsigned DEFAULT NULL,
+  `tmdb_id` int unsigned DEFAULT NULL,
+  `release_date` date DEFAULT NULL,
+  `digital_release_date` date DEFAULT NULL,
+  `production_companies` json DEFAULT NULL,
+  `spoken_languages` json DEFAULT NULL,
+  `alternative_titles` json DEFAULT NULL,
+  `original_title` text COLLATE utf8mb4_unicode_ci,
+  `tagline` text COLLATE utf8mb4_unicode_ci,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `budget` bigint unsigned DEFAULT NULL,
+  `revenue` bigint unsigned DEFAULT NULL,
+  `origin_country` json DEFAULT NULL,
+  `release_dates` json DEFAULT NULL,
+  `original_language` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `tmdb_synced_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `movies_imdb_id_unique` (`imdb_id`),
-  KEY `movies_title_index` (`title`),
   KEY `movies_year_index` (`year`),
-  KEY `movies_num_votes_index` (`num_votes`)
+  KEY `movies_num_votes_index` (`num_votes`),
+  KEY `movies_tmdb_id_index` (`tmdb_id`),
+  KEY `movies_tmdb_synced_at_index` (`tmdb_synced_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `password_reset_tokens`;
@@ -175,6 +192,26 @@ CREATE TABLE `password_reset_tokens` (
   PRIMARY KEY (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `plex_media_servers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `plex_media_servers` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `client_identifier` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `access_token` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `owned` tinyint(1) NOT NULL DEFAULT '0',
+  `is_online` tinyint(1) NOT NULL DEFAULT '0',
+  `visible` tinyint(1) NOT NULL DEFAULT '0',
+  `uri` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `connections` json DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `plex_media_servers_client_identifier_unique` (`client_identifier`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `request_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -183,11 +220,16 @@ CREATE TABLE `request_items` (
   `request_id` bigint unsigned NOT NULL,
   `requestable_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `requestable_id` bigint unsigned NOT NULL,
+  `status` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `actioned_by` bigint unsigned DEFAULT NULL,
+  `actioned_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `request_items_request_id_requestable_type_requestable_id_unique` (`request_id`,`requestable_type`,`requestable_id`),
   KEY `request_items_requestable_type_requestable_id_index` (`requestable_type`,`requestable_id`),
+  KEY `request_items_actioned_by_foreign` (`actioned_by`),
+  CONSTRAINT `request_items_actioned_by_foreign` FOREIGN KEY (`actioned_by`) REFERENCES `users` (`id`),
   CONSTRAINT `request_items_request_id_foreign` FOREIGN KEY (`request_id`) REFERENCES `requests` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -197,12 +239,11 @@ DROP TABLE IF EXISTS `requests`;
 CREATE TABLE `requests` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
-  `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `requests_user_id_status_index` (`user_id`,`status`),
+  KEY `requests_user_id_status_index` (`user_id`),
   CONSTRAINT `requests_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -235,6 +276,7 @@ CREATE TABLE `shows` (
   `genres` json DEFAULT NULL,
   `status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `runtime` smallint unsigned DEFAULT NULL,
+  `average_runtime` smallint DEFAULT NULL,
   `premiered` date DEFAULT NULL,
   `ended` date DEFAULT NULL,
   `schedule` json DEFAULT NULL,
@@ -261,6 +303,7 @@ CREATE TABLE `users` (
   `plex_token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `plex_username` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `plex_thumb` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `role` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'member',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
@@ -304,3 +347,14 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_01_22_051
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2026_01_23_035327_add_thetvdb_id_to_shows_table',3);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2026_01_29_050704_convert_movie_genres_to_json',4);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2026_01_29_050704_remove_unused_show_columns',4);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (37,'2026_01_30_022743_create_plex_media_servers_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (38,'2026_01_30_022853_add_is_active_to_media_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (39,'2026_02_04_035245_add_fulfillment_columns_to_request_items_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_02_08_063605_add_average_runtime_to_shows_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_02_08_075052_add_tmdb_columns_to_movies_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_02_08_081002_add_digital_release_date_and_alternative_titles_to_movies_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_02_12_060053_add_tmdb_metadata_to_movies_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_02_12_205813_change_tagline_to_text_on_movies_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_02_12_210424_change_title_columns_to_text_on_movies_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_02_13_041946_add_role_to_users_table',5);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_02_24_045958_remove_status_from_requests_table',6);

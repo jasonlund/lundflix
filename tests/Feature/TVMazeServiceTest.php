@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {

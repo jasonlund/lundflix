@@ -19,13 +19,7 @@ class RequestInfolist
                         TextEntry::make('user.name')
                             ->label('User'),
                         TextEntry::make('status')
-                            ->badge()
-                            ->color(fn (string $state): string => match ($state) {
-                                'pending' => 'warning',
-                                'fulfilled' => 'success',
-                                'rejected' => 'danger',
-                                default => 'gray',
-                            }),
+                            ->badge(),
                         TextEntry::make('created_at')
                             ->dateTime(),
                         TextEntry::make('updated_at')

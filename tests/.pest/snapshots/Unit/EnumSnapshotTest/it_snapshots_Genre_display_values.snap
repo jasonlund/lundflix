@@ -1,0 +1,150 @@
+{
+    "Action": {
+        "label": "Action",
+        "icon": "lucide-swords"
+    },
+    "Adult": {
+        "label": "Adult",
+        "icon": "lucide-circle-alert"
+    },
+    "Adventure": {
+        "label": "Adventure",
+        "icon": "lucide-compass"
+    },
+    "Animation": {
+        "label": "Animation",
+        "icon": "lucide-clapperboard"
+    },
+    "Anime": {
+        "label": "Anime",
+        "icon": "lucide-sparkles"
+    },
+    "Biography": {
+        "label": "Biography",
+        "icon": "lucide-book-user"
+    },
+    "Children": {
+        "label": "Children",
+        "icon": "lucide-baby"
+    },
+    "Comedy": {
+        "label": "Comedy",
+        "icon": "lucide-laugh"
+    },
+    "Crime": {
+        "label": "Crime",
+        "icon": "lucide-shield-alert"
+    },
+    "DIY": {
+        "label": "DIY",
+        "icon": "lucide-hammer"
+    },
+    "Documentary": {
+        "label": "Documentary",
+        "icon": "lucide-video"
+    },
+    "Drama": {
+        "label": "Drama",
+        "icon": "lucide-drama"
+    },
+    "Espionage": {
+        "label": "Espionage",
+        "icon": "lucide-eye"
+    },
+    "Family": {
+        "label": "Family",
+        "icon": "lucide-users"
+    },
+    "Fantasy": {
+        "label": "Fantasy",
+        "icon": "lucide-wand-sparkles"
+    },
+    "FilmNoir": {
+        "label": "Film Noir",
+        "icon": "lucide-moon"
+    },
+    "Food": {
+        "label": "Food",
+        "icon": "lucide-utensils"
+    },
+    "GameShow": {
+        "label": "Game Show",
+        "icon": "lucide-gamepad-2"
+    },
+    "History": {
+        "label": "History",
+        "icon": "lucide-landmark"
+    },
+    "Horror": {
+        "label": "Horror",
+        "icon": "lucide-skull"
+    },
+    "Legal": {
+        "label": "Legal",
+        "icon": "lucide-gavel"
+    },
+    "Medical": {
+        "label": "Medical",
+        "icon": "lucide-stethoscope"
+    },
+    "Music": {
+        "label": "Music",
+        "icon": "lucide-music"
+    },
+    "Musical": {
+        "label": "Musical",
+        "icon": "lucide-mic-vocal"
+    },
+    "Mystery": {
+        "label": "Mystery",
+        "icon": "lucide-search"
+    },
+    "Nature": {
+        "label": "Nature",
+        "icon": "lucide-tree-deciduous"
+    },
+    "News": {
+        "label": "News",
+        "icon": "lucide-newspaper"
+    },
+    "RealityTV": {
+        "label": "Reality TV",
+        "icon": "lucide-tv"
+    },
+    "Romance": {
+        "label": "Romance",
+        "icon": "lucide-heart"
+    },
+    "SciFi": {
+        "label": "Sci-Fi",
+        "icon": "lucide-rocket"
+    },
+    "Sport": {
+        "label": "Sport",
+        "icon": "lucide-trophy"
+    },
+    "Supernatural": {
+        "label": "Supernatural",
+        "icon": "lucide-ghost"
+    },
+    "TalkShow": {
+        "label": "Talk Show",
+        "icon": "lucide-mic"
+    },
+    "Thriller": {
+        "label": "Thriller",
+        "icon": "lucide-zap"
+    },
+    "Travel": {
+        "label": "Travel",
+        "icon": "lucide-plane"
+    },
+    "War": {
+        "label": "War",
+        "icon": "lucide-bomb"
+    },
+    "Western": {
+        "label": "Western",
+        "icon": "lucide-sunset"
+    }
+}

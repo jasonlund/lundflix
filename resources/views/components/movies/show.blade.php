@@ -3,6 +3,7 @@
 use App\Models\Movie;
 use App\Services\CartService;
 use App\Support\Formatters;
+use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -37,6 +38,12 @@ new class extends Component {
 
         $this->inCart = $cart->toggleMovie($this->movie->id);
         $this->dispatch('cart-updated');
+
+        Flux::toast(
+            text: __($this->inCart ? 'lundbergh.toast.cart_added' : 'lundbergh.toast.cart_removed', [
+                'title' => $this->movie->title,
+            ]),
+        );
     }
 
     #[Computed]
@@ -123,7 +130,7 @@ new class extends Component {
             @endif
         </div>
 
-        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
+        <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
             <div class="max-w-4xl">
                 <x-artwork
                     :model="$movie"
@@ -197,7 +204,7 @@ new class extends Component {
         </div>
     </div>
 
-    <div class="flex flex-col gap-8 px-4 sm:px-6">
+    <div class="flex flex-col gap-8">
         @if ($movie->imdb_id)
             <livewire:movies.plex-availability :movie="$movie" lazy />
         @endif

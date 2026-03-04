@@ -297,7 +297,8 @@ describe('cart', function () {
             ->assertSet('inCart', false)
             ->call('toggleCart')
             ->assertSet('inCart', true)
-            ->assertDispatched('cart-updated');
+            ->assertDispatched('cart-updated')
+            ->assertDispatched('toast-show');
 
         expect(app(CartService::class)->has($movie->id))->toBeTrue();
     });
@@ -312,7 +313,8 @@ describe('cart', function () {
             ->assertSet('inCart', true)
             ->call('toggleCart')
             ->assertSet('inCart', false)
-            ->assertDispatched('cart-updated');
+            ->assertDispatched('cart-updated')
+            ->assertDispatched('toast-show');
 
         expect(app(CartService::class)->has($movie->id))->toBeFalse();
     });

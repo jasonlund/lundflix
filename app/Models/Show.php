@@ -19,8 +19,6 @@ class Show extends Model
     /** @use HasFactory<\Database\Factories\ShowFactory> */
     use HasArtwork, HasFactory, Searchable;
 
-    protected $guarded = [];
-
     protected function casts(): array
     {
         return [
@@ -42,11 +40,11 @@ class Show extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id' => $this->id,
-            'imdb_id' => $this->imdb_id,
-            'name' => $this->name,
-            'num_votes' => $this->num_votes,
-            'language' => $this->language?->value, // @phpstan-ignore property.nonObject (casted to Language enum)
+            'id' => (string) $this->id,
+            'imdb_id' => (string) $this->imdb_id,
+            'name' => (string) $this->name,
+            'num_votes' => (int) $this->num_votes,
+            'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
     }
 

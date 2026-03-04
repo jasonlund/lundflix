@@ -140,32 +140,7 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            App\Models\Show::class => [
-                'filterableAttributes' => ['imdb_id'],
-                'sortableAttributes' => ['name', 'num_votes'],
-                'rankingRules' => [
-                    'words',
-                    'typo',
-                    'proximity',
-                    'num_votes:desc',
-                    'attribute',
-                    'sort',
-                    'exactness',
-                ],
-            ],
-            App\Models\Movie::class => [
-                'filterableAttributes' => ['imdb_id', 'year'],
-                'sortableAttributes' => ['title', 'year', 'num_votes'],
-                'rankingRules' => [
-                    'words',
-                    'typo',
-                    'proximity',
-                    'num_votes:desc',
-                    'attribute',
-                    'sort',
-                    'exactness',
-                ],
-            ],
+            //
         ],
     ],
 
@@ -204,28 +179,39 @@ return [
         ],
         // 'max_total_results' => env('TYPESENSE_MAX_TOTAL_RESULTS', 1000),
         'model-settings' => [
-            // User::class => [
-            //     'collection-schema' => [
-            //         'fields' => [
-            //             [
-            //                 'name' => 'id',
-            //                 'type' => 'string',
-            //             ],
-            //             [
-            //                 'name' => 'name',
-            //                 'type' => 'string',
-            //             ],
-            //             [
-            //                 'name' => 'created_at',
-            //                 'type' => 'int64',
-            //             ],
-            //         ],
-            //         'default_sorting_field' => 'created_at',
-            //     ],
-            //     'search-parameters' => [
-            //         'query_by' => 'name'
-            //     ],
-            // ],
+            App\Models\Movie::class => [
+                'collection-schema' => [
+                    'fields' => [
+                        ['name' => 'id', 'type' => 'string'],
+                        ['name' => 'imdb_id', 'type' => 'string'],
+                        ['name' => 'title', 'type' => 'string'],
+                        ['name' => 'year', 'type' => 'int32', 'optional' => true],
+                        ['name' => 'num_votes', 'type' => 'int32'],
+                        ['name' => 'original_language', 'type' => 'string', 'optional' => true],
+                    ],
+                    'default_sorting_field' => 'num_votes',
+                ],
+                'search-parameters' => [
+                    'query_by' => 'title',
+                    'sort_by' => '_text_match:desc,num_votes:desc',
+                ],
+            ],
+            App\Models\Show::class => [
+                'collection-schema' => [
+                    'fields' => [
+                        ['name' => 'id', 'type' => 'string'],
+                        ['name' => 'imdb_id', 'type' => 'string'],
+                        ['name' => 'name', 'type' => 'string'],
+                        ['name' => 'num_votes', 'type' => 'int32'],
+                        ['name' => 'language', 'type' => 'string', 'optional' => true],
+                    ],
+                    'default_sorting_field' => 'num_votes',
+                ],
+                'search-parameters' => [
+                    'query_by' => 'name',
+                    'sort_by' => '_text_match:desc,num_votes:desc',
+                ],
+            ],
         ],
         'import_action' => env('TYPESENSE_IMPORT_ACTION', 'upsert'),
     ],

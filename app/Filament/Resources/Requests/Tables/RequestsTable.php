@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Requests\Tables;
 
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class RequestsTable
@@ -20,13 +19,7 @@ class RequestsTable
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'fulfilled' => 'success',
-                        'rejected' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->badge(),
                 TextColumn::make('notes')
                     ->limit(50)
                     ->searchable(),
@@ -35,12 +28,6 @@ class RequestsTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'fulfilled' => 'Fulfilled',
-                        'rejected' => 'Rejected',
-                    ]),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([

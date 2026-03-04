@@ -1,0 +1,14 @@
+{
+    "Regular": {
+        "label": "Regular",
+        "color": "gray"
+    },
+    "SignificantSpecial": {
+        "label": "Special",
+        "color": "warning"
+    },
+    "InsignificantSpecial": {
+        "label": "Insignificant Special",
+        "color": "gray"
+    }
+}

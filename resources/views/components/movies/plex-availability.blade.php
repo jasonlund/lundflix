@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Movie;
-use App\Services\PlexService;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
