@@ -74,6 +74,8 @@ new class extends Component {
             return;
         }
 
+        $count = $cart->count();
+
         $request = DB::transaction(function () use ($cart, $createRequest, $createRequestItems) {
             $request = $createRequest->create(Auth::user());
 
@@ -100,7 +102,10 @@ new class extends Component {
 
         $this->modal('cart')->close();
 
-        Flux::toast(text: __('lundbergh.cart.request_submitted'), variant: 'success');
+        Flux::toast(
+            text: trans_choice('lundbergh.toast.request_submitted', $count, ['count' => $count]),
+            variant: 'success',
+        );
     }
 };
 ?>
