@@ -152,7 +152,9 @@ it('defaults language to english', function () {
 it('renders the language toggle', function () {
     Livewire::test('media-search')
         ->assertSeeHtml('Language filter')
-        ->assertSeeHtml('data-flux-icon');
+        ->assertSee('English')
+        ->assertSee('Foreign')
+        ->assertSee('All');
 });
 
 it('filters search results to english by default', function () {
