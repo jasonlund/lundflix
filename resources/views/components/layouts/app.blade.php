@@ -43,12 +43,6 @@
             ></div>
 
             <div class="relative z-20">
-                @persist('toast')
-                    <flux:toast.group>
-                        <flux:toast />
-                    </flux:toast.group>
-                @endpersist
-
                 <flux:header
                     x-data="{ scrolled: false }"
                     x-init="scrolled = window.scrollY > $el.offsetHeight / 2"
@@ -81,7 +75,7 @@
                         </flux:modal.trigger>
 
                         @persist('cart')
-                            <livewire:cart.dropdown />
+                            <livewire:cart />
                         @endpersist
                     </div>
 
@@ -106,6 +100,14 @@
                     </div>
                 </flux:main>
             </div>
+        </div>
+
+        <div class="z-50">
+            @persist('toast')
+                <flux:toast.group>
+                    <flux:toast />
+                </flux:toast.group>
+            @endpersist
         </div>
 
         <livewire:media-search />

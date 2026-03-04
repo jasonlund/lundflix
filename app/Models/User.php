@@ -18,8 +18,6 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    protected $guarded = [];
-
     /**
      * The attributes that should be hidden for serialization.
      *

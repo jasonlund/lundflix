@@ -1,0 +1,46 @@
+{
+    "HdClearLogo": {
+        "label": "HD ClearLOGO",
+        "color": "info"
+    },
+    "Poster": {
+        "label": "Poster",
+        "color": "success"
+    },
+    "SeasonPoster": {
+        "label": "Season Poster",
+        "color": "success"
+    },
+    "HdClearArt": {
+        "label": "HD ClearART",
+        "color": "info"
+    },
+    "CharacterArt": {
+        "label": "CharacterART",
+        "color": "primary"
+    },
+    "TvThumbs": {
+        "label": "TV Thumbs",
+        "color": "primary"
+    },
+    "SeasonThumbs": {
+        "label": "Season Thumbs",
+        "color": "primary"
+    },
+    "Background": {
+        "label": "Background",
+        "color": "warning"
+    },
+    "Banner": {
+        "label": "Banner",
+        "color": "primary"
+    },
+    "Background4k": {
+        "label": "4K Background",
+        "color": "warning"
+    },
+    "SeasonBanner": {
+        "label": "Season Banner",
+        "color": "primary"
+    }
+}

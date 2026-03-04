@@ -1,9 +1,9 @@
 <?php
 
-use App\Actions\Tv\UpsertEpisodes;
+use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use App\Support\Formatters;
 use Carbon\Carbon;
 use Flux\Flux;
@@ -87,7 +87,7 @@ new class extends Component {
         }
 
         if (! empty($apiEpisodes)) {
-            app(UpsertEpisodes::class)->fromApi($this->show, $apiEpisodes);
+            app(UpsertTVMazeEpisodes::class)->fromApi($this->show, $apiEpisodes);
         }
 
         $this->episodes = collect($apiEpisodes);

@@ -6,7 +6,7 @@ use App\Jobs\StoreFanart;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Uri;
 use Symfony\Component\HttpFoundation\Response;

@@ -1,0 +1,18 @@
+{
+    "Pending": {
+        "label": "Pending",
+        "color": "warning"
+    },
+    "Fulfilled": {
+        "label": "Fulfilled",
+        "color": "success"
+    },
+    "PartiallyFulfilled": {
+        "label": "Partially Fulfilled",
+        "color": "info"
+    },
+    "Rejected": {
+        "label": "Rejected",
+        "color": "danger"
+    }
+}

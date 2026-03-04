@@ -3,8 +3,8 @@
 namespace App\Notifications;
 
 use App\Models\Request;
-use App\Services\RequestItemGrouper;
-use App\Support\RequestItemFormatter;
+use App\Services\CartService;
+use App\Support\Formatters;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\SlackMessage;
@@ -35,7 +35,7 @@ class RequestItemsNotification extends Notification
             ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
             ->filter();
 
-        $grouped = app(RequestItemGrouper::class)->group($requestables);
+        $grouped = app(CartService::class)->groupItems($requestables);
 
         $lines = [];
 
@@ -52,10 +52,10 @@ class RequestItemsNotification extends Notification
 
             foreach ($showGroup['seasons'] as $seasonData) {
                 if ($seasonData['is_full']) {
-                    $parts[] = RequestItemFormatter::formatSeason($seasonData['season']);
+                    $parts[] = Formatters::formatSeason($seasonData['season']);
                 } else {
                     foreach ($seasonData['runs'] as $run) {
-                        $parts[] = RequestItemFormatter::formatRun($run);
+                        $parts[] = Formatters::formatRun($run);
                     }
                 }
             }

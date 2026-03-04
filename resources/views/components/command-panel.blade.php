@@ -119,7 +119,7 @@
             {{ $slot }}
         </div>
 
-        @if (isset($footer))
+        @if (isset($footer) && $footer->isNotEmpty())
             <div class="border-t border-zinc-700/70">
                 {{ $footer }}
             </div>
