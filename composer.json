@@ -21,7 +21,7 @@
         "livewire/flux-pro": "^2.10",
         "livewire/livewire": "^4.0",
         "mallardduck/blade-lucide-icons": "^1.26",
-        "meilisearch/meilisearch-php": "^1.16",
+        "typesense/typesense-php": "^4.9",
         "webmozart/assert": "^2.1"
     },
     "require-dev": {

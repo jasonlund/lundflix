@@ -212,7 +212,7 @@ class Movie extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id' => $this->id,
+            'id' => (string) $this->id,
             'imdb_id' => $this->imdb_id,
             'title' => $this->title,
             'year' => $this->year,

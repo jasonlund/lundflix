@@ -42,7 +42,7 @@ class Show extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id' => $this->id,
+            'id' => (string) $this->id,
             'imdb_id' => $this->imdb_id,
             'name' => $this->name,
             'num_votes' => $this->num_votes,
