@@ -1,0 +1,62 @@
+{
+    "Rumored": {
+        "label": "Rumored",
+        "color": "gray",
+        "icon": "lucide-message-circle",
+        "iconColorClass": "text-zinc-400"
+    },
+    "Planned": {
+        "label": "Planned",
+        "color": "blue",
+        "icon": "lucide-hammer",
+        "iconColorClass": "text-blue-400"
+    },
+    "InProduction": {
+        "label": "In Production",
+        "color": "yellow",
+        "icon": "lucide-film",
+        "iconColorClass": "text-yellow-400"
+    },
+    "PostProduction": {
+        "label": "Post Production",
+        "color": "warning",
+        "icon": "lucide-sliders-horizontal",
+        "iconColorClass": "text-orange-400"
+    },
+    "FestivalRelease": {
+        "label": "Festival Release",
+        "color": "purple",
+        "icon": "lucide-drama",
+        "iconColorClass": "text-purple-400"
+    },
+    "LimitedRelease": {
+        "label": "Limited Release",
+        "color": "teal",
+        "icon": "lucide-map-pin",
+        "iconColorClass": "text-teal-400"
+    },
+    "Upcoming": {
+        "label": "Upcoming",
+        "color": "blue",
+        "icon": "lucide-calendar",
+        "iconColorClass": "text-blue-400"
+    },
+    "InTheaters": {
+        "label": "In Theaters",
+        "color": "green",
+        "icon": "lucide-ticket",
+        "iconColorClass": "text-green-400"
+    },
+    "Released": {
+        "label": "Released",
+        "color": "success",
+        "icon": "lucide-videotape",
+        "iconColorClass": "text-emerald-400"
+    },
+    "Canceled": {
+        "label": "Canceled",
+        "color": "red",
+        "icon": "lucide-circle-x",
+        "iconColorClass": "text-red-400"
+    }
+}

@@ -1,8 +1,8 @@
 <?php
 
+use App\Enums\Language;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\SearchService;
 use App\Support\Formatters;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -14,14 +14,19 @@ new class extends Component {
     public string $language = 'en';
 
     #[Computed]
+    public function isImdbQuery(): bool
+    {
+        return (bool) preg_match('/^tt\d+$/i', $this->query);
+    }
+
+    #[Computed]
     public function results(): Collection
     {
         if (strlen($this->query) < 2) {
             return collect();
         }
 
-        return app(SearchService::class)
-            ->search($this->query, 'all', $this->language ?: null)
+        return $this->search($this->query, 'all', $this->language ?: null)
             ->take(8)
             ->map(function (Movie|Show $item): array {
                 $isShow = $item instanceof Show;
@@ -68,6 +73,116 @@ new class extends Component {
     }
 
     /**
+     * Search shows and/or movies by query.
+     *
+     * Falls back to the database Scout driver if the primary driver fails
+     * (e.g. Algolia quota exceeded or API unavailable).
+     *
+     * @param  string  $query  Search term or IMDB ID (tt*)
+     * @param  string  $type  Filter: 'shows', 'movies', or 'all'
+     * @param  string|null  $language  Language filter: 'en' for English, 'foreign' for non-English, null for all
+     */
+    private function search(string $query, string $type = 'all', ?string $language = null): Collection
+    {
+        $query = trim($query);
+
+        if ($query === '') {
+            return collect();
+        }
+
+        try {
+            return $this->executeSearch($query, $type, $language);
+        } catch (\Exception $e) {
+            if (config('scout.driver') === 'database') {
+                throw $e;
+            }
+
+            report($e);
+            config(['scout.driver' => 'database']);
+
+            return $this->executeSearch($query, $type, $language);
+        }
+    }
+
+    private function executeSearch(string $query, string $type, ?string $language): Collection
+    {
+        if ($this->isImdbQuery) {
+            return $this->findByImdbId($query, $type);
+        }
+
+        return $this->fullTextSearch($query, $type, $language);
+    }
+
+    private function findByImdbId(string $imdbId, string $type): Collection
+    {
+        $results = collect();
+
+        if ($type === 'all' || $type === 'shows') {
+            $results = $results->merge(
+                Show::search('')
+                    ->where('imdb_id', $imdbId)
+                    ->get(),
+            );
+        }
+
+        if ($type === 'all' || $type === 'movies') {
+            $results = $results->merge(
+                Movie::search('')
+                    ->where('imdb_id', $imdbId)
+                    ->get(),
+            );
+        }
+
+        return $results;
+    }
+
+    private function fullTextSearch(string $query, string $type, ?string $language): Collection
+    {
+        return match ($type) {
+            'shows' => $this->filterByLanguage(Show::search($query)->get(), $language)
+                ->sortByDesc('num_votes')
+                ->values(),
+            'movies' => $this->filterByLanguage(Movie::search($query)->get(), $language)
+                ->sortByDesc('num_votes')
+                ->values(),
+            default => $this->searchBoth($query, $language),
+        };
+    }
+
+    private function searchBoth(string $query, ?string $language): Collection
+    {
+        $results = Show::search($query)
+            ->get()
+            ->toBase()
+            ->merge(Movie::search($query)->get()); // @phpstan-ignore argument.type
+
+        return $this->filterByLanguage($results, $language)
+            ->sortByDesc('num_votes')
+            ->values();
+    }
+
+    private function filterByLanguage(Collection $results, ?string $language): Collection
+    {
+        if ($language === null) {
+            return $results;
+        }
+
+        return $results
+            ->filter(function (Show|Movie $item) use ($language): bool {
+                $itemLanguage = $item instanceof Movie ? $item->original_language : $item->language;
+
+                $iso = $itemLanguage?->value; // @phpstan-ignore property.nonObject (casted to Language enum)
+
+                if ($language === 'foreign') {
+                    return $iso !== null && $iso !== Language::English->value;
+                }
+
+                return $iso === $language;
+            })
+            ->values();
+    }
+
+    /**
      * @return list<array{name: string, tooltip: string, logoUrl: string|null}>
      */
     private function networkInfoFor(Show $show): array
@@ -104,7 +219,7 @@ new class extends Component {
 
     private function shouldShowLanguage(): bool
     {
-        return SearchService::isImdbId($this->query) || in_array($this->language, ['foreign', '']);
+        return $this->isImdbQuery || in_array($this->language, ['foreign', '']);
     }
 
     public function clearSearch(): void
@@ -127,49 +242,67 @@ new class extends Component {
             :autoHighlightFirst="true"
         >
             <x-slot:header>
-                <flux:input.group class="search-bar">
-                    <flux:input
-                        wire:model.live.debounce.300ms="query"
-                        icon="magnifying-glass"
-                        placeholder="Search by title and filter by language…"
-                        autofocus
-                        class="min-w-0 flex-1 bg-transparent"
-                        class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400"
-                    />
-                    @if (! SearchService::isImdbId($query))
-                        <flux:select
-                            wire:model.live="language"
-                            variant="listbox"
-                            class="max-w-fit"
-                            aria-label="Language filter"
-                        >
-                            <flux:select.option value="en">
-                                <div class="flex items-center gap-2">
-                                    <flux:icon.a-large-small variant="mini" class="text-zinc-400" />
-                                    <span>English</span>
-                                </div>
-                            </flux:select.option>
-                            <flux:select.option value="foreign">
-                                <div class="flex items-center gap-2">
-                                    <flux:icon.languages variant="mini" class="text-zinc-400" />
-                                    <span>Foreign</span>
-                                </div>
-                            </flux:select.option>
-                            <flux:select.option value="">
-                                <div class="flex items-center gap-2">
-                                    <flux:icon.globe-americas variant="mini" class="text-zinc-400" />
-                                    <span>All</span>
-                                </div>
-                            </flux:select.option>
-                        </flux:select>
-                    @endif
-                </flux:input.group>
+                <flux:input
+                    wire:model.live.debounce.300ms="query"
+                    icon="magnifying-glass"
+                    placeholder="Search shows & movies and filter by language..."
+                    autofocus
+                    class="min-w-0 flex-1 bg-transparent"
+                    class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400"
+                />
+                @if (! $this->isImdbQuery)
+                    <div
+                        class="flex shrink-0 rounded-md bg-zinc-800 p-0.5 text-xs font-medium"
+                        role="group"
+                        aria-label="Language filter"
+                    >
+                        <flux:tooltip content="English" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', 'en')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === 'en',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'en',
+                                ])
+                            >
+                                <flux:icon.a-large-small variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                        <flux:tooltip content="Foreign" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', 'foreign')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === 'foreign',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'foreign',
+                                ])
+                            >
+                                <flux:icon.languages variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                        <flux:tooltip content="All" class="text-xs">
+                            <button
+                                type="button"
+                                wire:click="$set('language', '')"
+                                @class([
+                                    'rounded p-1.5 transition-colors',
+                                    'bg-zinc-600 text-white' => $language === '',
+                                    'text-zinc-400 hover:text-zinc-200' => $language !== '',
+                                ])
+                            >
+                                <flux:icon.globe-americas variant="micro" />
+                            </button>
+                        </flux:tooltip>
+                    </div>
+                @endif
             </x-slot>
 
             <x-slot:empty>
                 <div class="px-3 py-4">
                     <x-lundbergh-bubble :with-margin="false">
-                        @if (SearchService::isImdbId($query))
+                        @if ($this->isImdbQuery)
                             {{ __('lundbergh.empty.imdb_not_found') }}
                         @elseif (strlen($query) >= 2)
                             <div class="space-y-1">
@@ -287,7 +420,7 @@ new class extends Component {
             @endforeach
 
             <x-slot:footer>
-                @if ($this->results->isNotEmpty() && ! SearchService::isImdbId($query))
+                @if ($this->results->isNotEmpty() && ! $this->isImdbQuery)
                     <div class="border-b-0 px-3 py-2">
                         <x-lundbergh-bubble :with-margin="false" contentTag="div">
                             Yeah… if you can't find what you're looking for, go ahead and try an

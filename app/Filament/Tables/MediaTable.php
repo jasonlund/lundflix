@@ -2,6 +2,7 @@
 
 namespace App\Filament\Tables;
 
+use App\Actions\Media\ActivateMedia;
 use App\Enums\MovieArtwork;
 use App\Enums\TvArtwork;
 use App\Models\Media;
@@ -36,7 +37,7 @@ class MediaTable
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
-                    ->color(fn (string $state): string => self::getTypeColor($state)),
+                    ->color(fn (Media $record): string => $record->getArtwork()?->getColor() ?? 'primary'),
                 TextColumn::make('url')
                     ->label('URL')
                     ->limit(50)
@@ -62,7 +63,11 @@ class MediaTable
                         ->distinct()
                         ->orderBy('type')
                         ->pluck('type', 'type')
-                        ->mapWithKeys(fn ($type) => [$type => self::getTypeLabel($type)])
+                        ->mapWithKeys(fn ($type) => [
+                            $type => TvArtwork::tryFrom($type)?->getLabel()
+                                ?? MovieArtwork::tryFrom($type)?->getLabel()
+                                ?? $type,
+                        ])
                         ->toArray()
                     ),
                 SelectFilter::make('lang')
@@ -82,7 +87,7 @@ class MediaTable
                     ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
                     ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-check')
                     ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
-                    ->action(fn (Media $record) => $record->activate())
+                    ->action(fn (Media $record) => app(ActivateMedia::class)->activate($record))
                     ->disabled(fn (Media $record): bool => $record->is_active),
                 Action::make('preview')
                     ->label('Preview')
@@ -108,27 +113,5 @@ class MediaTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
             ]);
-    }
-
-    private static function getTypeLabel(string $type): string
-    {
-        return TvArtwork::tryFrom($type)?->getLabel()
-            ?? MovieArtwork::tryFrom($type)?->getLabel()
-            ?? $type;
-    }
-
-    private static function getTypeColor(string $type): string
-    {
-        $artwork = TvArtwork::tryFrom($type) ?? MovieArtwork::tryFrom($type);
-
-        return match ($artwork) {
-            TvArtwork::HdClearLogo, MovieArtwork::HdClearLogo,
-            TvArtwork::HdClearArt, MovieArtwork::HdClearArt => 'info',
-            TvArtwork::Poster, TvArtwork::SeasonPoster, MovieArtwork::Poster => 'success',
-            TvArtwork::Background, TvArtwork::Background4k,
-            MovieArtwork::Background, MovieArtwork::Background4k => 'warning',
-            MovieArtwork::CdArt => 'gray',
-            default => 'primary',
-        };
     }
 }

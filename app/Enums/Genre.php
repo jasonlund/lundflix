@@ -2,10 +2,11 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
-enum Genre: string implements HasLabel
+enum Genre: string implements HasIcon, HasLabel
 {
     case Action = 'action';
     case Adult = 'adult';
@@ -129,6 +130,11 @@ enum Genre: string implements HasLabel
             self::War => 'bomb',
             self::Western => 'sunset',
         };
+    }
+
+    public function getIcon(): string
+    {
+        return 'lucide-'.$this->icon();
     }
 
     public static function iconFor(string $value): string

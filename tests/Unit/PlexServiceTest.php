@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\PlexService;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
