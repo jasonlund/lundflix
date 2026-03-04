@@ -5,7 +5,7 @@ namespace App\Console\Commands\Scheduled;
 use App\Jobs\StoreFanart;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 

@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Actions\Fanart\UpsertFanart;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Show;
-use App\Services\PlexService;
+use App\Services\ThirdParty\PlexService;
 use App\Support\EpisodeCode;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;

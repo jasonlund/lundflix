@@ -4,6 +4,15 @@
 
 When given a task, do it completely and properly. Don't take shortcuts, don't suggest lazy alternatives, don't skip steps. If something needs to be done, do it right the first time.
 
+## Comments
+
+- **Don't over-comment.** Code should speak for itself. Only add comments when the logic is genuinely non-obvious. If you feel the need to comment what code does, write clearer code instead.
+
+## The Laravel Ecosystem
+
+- Livewire, Flux, Alpine.js, and Blaze are all created by Caleb Porzio. They are designed to work together seamlessly and should never conflict with each other. If something appears broken between them, the problem is in your code — not theirs.
+- This extends (to a lesser degree) to Filament and other core ecosystem packages. These are highly respected, battle-tested packages. Trust them. When debugging, assume your integration is wrong before assuming the package is wrong.
+
 ---
 
 ## Code Formatting & Quality
@@ -27,9 +36,9 @@ Code must pass the following checks before being committed:
 - `npm run lint` - No `dark:` Tailwind classes (always dark mode)
 - `php artisan test --compact` - Full test suite must pass
 
-## Tests
+## Tests & CI
 
-- **The test suite must always be green.** Never leave failing tests — fix them before moving on. A failing test is a blocker, not a TODO.
+- **All CI checks must always pass — tests, linters, static analysis, and audits.** Never leave a failing check — fix it before moving on. A red CI pipeline is a blocker, not a TODO.
 - **Don't over-test.** Only write tests for code with meaningful logic that could actually break — conditional behavior, computed state, filtering, non-obvious transformations, integration between components. Don't write tests that just prove PHP language features work (e.g., match statements return hardcoded values), verify framework/vendor code behaves as documented (e.g., Filament's `HasLabel` returns the label you gave it), or assert trivial mappings where the test is a mirror image of the implementation. If the only way a test can fail is by changing the hardcoded value it asserts against, it's not testing anything useful.
 - **Enum display values use snapshot tests.** Use `toMatchSnapshot()` for enum display values (labels, colors, icons) — see `tests/Unit/EnumSnapshotTest.php`. Don't manually assert hardcoded enum values; snapshots handle this automatically. Run `--update-snapshots` when display values change intentionally.
 

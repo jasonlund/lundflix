@@ -5,7 +5,7 @@ namespace App\Actions\Fanart;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 
 class UpsertFanart
 {

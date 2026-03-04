@@ -3,7 +3,7 @@
 namespace App\Console\Commands\Scheduled;
 
 use App\Models\PlexMediaServer;
-use App\Services\PlexService;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 

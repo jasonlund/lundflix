@@ -4,7 +4,7 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Events\RequestSubmitted;
 use App\Services\CartService;
-use App\Support\RequestItemFormatter;
+use App\Support\Formatters;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -36,12 +36,12 @@ new class extends Component {
 
     public function formatRun(Collection $episodes): string
     {
-        return RequestItemFormatter::formatRun($episodes);
+        return Formatters::formatRun($episodes);
     }
 
     public function formatSeason(int $season): string
     {
-        return RequestItemFormatter::formatSeason($season);
+        return Formatters::formatSeason($season);
     }
 
     /**
@@ -147,7 +147,7 @@ new class extends Component {
                 <x-slot:empty>
                     <div class="px-3 py-4">
                         <x-lundbergh-bubble :with-margin="false">
-                            {{ __('lundbergh.empty.cart_dropdown') }}
+                            {{ __('lundbergh.empty.cart') }}
                         </x-lundbergh-bubble>
                     </div>
                 </x-slot>

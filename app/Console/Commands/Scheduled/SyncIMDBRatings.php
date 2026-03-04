@@ -4,7 +4,7 @@ namespace App\Console\Commands\Scheduled;
 
 use App\Actions\IMDB\SyncIMDBMovieRatings;
 use App\Actions\IMDB\SyncIMDBShowRatings;
-use App\Services\IMDBService;
+use App\Services\ThirdParty\IMDBService;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\progress;

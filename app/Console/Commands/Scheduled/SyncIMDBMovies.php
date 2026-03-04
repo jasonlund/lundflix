@@ -3,7 +3,7 @@
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\IMDB\UpsertIMDBMovies;
-use App\Services\IMDBService;
+use App\Services\ThirdParty\IMDBService;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\progress;

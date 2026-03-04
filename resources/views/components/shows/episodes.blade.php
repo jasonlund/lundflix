@@ -3,7 +3,7 @@
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Models\Show;
 use App\Services\CartService;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use App\Support\Formatters;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;

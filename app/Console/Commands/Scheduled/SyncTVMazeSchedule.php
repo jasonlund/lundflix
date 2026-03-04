@@ -4,7 +4,7 @@ namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Models\Show;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 

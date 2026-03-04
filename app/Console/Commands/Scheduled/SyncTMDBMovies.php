@@ -4,7 +4,7 @@ namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TMDB\UpsertTMDBData;
 use App\Models\Movie;
-use App\Services\TMDBService;
+use App\Services\ThirdParty\TMDBService;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;

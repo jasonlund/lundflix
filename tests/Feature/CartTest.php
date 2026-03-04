@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\RequestStatus;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -15,10 +16,10 @@ it('shows empty cart message when no items', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSet('itemCount', 0)
         ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Cart</span>')
-        ->assertSee(__('lundbergh.empty.cart_dropdown'));
+        ->assertSee(__('lundbergh.empty.cart'));
 });
 
 it('shows cart count when items present', function () {
@@ -27,7 +28,7 @@ it('shows cart count when items present', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSet('itemCount', 1);
 });
 
@@ -36,7 +37,7 @@ it('updates count when cart-updated event received', function () {
     $movie = Movie::factory()->create();
 
     $component = Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSet('itemCount', 0);
 
     app(CartService::class)->toggleMovie($movie->id);
@@ -51,7 +52,7 @@ it('displays movie title in cart dropdown', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSee('Test Movie Title');
 });
 
@@ -61,7 +62,7 @@ it('renders inline count instead of badge when items present', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertDontSeeHtml('data-flux-badge')
         ->assertSeeHtml('tabular-nums');
 });
@@ -70,7 +71,7 @@ it('does not render inline count when cart is empty', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertDontSeeHtml('data-flux-badge');
 });
 
@@ -80,7 +81,7 @@ it('shows cart heading with count when items in cart', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSee('Your Cart (1)');
 });
 
@@ -90,7 +91,7 @@ it('shows submit request button when cart has items', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSee('Submit Request');
 });
 
@@ -98,7 +99,7 @@ it('does not show submit request button when cart is empty', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertDontSee('Submit Request');
 });
 
@@ -108,7 +109,7 @@ it('shows checkout hint when cart has items', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertSee(__('lundbergh.cart.checkout_hint'));
 });
 
@@ -116,7 +117,7 @@ it('does not show checkout hint when cart is empty', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->assertDontSee(__('lundbergh.cart.checkout_hint'));
 });
 
@@ -126,7 +127,7 @@ it('creates request on submit', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit')
         ->assertDispatched('cart-updated');
 
@@ -140,7 +141,7 @@ it('does not create request when cart is empty', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
     expect(Request::count())->toBe(0);
@@ -152,7 +153,7 @@ it('associates request with authenticated user', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
     expect(Request::first()->user_id)->toBe($user->id);
@@ -164,10 +165,10 @@ it('sets request status to pending', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
-    expect(Request::first()->status)->toBe('pending');
+    expect(Request::first()->status)->toBe(RequestStatus::Pending);
 });
 
 it('creates request item with correct polymorphic type', function () {
@@ -176,7 +177,7 @@ it('creates request item with correct polymorphic type', function () {
     app(CartService::class)->toggleMovie($movie->id);
 
     Livewire::actingAs($user)
-        ->test('cart.dropdown')
+        ->test('cart')
         ->call('submit');
 
     $item = RequestItem::first();

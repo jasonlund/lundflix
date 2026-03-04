@@ -6,7 +6,7 @@ use App\Filament\Tables\MediaTable;
 use App\Jobs\StoreFanart;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;

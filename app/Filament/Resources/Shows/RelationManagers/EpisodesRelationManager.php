@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Shows\RelationManagers;
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Filament\Resources\Shows\Tables\EpisodesTable;
 use App\Models\Show;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;

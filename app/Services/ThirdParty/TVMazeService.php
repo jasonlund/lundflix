@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\ThirdParty;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -90,6 +91,6 @@ class TVMazeService
     private function client(): PendingRequest
     {
         return Http::accept('application/json')
-            ->retry(3, 1000, when: fn ($e, $request) => $e->response?->status() === 429, throw: false);
+            ->retry(3, 1000, when: fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429, throw: false);
     }
 }

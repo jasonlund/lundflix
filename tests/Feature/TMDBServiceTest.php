@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\TMDBService;
+use App\Services\ThirdParty\TMDBService;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 

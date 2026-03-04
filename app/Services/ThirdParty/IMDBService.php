@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\ThirdParty;
 
 use Generator;
 use Illuminate\Support\Facades\Http;

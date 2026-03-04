@@ -16,7 +16,7 @@ describe('syncShowEpisodes', function () {
         $show = Show::factory()->create();
 
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('syncShowEpisodes', $show->id, ['S01E01', 'S01E02'])
             ->assertDispatched('cart-updated');
 
@@ -34,7 +34,7 @@ describe('syncShowEpisodes', function () {
 
         // Sync with only episode 2
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('syncShowEpisodes', $show->id, ['S01E02']);
 
         $episodes = $cart->episodes();
@@ -51,7 +51,7 @@ describe('syncShowEpisodes', function () {
         expect($cart->count())->toBe(1);
 
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('syncShowEpisodes', $show->id, [])
             ->assertDispatched('cart-updated');
 
@@ -69,7 +69,7 @@ describe('syncShowEpisodes', function () {
 
         // Sync show1 only
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('syncShowEpisodes', $show1->id, ['S01E05']);
 
         $episodes = $cart->episodes();
@@ -84,7 +84,7 @@ describe('syncShowEpisodes', function () {
         $show = Show::factory()->create();
 
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('syncShowEpisodes', $show->id, ['S00S01']); // special format
 
         $episodes = app(CartService::class)->episodes();
@@ -98,7 +98,7 @@ describe('toggleMovieInCart', function () {
         $movie = Movie::factory()->create();
 
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('toggleMovieInCart', $movie->id)
             ->assertDispatched('cart-updated');
 
@@ -114,7 +114,7 @@ describe('toggleMovieInCart', function () {
         expect($cart->count())->toBe(1);
 
         Livewire::actingAs($user)
-            ->test('cart.dropdown')
+            ->test('cart')
             ->call('toggleMovieInCart', $movie->id)
             ->assertDispatched('cart-updated');
 

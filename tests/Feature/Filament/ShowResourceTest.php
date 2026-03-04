@@ -7,7 +7,7 @@ use App\Filament\Resources\Shows\RelationManagers\EpisodesRelationManager;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\User;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\Client\RequestException;
 use Livewire\Livewire;
