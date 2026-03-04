@@ -1,6 +1,12 @@
 {
+    "Afar": {
+        "label": "Afar"
+    },
     "Abkhazian": {
         "label": "Abkhazian"
+    },
+    "Avestan": {
+        "label": "Avestan"
     },
     "Afrikaans": {
         "label": "Afrikaans"
@@ -11,11 +17,17 @@
     "Amharic": {
         "label": "Amharic"
     },
+    "Aragonese": {
+        "label": "Aragonese"
+    },
     "Arabic": {
         "label": "Arabic"
     },
     "Assamese": {
         "label": "Assamese"
+    },
+    "Avaric": {
+        "label": "Avaric"
     },
     "Aymara": {
         "label": "Aymara"
@@ -38,6 +50,9 @@
     "Bambara": {
         "label": "Bambara"
     },
+    "Bihari": {
+        "label": "Bihari"
+    },
     "Bengali": {
         "label": "Bengali"
     },
@@ -56,6 +71,9 @@
     "Chechen": {
         "label": "Chechen"
     },
+    "Chamorro": {
+        "label": "Chamorro"
+    },
     "Cantonese": {
         "label": "Cantonese"
     },
@@ -67,6 +85,9 @@
     },
     "Czech": {
         "label": "Czech"
+    },
+    "ChurchSlavonic": {
+        "label": "Church Slavonic"
     },
     "Chuvash": {
         "label": "Chuvash"
@@ -85,6 +106,9 @@
     },
     "Dzongkha": {
         "label": "Dzongkha"
+    },
+    "Ewe": {
+        "label": "Ewe"
     },
     "Greek": {
         "label": "Greek"
@@ -140,6 +164,9 @@
     "Gujarati": {
         "label": "Gujarati"
     },
+    "Manx": {
+        "label": "Manx"
+    },
     "Hausa": {
         "label": "Hausa"
     },
@@ -148,6 +175,9 @@
     },
     "Hindi": {
         "label": "Hindi"
+    },
+    "HiriMotu": {
+        "label": "Hiri Motu"
     },
     "Croatian": {
         "label": "Croatian"
@@ -161,8 +191,17 @@
     "Armenian": {
         "label": "Armenian"
     },
+    "Herero": {
+        "label": "Herero"
+    },
+    "Interlingua": {
+        "label": "Interlingua"
+    },
     "Indonesian": {
         "label": "Indonesian"
+    },
+    "Interlingue": {
+        "label": "Interlingue"
     },
     "Igbo": {
         "label": "Igbo"
@@ -172,6 +211,9 @@
     },
     "Inupiaq": {
         "label": "Inupiaq"
+    },
+    "Ido": {
+        "label": "Ido"
     },
     "Icelandic": {
         "label": "Icelandic"
@@ -197,6 +239,9 @@
     "Kikuyu": {
         "label": "Kikuyu"
     },
+    "Kuanyama": {
+        "label": "Kuanyama"
+    },
     "Kazakh": {
         "label": "Kazakh"
     },
@@ -212,11 +257,17 @@
     "Korean": {
         "label": "Korean"
     },
+    "Kanuri": {
+        "label": "Kanuri"
+    },
     "Kashmiri": {
         "label": "Kashmiri"
     },
     "Kurdish": {
         "label": "Kurdish"
+    },
+    "Komi": {
+        "label": "Komi"
     },
     "Cornish": {
         "label": "Cornish"
@@ -244,6 +295,9 @@
     },
     "Lithuanian": {
         "label": "Lithuanian"
+    },
+    "LubaKatanga": {
+        "label": "Luba Katanga"
     },
     "Latvian": {
         "label": "Latvian"
@@ -281,6 +335,9 @@
     "Burmese": {
         "label": "Burmese"
     },
+    "Nauru": {
+        "label": "Nauru"
+    },
     "NorwegianBokmal": {
         "label": "Norwegian Bokmal"
     },
@@ -289,6 +346,9 @@
     },
     "Nepali": {
         "label": "Nepali"
+    },
+    "Ndonga": {
+        "label": "Ndonga"
     },
     "Dutch": {
         "label": "Dutch"
@@ -299,6 +359,9 @@
     "Norwegian": {
         "label": "Norwegian"
     },
+    "SouthernNdebele": {
+        "label": "Southern Ndebele"
+    },
     "Navajo": {
         "label": "Navajo"
     },
@@ -307,6 +370,9 @@
     },
     "Occitan": {
         "label": "Occitan"
+    },
+    "Ojibwe": {
+        "label": "Ojibwe"
     },
     "Oromo": {
         "label": "Oromo"
@@ -319,6 +385,9 @@
     },
     "Panjabi": {
         "label": "Panjabi"
+    },
+    "Pali": {
+        "label": "Pali"
     },
     "Polish": {
         "label": "Polish"
@@ -334,6 +403,9 @@
     },
     "Romansh": {
         "label": "Romansh"
+    },
+    "Rundi": {
+        "label": "Rundi"
     },
     "Romanian": {
         "label": "Romanian"
@@ -425,6 +497,9 @@
     "Tswana": {
         "label": "Tswana"
     },
+    "Tonga": {
+        "label": "Tonga"
+    },
     "Turkish": {
         "label": "Turkish"
     },
@@ -458,6 +533,12 @@
     "Vietnamese": {
         "label": "Vietnamese"
     },
+    "Volapuk": {
+        "label": "Volapuk"
+    },
+    "Walloon": {
+        "label": "Walloon"
+    },
     "Wolof": {
         "label": "Wolof"
     },
@@ -472,6 +553,9 @@
     },
     "Yoruba": {
         "label": "Yoruba"
+    },
+    "Zhuang": {
+        "label": "Zhuang"
     },
     "Chinese": {
         "label": "Chinese"

@@ -152,8 +152,8 @@ new class extends Component {
                     </div>
                 </x-slot>
 
-                @if ($itemCount > 0)
-                    <x-slot:footer>
+                <x-slot:footer>
+                    @if ($itemCount > 0)
                         <div class="p-3">
                             <button
                                 wire:click="submit"
@@ -165,8 +165,8 @@ new class extends Component {
                                 <span wire:loading wire:target="submit">Submitting…</span>
                             </button>
                         </div>
-                    </x-slot>
-                @endif
+                    @endif
+                </x-slot>
 
                 {{-- Movies --}}
                 @foreach ($this->groupedCartItems['movies'] as $movie)
