@@ -1,0 +1,54 @@
+{
+    "Netflix": {
+        "file": "netflix.png",
+        "source": "misc\/media\/netflix.png"
+    },
+    "Hulu": {
+        "file": "hulu.png",
+        "source": "misc\/media\/hulu.png"
+    },
+    "PrimeVideo": {
+        "file": "prime-video.png",
+        "source": "misc\/media\/prime-video.png"
+    },
+    "YouTube": {
+        "file": "youtube.png",
+        "source": "misc\/media\/youtube.png"
+    },
+    "BbcIplayer": {
+        "file": "bbc-iplayer.png",
+        "source": "misc\/media\/bbc-iplayer.png"
+    },
+    "ParamountPlus": {
+        "file": "paramount-plus.png",
+        "source": "misc\/media\/paramount-plus.png"
+    },
+    "DiscoveryPlus": {
+        "file": "discovery-plus.png",
+        "source": "misc\/media\/discovery-plus.png"
+    },
+    "EspnPlus": {
+        "file": "espn-plus.png",
+        "source": "misc\/media\/espn-plus.png"
+    },
+    "DisneyPlus": {
+        "file": "disney-plus.png",
+        "source": "misc\/media\/disney-plus.png"
+    },
+    "AppleTvPlus": {
+        "file": "apple-tv-plus.png",
+        "source": "misc\/media\/apple-tv-plus.png"
+    },
+    "HboMax": {
+        "file": "hbo-max.png",
+        "source": "misc\/media\/hbo-max.png"
+    },
+    "Peacock": {
+        "file": "peacock.png",
+        "source": "misc\/media\/peacock.png"
+    },
+    "AmcPlus": {
+        "file": "amc-plus-vod-us.png",
+        "source": "misc\/vod\/amc-plus-vod-us.png"
+    }
+}

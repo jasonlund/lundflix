@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\FanartTVService;
+use App\Services\ThirdParty\FanartTVService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Exceptions;

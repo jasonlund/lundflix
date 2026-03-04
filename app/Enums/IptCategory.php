@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum IptCategory: int
+use Filament\Support\Contracts\HasLabel;
+
+enum IptCategory: int implements HasLabel
 {
     // Movie categories
     case Movie3d = 87;
@@ -38,7 +40,7 @@ enum IptCategory: int
     case TvX265 = 99;
     case TvXvid = 4;
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Movie3d => '3D',
@@ -102,7 +104,7 @@ enum IptCategory: int
     {
         $options = [];
         foreach ($cases as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = $case->getLabel();
         }
 
         return $options;

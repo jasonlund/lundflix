@@ -1,0 +1,566 @@
+{
+    "Afar": {
+        "label": "Afar"
+    },
+    "Abkhazian": {
+        "label": "Abkhazian"
+    },
+    "Avestan": {
+        "label": "Avestan"
+    },
+    "Afrikaans": {
+        "label": "Afrikaans"
+    },
+    "Akan": {
+        "label": "Akan"
+    },
+    "Amharic": {
+        "label": "Amharic"
+    },
+    "Aragonese": {
+        "label": "Aragonese"
+    },
+    "Arabic": {
+        "label": "Arabic"
+    },
+    "Assamese": {
+        "label": "Assamese"
+    },
+    "Avaric": {
+        "label": "Avaric"
+    },
+    "Aymara": {
+        "label": "Aymara"
+    },
+    "Azerbaijani": {
+        "label": "Azerbaijani"
+    },
+    "Bashkir": {
+        "label": "Bashkir"
+    },
+    "Belarusian": {
+        "label": "Belarusian"
+    },
+    "Bulgarian": {
+        "label": "Bulgarian"
+    },
+    "Bislama": {
+        "label": "Bislama"
+    },
+    "Bambara": {
+        "label": "Bambara"
+    },
+    "Bihari": {
+        "label": "Bihari"
+    },
+    "Bengali": {
+        "label": "Bengali"
+    },
+    "Tibetan": {
+        "label": "Tibetan"
+    },
+    "Breton": {
+        "label": "Breton"
+    },
+    "Bosnian": {
+        "label": "Bosnian"
+    },
+    "Catalan": {
+        "label": "Catalan"
+    },
+    "Chechen": {
+        "label": "Chechen"
+    },
+    "Chamorro": {
+        "label": "Chamorro"
+    },
+    "Cantonese": {
+        "label": "Cantonese"
+    },
+    "Corsican": {
+        "label": "Corsican"
+    },
+    "Cree": {
+        "label": "Cree"
+    },
+    "Czech": {
+        "label": "Czech"
+    },
+    "ChurchSlavonic": {
+        "label": "Church Slavonic"
+    },
+    "Chuvash": {
+        "label": "Chuvash"
+    },
+    "Welsh": {
+        "label": "Welsh"
+    },
+    "Danish": {
+        "label": "Danish"
+    },
+    "German": {
+        "label": "German"
+    },
+    "Divehi": {
+        "label": "Divehi"
+    },
+    "Dzongkha": {
+        "label": "Dzongkha"
+    },
+    "Ewe": {
+        "label": "Ewe"
+    },
+    "Greek": {
+        "label": "Greek"
+    },
+    "English": {
+        "label": "English"
+    },
+    "Esperanto": {
+        "label": "Esperanto"
+    },
+    "Spanish": {
+        "label": "Spanish"
+    },
+    "Estonian": {
+        "label": "Estonian"
+    },
+    "Basque": {
+        "label": "Basque"
+    },
+    "Persian": {
+        "label": "Persian"
+    },
+    "Fula": {
+        "label": "Fula"
+    },
+    "Finnish": {
+        "label": "Finnish"
+    },
+    "Fijian": {
+        "label": "Fijian"
+    },
+    "Faroese": {
+        "label": "Faroese"
+    },
+    "French": {
+        "label": "French"
+    },
+    "WesternFrisian": {
+        "label": "Western Frisian"
+    },
+    "Irish": {
+        "label": "Irish"
+    },
+    "ScottishGaelic": {
+        "label": "Scottish Gaelic"
+    },
+    "Galician": {
+        "label": "Galician"
+    },
+    "Guarani": {
+        "label": "Guarani"
+    },
+    "Gujarati": {
+        "label": "Gujarati"
+    },
+    "Manx": {
+        "label": "Manx"
+    },
+    "Hausa": {
+        "label": "Hausa"
+    },
+    "Hebrew": {
+        "label": "Hebrew"
+    },
+    "Hindi": {
+        "label": "Hindi"
+    },
+    "HiriMotu": {
+        "label": "Hiri Motu"
+    },
+    "Croatian": {
+        "label": "Croatian"
+    },
+    "HaitianCreole": {
+        "label": "Haitian Creole"
+    },
+    "Hungarian": {
+        "label": "Hungarian"
+    },
+    "Armenian": {
+        "label": "Armenian"
+    },
+    "Herero": {
+        "label": "Herero"
+    },
+    "Interlingua": {
+        "label": "Interlingua"
+    },
+    "Indonesian": {
+        "label": "Indonesian"
+    },
+    "Interlingue": {
+        "label": "Interlingue"
+    },
+    "Igbo": {
+        "label": "Igbo"
+    },
+    "SichuanYi": {
+        "label": "Sichuan Yi"
+    },
+    "Inupiaq": {
+        "label": "Inupiaq"
+    },
+    "Ido": {
+        "label": "Ido"
+    },
+    "Icelandic": {
+        "label": "Icelandic"
+    },
+    "Italian": {
+        "label": "Italian"
+    },
+    "Inuktitut": {
+        "label": "Inuktitut"
+    },
+    "Japanese": {
+        "label": "Japanese"
+    },
+    "Javanese": {
+        "label": "Javanese"
+    },
+    "Georgian": {
+        "label": "Georgian"
+    },
+    "Kongo": {
+        "label": "Kongo"
+    },
+    "Kikuyu": {
+        "label": "Kikuyu"
+    },
+    "Kuanyama": {
+        "label": "Kuanyama"
+    },
+    "Kazakh": {
+        "label": "Kazakh"
+    },
+    "Kalaallisut": {
+        "label": "Kalaallisut"
+    },
+    "Khmer": {
+        "label": "Khmer"
+    },
+    "Kannada": {
+        "label": "Kannada"
+    },
+    "Korean": {
+        "label": "Korean"
+    },
+    "Kanuri": {
+        "label": "Kanuri"
+    },
+    "Kashmiri": {
+        "label": "Kashmiri"
+    },
+    "Kurdish": {
+        "label": "Kurdish"
+    },
+    "Komi": {
+        "label": "Komi"
+    },
+    "Cornish": {
+        "label": "Cornish"
+    },
+    "Kyrgyz": {
+        "label": "Kyrgyz"
+    },
+    "Latin": {
+        "label": "Latin"
+    },
+    "Luxembourgish": {
+        "label": "Luxembourgish"
+    },
+    "Ganda": {
+        "label": "Ganda"
+    },
+    "Limburgish": {
+        "label": "Limburgish"
+    },
+    "Lingala": {
+        "label": "Lingala"
+    },
+    "Lao": {
+        "label": "Lao"
+    },
+    "Lithuanian": {
+        "label": "Lithuanian"
+    },
+    "LubaKatanga": {
+        "label": "Luba Katanga"
+    },
+    "Latvian": {
+        "label": "Latvian"
+    },
+    "Malagasy": {
+        "label": "Malagasy"
+    },
+    "Marshallese": {
+        "label": "Marshallese"
+    },
+    "Maori": {
+        "label": "Maori"
+    },
+    "Macedonian": {
+        "label": "Macedonian"
+    },
+    "Malayalam": {
+        "label": "Malayalam"
+    },
+    "Mongolian": {
+        "label": "Mongolian"
+    },
+    "Moldavian": {
+        "label": "Moldavian"
+    },
+    "Marathi": {
+        "label": "Marathi"
+    },
+    "Malay": {
+        "label": "Malay"
+    },
+    "Maltese": {
+        "label": "Maltese"
+    },
+    "Burmese": {
+        "label": "Burmese"
+    },
+    "Nauru": {
+        "label": "Nauru"
+    },
+    "NorwegianBokmal": {
+        "label": "Norwegian Bokmal"
+    },
+    "NorthernNdebele": {
+        "label": "Northern Ndebele"
+    },
+    "Nepali": {
+        "label": "Nepali"
+    },
+    "Ndonga": {
+        "label": "Ndonga"
+    },
+    "Dutch": {
+        "label": "Dutch"
+    },
+    "NorwegianNynorsk": {
+        "label": "Norwegian Nynorsk"
+    },
+    "Norwegian": {
+        "label": "Norwegian"
+    },
+    "SouthernNdebele": {
+        "label": "Southern Ndebele"
+    },
+    "Navajo": {
+        "label": "Navajo"
+    },
+    "Chichewa": {
+        "label": "Chichewa"
+    },
+    "Occitan": {
+        "label": "Occitan"
+    },
+    "Ojibwe": {
+        "label": "Ojibwe"
+    },
+    "Oromo": {
+        "label": "Oromo"
+    },
+    "Odia": {
+        "label": "Odia"
+    },
+    "Ossetian": {
+        "label": "Ossetian"
+    },
+    "Panjabi": {
+        "label": "Panjabi"
+    },
+    "Pali": {
+        "label": "Pali"
+    },
+    "Polish": {
+        "label": "Polish"
+    },
+    "Pashto": {
+        "label": "Pashto"
+    },
+    "Portuguese": {
+        "label": "Portuguese"
+    },
+    "Quechua": {
+        "label": "Quechua"
+    },
+    "Romansh": {
+        "label": "Romansh"
+    },
+    "Rundi": {
+        "label": "Rundi"
+    },
+    "Romanian": {
+        "label": "Romanian"
+    },
+    "Russian": {
+        "label": "Russian"
+    },
+    "Kinyarwanda": {
+        "label": "Kinyarwanda"
+    },
+    "Sanskrit": {
+        "label": "Sanskrit"
+    },
+    "Sardinian": {
+        "label": "Sardinian"
+    },
+    "Sindhi": {
+        "label": "Sindhi"
+    },
+    "NorthernSami": {
+        "label": "Northern Sami"
+    },
+    "Sango": {
+        "label": "Sango"
+    },
+    "SerboCroatian": {
+        "label": "Serbo Croatian"
+    },
+    "Sinhalese": {
+        "label": "Sinhalese"
+    },
+    "Slovak": {
+        "label": "Slovak"
+    },
+    "Slovenian": {
+        "label": "Slovenian"
+    },
+    "Samoan": {
+        "label": "Samoan"
+    },
+    "Shona": {
+        "label": "Shona"
+    },
+    "Somali": {
+        "label": "Somali"
+    },
+    "Albanian": {
+        "label": "Albanian"
+    },
+    "Serbian": {
+        "label": "Serbian"
+    },
+    "Swati": {
+        "label": "Swati"
+    },
+    "SouthernSotho": {
+        "label": "Southern Sotho"
+    },
+    "Sundanese": {
+        "label": "Sundanese"
+    },
+    "Swedish": {
+        "label": "Swedish"
+    },
+    "Swahili": {
+        "label": "Swahili"
+    },
+    "Tamil": {
+        "label": "Tamil"
+    },
+    "Telugu": {
+        "label": "Telugu"
+    },
+    "Tajik": {
+        "label": "Tajik"
+    },
+    "Thai": {
+        "label": "Thai"
+    },
+    "Tigrinya": {
+        "label": "Tigrinya"
+    },
+    "Turkmen": {
+        "label": "Turkmen"
+    },
+    "Tagalog": {
+        "label": "Tagalog"
+    },
+    "Tswana": {
+        "label": "Tswana"
+    },
+    "Tonga": {
+        "label": "Tonga"
+    },
+    "Turkish": {
+        "label": "Turkish"
+    },
+    "Tsonga": {
+        "label": "Tsonga"
+    },
+    "Tatar": {
+        "label": "Tatar"
+    },
+    "Twi": {
+        "label": "Twi"
+    },
+    "Tahitian": {
+        "label": "Tahitian"
+    },
+    "Uyghur": {
+        "label": "Uyghur"
+    },
+    "Ukrainian": {
+        "label": "Ukrainian"
+    },
+    "Urdu": {
+        "label": "Urdu"
+    },
+    "Uzbek": {
+        "label": "Uzbek"
+    },
+    "Venda": {
+        "label": "Venda"
+    },
+    "Vietnamese": {
+        "label": "Vietnamese"
+    },
+    "Volapuk": {
+        "label": "Volapuk"
+    },
+    "Walloon": {
+        "label": "Walloon"
+    },
+    "Wolof": {
+        "label": "Wolof"
+    },
+    "Xhosa": {
+        "label": "Xhosa"
+    },
+    "NoLanguage": {
+        "label": "No Language"
+    },
+    "Yiddish": {
+        "label": "Yiddish"
+    },
+    "Yoruba": {
+        "label": "Yoruba"
+    },
+    "Zhuang": {
+        "label": "Zhuang"
+    },
+    "Chinese": {
+        "label": "Chinese"
+    },
+    "Zulu": {
+        "label": "Zulu"
+    }
+}

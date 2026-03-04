@@ -21,7 +21,7 @@ return [
         'request_submitted' => 'Yeah… so, your request has been submitted.',
     ],
     'empty' => [
-        'cart_dropdown' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
+        'cart' => "Yeah… so, your cart is empty. Go ahead and add something. That'd be great.",
         'search_prompt' => 'Yeah… go ahead and type at least two characters to start searching.',
         'search_no_results' => "Mmm yeah… that search didn't turn up anything.",
         'search_no_results_filter' => "I'm gonna need you to refine your search term and... mmm.... filter by language.",

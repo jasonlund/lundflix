@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\RequestItemStatus;
 use App\Filament\Resources\Requests\Pages\ListRequests;
 use App\Filament\Resources\Requests\Pages\ViewRequest;
 use App\Models\Request;
+use App\Models\RequestItem;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -29,23 +31,23 @@ it('displays requests in the table', function () {
         ->assertCanSeeTableRecords($requests);
 });
 
-it('displays status badges with correct colors', function () {
-    $pending = Request::factory()->create(['status' => 'pending']);
-    $fulfilled = Request::factory()->fulfilled()->create();
-    $rejected = Request::factory()->rejected()->create();
+it('displays status badges for computed statuses', function () {
+    $pending = Request::factory()->create();
+    RequestItem::factory()->for($pending)->count(2)->create();
+
+    $fulfilled = Request::factory()->create();
+    RequestItem::factory()->for($fulfilled)->count(2)->create([
+        'status' => RequestItemStatus::Fulfilled,
+    ]);
+
+    $partial = Request::factory()->create();
+    RequestItem::factory()->for($partial)->create([
+        'status' => RequestItemStatus::Fulfilled,
+    ]);
+    RequestItem::factory()->for($partial)->create();
 
     Livewire::test(ListRequests::class)
-        ->assertCanSeeTableRecords([$pending, $fulfilled, $rejected]);
-});
-
-it('can filter requests by status', function () {
-    $pending = Request::factory()->create(['status' => 'pending']);
-    $fulfilled = Request::factory()->fulfilled()->create();
-
-    Livewire::test(ListRequests::class)
-        ->filterTable('status', 'fulfilled')
-        ->assertCanSeeTableRecords([$fulfilled])
-        ->assertCanNotSeeTableRecords([$pending]);
+        ->assertCanSeeTableRecords([$pending, $fulfilled, $partial]);
 });
 
 it('does not show create button due to policy', function () {

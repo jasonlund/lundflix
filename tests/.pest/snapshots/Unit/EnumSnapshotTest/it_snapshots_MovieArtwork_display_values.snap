@@ -1,0 +1,34 @@
+{
+    "HdClearLogo": {
+        "label": "HD ClearLOGO",
+        "color": "info"
+    },
+    "Poster": {
+        "label": "Poster",
+        "color": "success"
+    },
+    "HdClearArt": {
+        "label": "HD ClearART",
+        "color": "info"
+    },
+    "CdArt": {
+        "label": "cdART",
+        "color": "gray"
+    },
+    "Background": {
+        "label": "Background",
+        "color": "warning"
+    },
+    "Background4k": {
+        "label": "4K Background",
+        "color": "warning"
+    },
+    "Banner": {
+        "label": "Banner",
+        "color": "primary"
+    },
+    "MovieThumbs": {
+        "label": "Movie Thumbs",
+        "color": "primary"
+    }
+}

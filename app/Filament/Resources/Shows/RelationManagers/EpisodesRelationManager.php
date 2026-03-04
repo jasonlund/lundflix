@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Shows\RelationManagers;
 
-use App\Actions\Tv\UpsertEpisodes;
+use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Filament\Resources\Shows\Tables\EpisodesTable;
 use App\Models\Show;
-use App\Services\TVMazeService;
+use App\Services\ThirdParty\TVMazeService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -25,8 +25,10 @@ class EpisodesRelationManager extends RelationManager
                         ? 'Refresh Episodes'
                         : 'Fetch Episodes')
                     ->icon('lucide-refresh-cw')
-                    ->action(function (TVMazeService $tvMaze, UpsertEpisodes $upsertEpisodes): void {
+                    ->action(function (Action $action, TVMazeService $tvMaze, UpsertTVMazeEpisodes $upsertEpisodes): void {
                         $show = $this->getShow();
+
+                        $episodes = [];
 
                         try {
                             $episodes = $tvMaze->episodes($show->tvmaze_id);
@@ -37,7 +39,7 @@ class EpisodesRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         if (empty($episodes)) {
@@ -47,7 +49,7 @@ class EpisodesRelationManager extends RelationManager
                                 ->warning()
                                 ->send();
 
-                            return;
+                            $action->halt();
                         }
 
                         $upsertEpisodes->fromApi($show, $episodes);
