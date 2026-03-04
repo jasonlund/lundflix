@@ -74,3 +74,31 @@ ui-toast-group {
 .search-input[data-flux-control]:focus {
     @apply ring-0 ring-offset-0 outline-hidden;
 }
+
+.search-bar [data-flux-select-button] {
+    @apply h-14 rounded-none border-0 bg-white/5 text-sm text-zinc-400 shadow-none hover:bg-white/10;
+}
+
+.search-bar [data-flux-select-button]:focus {
+    @apply ring-0 ring-offset-0 outline-hidden;
+}
+
+.search-bar [data-flux-select-button] span {
+    @apply hidden sm:inline;
+}
+
+.search-bar [data-flux-select-button] > [data-flux-icon] {
+    @apply hidden sm:block;
+}
+
+.search-bar [data-flux-select-button] div [data-flux-icon] {
+    @apply sm:hidden;
+}
+
+.search-bar [data-flux-input] > .start-0 {
+    @apply hidden sm:flex;
+}
+
+.search-bar .search-input[data-flux-control] {
+    @apply ps-3 sm:ps-10;
+}
