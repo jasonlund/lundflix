@@ -215,8 +215,8 @@ class Movie extends Model
             'id' => (string) $this->id,
             'imdb_id' => $this->imdb_id,
             'title' => $this->title,
-            'year' => $this->year,
-            'num_votes' => $this->num_votes,
+            'year' => $this->year ? (int) $this->year : null,
+            'num_votes' => (int) $this->num_votes,
             'original_language' => $this->original_language?->value, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
     }

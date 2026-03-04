@@ -45,7 +45,7 @@ class Show extends Model
             'id' => (string) $this->id,
             'imdb_id' => $this->imdb_id,
             'name' => $this->name,
-            'num_votes' => $this->num_votes,
+            'num_votes' => (int) $this->num_votes,
             'language' => $this->language?->value, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
     }
