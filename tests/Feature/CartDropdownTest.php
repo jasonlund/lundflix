@@ -128,7 +128,8 @@ it('creates request on submit', function () {
     Livewire::actingAs($user)
         ->test('cart.dropdown')
         ->call('submit')
-        ->assertDispatched('cart-updated');
+        ->assertDispatched('cart-updated')
+        ->assertDispatched('toast-show');
 
     expect(Request::count())->toBe(1)
         ->and(RequestItem::count())->toBe(1)
