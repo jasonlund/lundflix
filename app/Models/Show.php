@@ -43,10 +43,10 @@ class Show extends Model
     {
         return [
             'id' => (string) $this->id,
-            'imdb_id' => $this->imdb_id,
-            'name' => $this->name,
+            'imdb_id' => (string) $this->imdb_id,
+            'name' => (string) $this->name,
             'num_votes' => (int) $this->num_votes,
-            'language' => $this->language?->value, // @phpstan-ignore property.nonObject (casted to Language enum)
+            'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
     }
 
