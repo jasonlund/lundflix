@@ -216,7 +216,7 @@ new class extends Component {
             </flux:tooltip>
         </div>
 
-        <div class="relative flex flex-col gap-3 px-4 py-5 text-white sm:px-6 sm:py-6">
+        <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
             <div class="max-w-4xl">
                 <x-artwork
                     :model="$show"
@@ -294,7 +294,7 @@ new class extends Component {
         </div>
     </div>
 
-    <div class="flex flex-col gap-8 px-4 sm:px-6">
+    <div class="flex flex-col gap-8">
         @if ($show->imdb_id)
             <livewire:shows.plex-availability :show="$show" lazy />
         @endif
