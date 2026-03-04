@@ -40,11 +40,6 @@ class AppServiceProvider extends ServiceProvider
 
         Vite::macro('image', fn (string $asset) => Vite::asset("resources/images/{$asset}"));
 
-        Blaze::optimize()
-            ->in(resource_path('views/components'));
-
-        if ($this->app->isLocal()) {
-            Blaze::debug();
-        }
+        Blaze::optimize();
     }
 }
