@@ -125,7 +125,7 @@ describe('art helpers', function () {
         $show = Show::factory()->create(['thetvdb_id' => 123456]);
 
         expect($show->artUrl('logo'))
-            ->toBe(route('art', ['mediable' => 'show', 'id' => $show->id, 'type' => 'logo']));
+            ->toBe(route('art', ['mediable' => 'show', 'id' => $show->sqid, 'type' => 'logo']));
     });
 
     it('reports whether art can be fetched', function () {

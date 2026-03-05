@@ -177,7 +177,7 @@ new class extends Component {
                 @foreach ($this->groupedCartItems['movies'] as $movie)
                     <a
                         wire:key="cart-item-movie-{{ $movie->id }}"
-                        href="{{ route('movies.show', $movie->id) }}"
+                        href="{{ route('movies.show', $movie) }}"
                         wire:navigate
                         data-command-item
                         x-on:mouseenter="activate($el)"
@@ -215,7 +215,7 @@ new class extends Component {
                 @foreach ($this->groupedCartItems['shows'] as $showGroup)
                     <a
                         wire:key="cart-item-show-{{ $showGroup['show']->id }}"
-                        href="{{ route('shows.show', $showGroup['show']->id) }}"
+                        href="{{ route('shows.show', $showGroup['show']) }}"
                         wire:navigate
                         data-command-item
                         x-on:mouseenter="activate($el)"

@@ -9,6 +9,7 @@ use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Enums\TMDBReleaseType;
 use App\Models\Concerns\HasArtwork;
+use App\Models\Concerns\HasObfuscatedId;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,7 @@ use Laravel\Scout\Searchable;
 class Movie extends Model
 {
     /** @use HasFactory<\Database\Factories\MovieFactory> */
-    use HasArtwork, HasFactory, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
 
     protected function casts(): array
     {

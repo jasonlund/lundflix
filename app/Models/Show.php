@@ -7,6 +7,7 @@ use App\Enums\NetworkLogo;
 use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
+use App\Models\Concerns\HasObfuscatedId;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ use Laravel\Scout\Searchable;
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasArtwork, HasFactory, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
 
     protected function casts(): array
     {
@@ -64,10 +65,9 @@ class Show extends Model
      */
     public function resolveRouteBinding($value, $field = null): ?Model
     {
-        return $this->query()
-            ->with('episodes')
-            ->where($field ?? $this->getRouteKeyName(), $value)
-            ->first();
+        return $this->resolveRouteBindingQuery(
+            $this->query()->with('episodes'), $value, $field
+        )->first();
     }
 
     /**

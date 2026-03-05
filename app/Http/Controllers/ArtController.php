@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\ThirdParty\FanartTVService;
+use App\Support\Sqid;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Uri;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,7 +43,7 @@ class ArtController extends Controller
 
     public function __invoke(
         string $mediable,
-        int $id,
+        string $id,
         string $type,
         FanartTVService $fanart
     ): Response {
@@ -53,9 +54,15 @@ class ArtController extends Controller
             abort(404);
         }
 
+        $decodedId = Sqid::decode($id);
+
+        if ($decodedId === null) {
+            abort(404);
+        }
+
         $model = match ($mediable) {
-            'movie' => Movie::findOrFail($id),
-            'show' => Show::findOrFail($id),
+            'movie' => Movie::findOrFail($decodedId),
+            'show' => Show::findOrFail($decodedId),
             default => abort(404),
         };
 

@@ -11,7 +11,7 @@ it('allows fetching art when no missing cache keys exist', function (string $med
     Cache::flush();
 
     $model = $factory();
-    $expectedUrl = route('art', ['mediable' => $mediable, 'id' => $model->id, 'type' => 'poster']);
+    $expectedUrl = route('art', ['mediable' => $mediable, 'id' => $model->sqid, 'type' => 'poster']);
 
     expect($model->canFetchArt('poster'))->toBeTrue()
         ->and($model->artUrl('poster'))->toBe($expectedUrl);

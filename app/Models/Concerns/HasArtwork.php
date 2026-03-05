@@ -2,6 +2,7 @@
 
 namespace App\Models\Concerns;
 
+use App\Support\Sqid;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,7 +15,7 @@ trait HasArtwork
             return null;
         }
 
-        $params = ['mediable' => $this->artworkMediableType(), 'id' => $this->id, 'type' => $type];
+        $params = ['mediable' => $this->artworkMediableType(), 'id' => Sqid::encode($this->id), 'type' => $type];
 
         if ($preview) {
             $params['preview'] = 1;

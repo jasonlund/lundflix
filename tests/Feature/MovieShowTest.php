@@ -5,6 +5,7 @@ use App\Enums\MovieStatus;
 use App\Models\Movie;
 use App\Models\User;
 use App\Services\CartService;
+use App\Support\Sqid;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -132,7 +133,7 @@ it('returns 404 for non-existent movie', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get(route('movies.show', ['movie' => 99999]))
+        ->get(route('movies.show', ['movie' => Sqid::encode(99999)]))
         ->assertNotFound();
 });
 
