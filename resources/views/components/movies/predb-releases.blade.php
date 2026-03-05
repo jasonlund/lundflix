@@ -10,11 +10,13 @@ use Livewire\Component;
 new class extends Component {
     public Movie $movie;
 
-    private const WINDOW_BEFORE_DAYS = 14;
+    private const WINDOW_BEFORE_MONTHS = 6;
 
-    private const WINDOW_AFTER_DAYS = 30;
+    private const WINDOW_AFTER_MONTHS = 12;
 
-    private const NOT_FOUND_CACHE_HOURS = 12;
+    private const NOT_FOUND_CACHE_HOURS = 1;
+
+    private const FOUND_CACHE_DAYS = 30;
 
     public function placeholder(): string
     {
@@ -45,8 +47,7 @@ new class extends Component {
         $quality = app(PreDBService::class)->highestQuality($this->movie);
 
         if ($quality !== null) {
-            $windowEnd = $this->movie->digital_release_date->copy()->addDays(self::WINDOW_AFTER_DAYS);
-            Cache::put($cacheKey, $quality->value, $windowEnd);
+            Cache::put($cacheKey, $quality->value, now()->addDays(self::FOUND_CACHE_DAYS));
         } else {
             Cache::put($cacheKey, false, now()->addHours(self::NOT_FOUND_CACHE_HOURS));
         }
@@ -60,8 +61,8 @@ new class extends Component {
             return false;
         }
 
-        $windowStart = $this->movie->digital_release_date->copy()->subDays(self::WINDOW_BEFORE_DAYS);
-        $windowEnd = $this->movie->digital_release_date->copy()->addDays(self::WINDOW_AFTER_DAYS);
+        $windowStart = $this->movie->digital_release_date->copy()->subMonths(self::WINDOW_BEFORE_MONTHS);
+        $windowEnd = $this->movie->digital_release_date->copy()->addMonths(self::WINDOW_AFTER_MONTHS);
 
         return today()->gte($windowStart) && today()->lte($windowEnd);
     }

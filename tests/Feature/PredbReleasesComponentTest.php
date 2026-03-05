@@ -52,10 +52,10 @@ describe('window logic', function () {
         Http::assertNothingSent();
     });
 
-    it('renders nothing when outside the 14-day pre-release window', function () {
+    it('renders nothing when outside the 6-month pre-release window', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->create([
-            'digital_release_date' => today()->addDays(15),
+            'digital_release_date' => today()->addMonths(6)->addDay(),
         ]);
 
         $this->actingAs($user);
@@ -66,10 +66,10 @@ describe('window logic', function () {
         Http::assertNothingSent();
     });
 
-    it('renders nothing when past the 30-day post-release window', function () {
+    it('renders nothing when past the 12-month post-release window', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->create([
-            'digital_release_date' => today()->subDays(31),
+            'digital_release_date' => today()->subMonths(12)->subDay(),
         ]);
 
         $this->actingAs($user);
@@ -80,12 +80,12 @@ describe('window logic', function () {
         Http::assertNothingSent();
     });
 
-    it('checks predb when within 14 days before digital release', function () {
+    it('checks predb when within 6 months before digital release', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->create([
             'title' => 'Test Movie',
             'year' => 2024,
-            'digital_release_date' => today()->addDays(10),
+            'digital_release_date' => today()->addMonths(3),
         ]);
 
         Http::fake(fakePredbSearchResponse([]));
@@ -98,12 +98,12 @@ describe('window logic', function () {
         Http::assertSentCount(1);
     });
 
-    it('checks predb when within 30 days after digital release', function () {
+    it('checks predb when within 12 months after digital release', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->create([
             'title' => 'Test Movie',
             'year' => 2024,
-            'digital_release_date' => today()->subDays(20),
+            'digital_release_date' => today()->subMonths(8),
         ]);
 
         Http::fake(fakePredbSearchResponse([]));
@@ -118,7 +118,7 @@ describe('window logic', function () {
 });
 
 describe('caching', function () {
-    it('caches false for 12 hours when no quality release found', function () {
+    it('caches false for 1 hour when no quality release found', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->create([
             'title' => 'Test Movie',
