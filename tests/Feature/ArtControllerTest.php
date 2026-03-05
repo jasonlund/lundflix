@@ -29,7 +29,7 @@ it('redirects to active media url when media exists', function () {
         'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovielogo/cached.png');
     Http::assertNothingSent();
@@ -47,7 +47,7 @@ it('redirects to preview url when preview is requested', function () {
         'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/poster?preview=1");
+    $response = $this->get("/art/movie/{$movie->sqid}/poster?preview=1");
 
     $response->assertRedirect('https://assets.fanart.tv/preview/movies/278/movieposter/cached.jpg');
     Http::assertNothingSent();
@@ -65,7 +65,7 @@ it('preserves query string and fragment when generating preview url', function (
         'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/poster?preview=1");
+    $response = $this->get("/art/movie/{$movie->sqid}/poster?preview=1");
 
     $response->assertRedirect('https://assets.fanart.tv/preview/movies/278/movieposter/cached.jpg?token=abc#section');
     Http::assertNothingSent();
@@ -84,7 +84,7 @@ it('fetches from api and redirects when media does not exist for movie', functio
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovielogo/fresh.png');
     Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $movie->id);
@@ -105,7 +105,7 @@ it('fetches from api and redirects when media does not exist for show', function
         ]),
     ]);
 
-    $response = $this->get("/art/show/{$show->id}/poster");
+    $response = $this->get("/art/show/{$show->sqid}/poster");
 
     $response->assertRedirect('https://assets.fanart.tv/fanart/tv/264492/tvposter/fresh.jpg');
     Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $show->id);
@@ -122,7 +122,7 @@ it('returns 404 when api returns no artwork', function () {
         'webservice.fanart.tv/v3/movies/tt9999999' => Http::response([], 404),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     expect(Cache::has($missingCacheKey))->toBeTrue();
@@ -153,7 +153,7 @@ it('returns 404 when requested type is not in api response', function () {
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
@@ -174,7 +174,7 @@ it('returns 404 when requested type is an empty array', function () {
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
@@ -197,7 +197,7 @@ it('falls back to clear art when logo is missing', function () {
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovieclearart/clear.png');
     Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $movie->id);
@@ -216,7 +216,7 @@ it('ignores 4k backgrounds when requesting background', function () {
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/background");
+    $response = $this->get("/art/movie/{$movie->sqid}/background");
 
     $response->assertNotFound();
     expect(Cache::has("fanart:missing:movie:{$movie->id}:background"))->toBeTrue();
@@ -244,7 +244,7 @@ it('returns 404 for invalid mediable type', function () {
 it('returns 404 for unsupported art type', function () {
     $movie = Movie::factory()->create();
 
-    $response = $this->get("/art/movie/{$movie->id}/hdmovielogo");
+    $response = $this->get("/art/movie/{$movie->sqid}/hdmovielogo");
 
     $response->assertNotFound();
 });
@@ -256,7 +256,7 @@ it('returns 404 when show has no thetvdb_id', function () {
         'thetvdb_id' => null,
     ]);
 
-    $response = $this->get("/art/show/{$show->id}/poster");
+    $response = $this->get("/art/show/{$show->sqid}/poster");
 
     $response->assertNotFound();
     Queue::assertNothingPushed();
@@ -275,7 +275,7 @@ it('returns 404 when image url is missing', function () {
         ]),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
@@ -291,10 +291,10 @@ it('skips api request when missing artwork is cached', function () {
         'webservice.fanart.tv/v3/movies/tt9999999' => Http::response([], 404),
     ]);
 
-    $this->get("/art/movie/{$movie->id}/logo")->assertNotFound();
+    $this->get("/art/movie/{$movie->sqid}/logo")->assertNotFound();
     Http::assertSentCount(1);
 
-    $this->get("/art/movie/{$movie->id}/logo")->assertNotFound();
+    $this->get("/art/movie/{$movie->sqid}/logo")->assertNotFound();
     Http::assertSentCount(1);
     Queue::assertNothingPushed();
 });
@@ -311,7 +311,7 @@ it('returns 404 and caches error for 12 hours when api returns server error', fu
         'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([], 500),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     Exceptions::assertReported(RequestException::class);
@@ -339,7 +339,7 @@ it('returns 404 and caches error for 12 hours when api times out', function () {
         'webservice.fanart.tv/v3/movies/tt0111161' => fn () => throw new ConnectionException('Connection timed out'),
     ]);
 
-    $response = $this->get("/art/movie/{$movie->id}/logo");
+    $response = $this->get("/art/movie/{$movie->sqid}/logo");
 
     $response->assertNotFound();
     Exceptions::assertReported(ConnectionException::class);
@@ -360,6 +360,6 @@ it('redirects guests to login', function () {
 
     $movie = Movie::factory()->create();
 
-    $this->get("/art/movie/{$movie->id}/logo")
+    $this->get("/art/movie/{$movie->sqid}/logo")
         ->assertRedirect(route('login'));
 });

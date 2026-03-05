@@ -324,7 +324,7 @@ new class extends Component {
             @foreach ($this->results as $result)
                 <a
                     wire:key="search-result-{{ $result['type'] }}-{{ $result['id'] }}"
-                    href="{{ $result['type'] === 'show' ? route('shows.show', $result['id']) : route('movies.show', $result['id']) }}"
+                    href="{{ $result['type'] === 'show' ? route('shows.show', $result['model']) : route('movies.show', $result['model']) }}"
                     wire:navigate
                     data-command-item
                     x-on:mouseenter="activate($el)"

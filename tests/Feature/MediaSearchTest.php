@@ -131,7 +131,7 @@ it('renders HD clear logo art for results', function (string $type, string $artT
 
     $expectedUrl = route('art', [
         'mediable' => $type,
-        'id' => $model->id,
+        'id' => $model->sqid,
         'type' => $artType,
         'preview' => 1,
     ]);

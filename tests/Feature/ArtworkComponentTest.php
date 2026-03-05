@@ -13,7 +13,7 @@ it('renders img with correct src for a show', function () {
         ['model' => $show]
     );
 
-    $expectedUrl = route('art', ['mediable' => 'show', 'id' => $show->id, 'type' => 'logo']);
+    $expectedUrl = route('art', ['mediable' => 'show', 'id' => $show->sqid, 'type' => 'logo']);
 
     expect($html)
         ->toContain('src="'.$expectedUrl.'"')
@@ -31,7 +31,7 @@ it('renders img with correct src for a movie', function () {
         ['model' => $movie]
     );
 
-    $expectedUrl = route('art', ['mediable' => 'movie', 'id' => $movie->id, 'type' => 'logo']);
+    $expectedUrl = route('art', ['mediable' => 'movie', 'id' => $movie->sqid, 'type' => 'logo']);
 
     expect($html)->toContain('src="'.$expectedUrl.'"');
 });
