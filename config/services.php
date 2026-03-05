@@ -51,4 +51,8 @@ return [
         'api_key' => env('TMDB_API_KEY'),
     ],
 
+    'predb' => [
+        'base_url' => env('PREDB_BASE_URL', 'https://api.predb.net'),
+    ],
+
 ];
