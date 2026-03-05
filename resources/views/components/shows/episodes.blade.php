@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
+use App\Enums\EpisodeType;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\ThirdParty\TVMazeService;
@@ -90,7 +91,9 @@ new class extends Component {
             app(UpsertTVMazeEpisodes::class)->fromApi($this->show, $apiEpisodes);
         }
 
-        $this->episodes = collect($apiEpisodes);
+        $this->episodes = collect($apiEpisodes)
+            ->reject(fn (array $ep): bool => ($ep['type'] ?? 'regular') === EpisodeType::InsignificantSpecial->value)
+            ->values();
     }
 
     public function dehydrate(): void

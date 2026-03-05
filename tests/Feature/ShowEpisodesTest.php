@@ -330,6 +330,23 @@ it('dispatches toast when episodes are swapped with same count', function () {
         ->assertDispatched('toast-show');
 });
 
+it('filters insignificant specials from API response', function () {
+    Http::fake([
+        'api.tvmaze.com/shows/1/episodes?specials=1' => Http::response([
+            ['id' => 1, 'name' => 'Pilot', 'season' => 1, 'number' => 1, 'airdate' => '2020-01-01', 'runtime' => 60, 'type' => 'regular'],
+            ['id' => 2, 'name' => 'Behind the Scenes', 'season' => 1, 'number' => null, 'airdate' => '2020-01-08', 'runtime' => 30, 'type' => 'insignificant_special'],
+            ['id' => 3, 'name' => 'Episode 2', 'season' => 1, 'number' => 2, 'airdate' => '2020-01-15', 'runtime' => 60, 'type' => 'regular'],
+        ]),
+    ]);
+
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    Livewire::test('shows.episodes', ['show' => $show])
+        ->assertSee('Pilot')
+        ->assertSee('Episode 2')
+        ->assertDontSee('Behind the Scenes');
+});
+
 it('does not dispatch toast when synced episodes are unchanged', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 

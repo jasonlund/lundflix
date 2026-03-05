@@ -43,4 +43,14 @@ class EpisodeFactory extends Factory
             'type' => EpisodeType::SignificantSpecial,
         ]);
     }
+
+    /**
+     * Indicate that the episode is an insignificant special.
+     */
+    public function insignificant(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => EpisodeType::InsignificantSpecial,
+        ]);
+    }
 }
