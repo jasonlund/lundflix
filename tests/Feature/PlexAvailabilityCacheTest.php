@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -131,6 +133,11 @@ describe('show plex availability caching', function () {
         $user = User::factory()->withPlex()->create();
         $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
 
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-test',
+            'visible' => true,
+        ]);
+
         Http::fake([
             'metadata.provider.plex.tv/library/metadata/matches*' => Http::response([
                 'MediaContainer' => [
@@ -169,7 +176,8 @@ describe('show plex availability caching', function () {
         $this->actingAs($user);
 
         Livewire::test('shows.plex-availability', ['show' => $show])
-            ->assertSee('Test Server');
+            ->assertSuccessful()
+            ->assertSeeHtml('server-test');
 
         // Verify cache was populated
         $cacheKey = "plex:show:{$user->id}:{$show->id}";
@@ -179,6 +187,11 @@ describe('show plex availability caching', function () {
     it('returns cached data on subsequent loads for shows', function () {
         $user = User::factory()->withPlex()->create();
         $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'cached-server',
+            'visible' => true,
+        ]);
 
         // Pre-populate the cache
         $cacheKey = "plex:show:{$user->id}:{$show->id}";
@@ -196,7 +209,8 @@ describe('show plex availability caching', function () {
         $this->actingAs($user);
 
         Livewire::test('shows.plex-availability', ['show' => $show])
-            ->assertSee('Cached Show Server');
+            ->assertSuccessful()
+            ->assertSeeHtml('cached-server');
 
         Http::assertNothingSent();
     });
@@ -208,8 +222,229 @@ describe('show plex availability caching', function () {
         $this->actingAs($user);
 
         Livewire::test('shows.plex-availability', ['show' => $show])
-            ->assertSee('Not available on any servers');
+            ->assertSeeHtml('Not on Plex');
 
         Http::assertNothingSent();
+    });
+
+    it('dispatches plex-show-loaded event with episode availability', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Test Server',
+                'clientIdentifier' => 'server-test',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Episode One'],
+                    ['season' => 1, 'episode' => 2, 'title' => 'Episode Two'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        Livewire::test('shows.plex-availability', ['show' => $show])
+            ->assertDispatched('plex-show-loaded');
+    });
+
+    it('shows check badge when server has all aired episodes', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-complete',
+            'visible' => true,
+        ]);
+
+        Episode::factory()->count(3)->sequence(
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay()],
+        )->create(['show_id' => $show->id]);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Complete Server',
+                'clientIdentifier' => 'server-complete',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                    ['season' => 1, 'episode' => 2, 'title' => 'Ep 2'],
+                    ['season' => 1, 'episode' => 3, 'title' => 'Ep 3'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $displayData = $component->instance()->serverDisplayData;
+
+        expect($displayData[0]['hasAllAired'])->toBeTrue()
+            ->and($displayData[0]['tooltip'])->toContain('All episodes');
+    });
+
+    it('shows episode count badge when server has partial episodes', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-partial',
+            'visible' => true,
+        ]);
+
+        Episode::factory()->count(3)->sequence(
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay()],
+        )->create(['show_id' => $show->id]);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Partial Server',
+                'clientIdentifier' => 'server-partial',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                    ['season' => 1, 'episode' => 2, 'title' => 'Ep 2'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $displayData = $component->instance()->serverDisplayData;
+
+        expect($displayData[0]['hasAllAired'])->toBeFalse()
+            ->and($displayData[0]['episodeCount'])->toBe(2)
+            ->and($displayData[0]['tooltip'])->toContain('2 of 3');
+    });
+
+    it('uses owner_thumb from PlexMediaServer model', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-with-avatar',
+            'owner_thumb' => 'https://plex.tv/users/123/avatar',
+            'visible' => true,
+        ]);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Avatar Server',
+                'clientIdentifier' => 'server-with-avatar',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $displayData = $component->instance()->serverDisplayData;
+
+        expect($displayData[0]['ownerThumb'])->toBe('https://plex.tv/users/123/avatar');
+    });
+
+    it('shows not available when server has no visible PlexMediaServer record', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Unknown Server',
+                'clientIdentifier' => 'server-no-record',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+
+        expect($component->instance()->serverDisplayData)->toBeEmpty();
+        $component->assertSeeHtml('Not on Plex');
+    });
+
+    it('filters out non-visible servers even if they exist in database', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-hidden',
+            'visible' => false,
+        ]);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Hidden Server',
+                'clientIdentifier' => 'server-hidden',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+
+        expect($component->instance()->serverDisplayData)->toBeEmpty();
+        $component->assertSeeHtml('Not on Plex');
+    });
+
+    it('excludes unaired episodes from aired count', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-full',
+            'visible' => true,
+        ]);
+
+        Episode::factory()->count(4)->sequence(
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek()],
+            ['season' => 1, 'number' => 4, 'airdate' => null],
+        )->create(['show_id' => $show->id]);
+
+        // Server has both aired episodes — should show as complete
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Full Server',
+                'clientIdentifier' => 'server-full',
+                'owned' => true,
+                'episodes' => [
+                    ['season' => 1, 'episode' => 1, 'title' => 'Ep 1'],
+                    ['season' => 1, 'episode' => 2, 'title' => 'Ep 2'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $displayData = $component->instance()->serverDisplayData;
+
+        expect($displayData[0]['hasAllAired'])->toBeTrue()
+            ->and($displayData[0]['tooltip'])->toContain('All episodes');
     });
 });
