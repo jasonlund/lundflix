@@ -208,5 +208,7 @@ new class extends Component {
         @if ($movie->imdb_id)
             <livewire:movies.plex-availability :movie="$movie" lazy />
         @endif
+
+        <livewire:movies.predb-releases :movie="$movie" lazy />
     </div>
 </div>

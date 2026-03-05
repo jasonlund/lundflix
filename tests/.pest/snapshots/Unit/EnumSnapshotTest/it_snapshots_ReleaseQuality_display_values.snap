@@ -1,0 +1,35 @@
+{
+    "Cam": {
+        "label": "CAM"
+    },
+    "Telesync": {
+        "label": "Telesync"
+    },
+    "Telecine": {
+        "label": "Telecine"
+    },
+    "Screener": {
+        "label": "Screener"
+    },
+    "DVDScr": {
+        "label": "DVD Screener"
+    },
+    "DVDRip": {
+        "label": "DVD Rip"
+    },
+    "HDTV": {
+        "label": "HDTV"
+    },
+    "WEBRip": {
+        "label": "WEB Rip"
+    },
+    "WEBDL": {
+        "label": "WEB-DL"
+    },
+    "BDRip": {
+        "label": "BD Rip"
+    },
+    "BluRay": {
+        "label": "Blu-Ray"
+    }
+}
