@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum ReleaseQuality: int
+use Filament\Support\Contracts\HasLabel;
+
+enum ReleaseQuality: int implements HasLabel
 {
     case Cam = 1;
     case Telesync = 2;
@@ -96,7 +98,7 @@ enum ReleaseQuality: int
         return $this->value >= $threshold->value;
     }
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Cam => 'CAM',

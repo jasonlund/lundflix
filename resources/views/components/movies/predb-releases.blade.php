@@ -44,7 +44,11 @@ new class extends Component {
             return ReleaseQuality::tryFrom($cached);
         }
 
-        $quality = app(PreDBService::class)->highestQuality($this->movie);
+        try {
+            $quality = app(PreDBService::class)->highestQuality($this->movie);
+        } catch (\Throwable) {
+            return null;
+        }
 
         if ($quality !== null) {
             Cache::put($cacheKey, $quality->value, now()->addDays(self::FOUND_CACHE_DAYS));
@@ -73,7 +77,7 @@ new class extends Component {
     @if ($this->highestQuality !== null)
         <div class="flex items-center gap-1.5">
             <flux:icon.circle-check variant="mini" class="text-green-500" />
-            <span class="text-sm text-green-500">{{ $this->highestQuality->label() }}</span>
+            <span class="text-sm text-green-500">{{ $this->highestQuality->getLabel() }}</span>
         </div>
     @elseif ($this->isInWindow())
         <flux:icon.clock variant="mini" class="text-zinc-500" />

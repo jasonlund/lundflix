@@ -179,6 +179,28 @@ describe('caching', function () {
     });
 });
 
+describe('error handling', function () {
+    it('degrades gracefully when the PreDB API fails', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->create([
+            'title' => 'Test Movie',
+            'year' => 2024,
+            'digital_release_date' => today()->addDays(5),
+        ]);
+
+        Http::fake(['api.predb.net*' => Http::response('Service Unavailable', 503)]);
+
+        $this->actingAs($user);
+
+        Livewire::test('movies.predb-releases', ['movie' => $movie])
+            ->assertSuccessful()
+            ->assertDontSeeHtml('text-green-500');
+
+        $cacheKey = "predb:quality:{$movie->id}";
+        expect(Cache::has($cacheKey))->toBeFalse();
+    });
+});
+
 describe('rendering', function () {
     it('shows green icon and quality label when quality release is found', function () {
         $user = User::factory()->create();

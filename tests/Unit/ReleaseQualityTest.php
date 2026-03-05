@@ -147,24 +147,6 @@ describe('tags', function () {
     ]);
 });
 
-describe('label', function () {
-    it('returns human-readable labels for each quality', function (ReleaseQuality $quality, string $expected) {
-        expect($quality->label())->toBe($expected);
-    })->with([
-        'Cam' => [ReleaseQuality::Cam, 'CAM'],
-        'Telesync' => [ReleaseQuality::Telesync, 'Telesync'],
-        'Telecine' => [ReleaseQuality::Telecine, 'Telecine'],
-        'Screener' => [ReleaseQuality::Screener, 'Screener'],
-        'DVDScr' => [ReleaseQuality::DVDScr, 'DVD Screener'],
-        'DVDRip' => [ReleaseQuality::DVDRip, 'DVD Rip'],
-        'HDTV' => [ReleaseQuality::HDTV, 'HDTV'],
-        'WEBRip' => [ReleaseQuality::WEBRip, 'WEB Rip'],
-        'WEBDL' => [ReleaseQuality::WEBDL, 'WEB-DL'],
-        'BDRip' => [ReleaseQuality::BDRip, 'BD Rip'],
-        'BluRay' => [ReleaseQuality::BluRay, 'Blu-Ray'],
-    ]);
-});
-
 describe('excludedTags', function () {
     it('returns tags for qualities below DVDScr by default', function () {
         $tags = ReleaseQuality::excludedTags();

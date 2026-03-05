@@ -9,6 +9,7 @@ use App\Enums\MovieArtwork;
 use App\Enums\MovieArtworkLevel;
 use App\Enums\MovieStatus;
 use App\Enums\NetworkLogo;
+use App\Enums\ReleaseQuality;
 use App\Enums\RequestItemStatus;
 use App\Enums\RequestStatus;
 use App\Enums\ShowStatus;
@@ -141,6 +142,14 @@ it('snapshots TvArtwork display values', function () {
 
 it('snapshots TvArtworkLevel display values', function () {
     $values = collect(TvArtworkLevel::cases())->mapWithKeys(fn (TvArtworkLevel $e) => [
+        $e->name => ['label' => $e->getLabel()],
+    ])->all();
+
+    expect($values)->toMatchSnapshot();
+});
+
+it('snapshots ReleaseQuality display values', function () {
+    $values = collect(ReleaseQuality::cases())->mapWithKeys(fn (ReleaseQuality $e) => [
         $e->name => ['label' => $e->getLabel()],
     ])->all();
 
