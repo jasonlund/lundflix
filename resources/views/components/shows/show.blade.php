@@ -215,10 +215,6 @@ new class extends Component {
                     </div>
                 </flux:tooltip>
             </div>
-
-            @if ($show->imdb_id)
-                <livewire:shows.plex-availability :show="$show" lazy />
-            @endif
         </div>
 
         <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
@@ -304,6 +300,10 @@ new class extends Component {
     </div>
 
     <div class="flex flex-col gap-8">
+        @if ($show->imdb_id)
+            <livewire:shows.plex-availability :show="$show" lazy />
+        @endif
+
         @if ($this->episodes()->isNotEmpty())
             <livewire:shows.episodes :show="$show" :episodes="$this->episodes()" />
         @else

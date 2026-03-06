@@ -233,7 +233,7 @@ new class extends Component {
     <flux:modal
         name="search"
         variant="bare"
-        class="m-0 h-dvh min-h-dvh w-full max-w-none p-0 md:mx-auto md:max-w-screen-md [&::backdrop]:bg-transparent"
+        class="m-0 h-dvh min-h-dvh w-full max-w-none p-0 md:mx-auto md:max-w-screen-md"
     >
         <x-command-panel
             name="search"
