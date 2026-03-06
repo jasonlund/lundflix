@@ -234,6 +234,14 @@ class Movie extends Model
         return $this->morphMany(Media::class, 'mediable');
     }
 
+    /**
+     * @return MorphMany<Subscription, $this>
+     */
+    public function subscriptions(): MorphMany
+    {
+        return $this->morphMany(Subscription::class, 'subscribable');
+    }
+
     protected function artworkExternalIdValue(): string|int|null
     {
         return $this->imdb_id;
