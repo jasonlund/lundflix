@@ -16,12 +16,16 @@ new class extends Component {
     public function placeholder(): string
     {
         return <<<'HTML'
-        <div class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm">
-            <div class="relative flex min-w-4 items-center justify-center">
-                <span class="invisible">-</span>
-                <flux:icon.loading class="absolute size-4 text-zinc-400" />
-            </div>
-            <flux:icon.play-circle class="size-4 text-zinc-400" />
+        <div>
+            <flux:card class="overflow-hidden p-3">
+                <div class="flex w-full items-center justify-between">
+                    <flux:heading size="sm">Availability</flux:heading>
+                    <div class="flex items-center gap-3">
+                        <flux:icon.loading class="size-4 text-zinc-400" />
+                        <flux:icon.chevron-down class="size-4 text-zinc-400" />
+                    </div>
+                </div>
+            </flux:card>
         </div>
         HTML;
     }
@@ -59,7 +63,7 @@ new class extends Component {
     }
 
     /**
-     * @return list<array{name: string, clientIdentifier: string, ownerThumb: string|null, episodeCount: int, hasAllAired: bool, tooltip: string}>
+     * @return list<array{name: string, clientIdentifier: string, ownerThumb: string|null, isOnline: bool, episodeCount: int, airedCount: int, hasAllAired: bool, tooltip: string, webUrl: string}>
      */
     #[Computed]
     public function serverDisplayData(): array
@@ -73,7 +77,8 @@ new class extends Component {
         $clientIds = $this->servers->pluck('clientIdentifier')->all();
         $plexServers = PlexMediaServer::where('visible', true)
             ->whereIn('client_identifier', $clientIds)
-            ->pluck('owner_thumb', 'client_identifier');
+            ->get()
+            ->keyBy('client_identifier');
 
         return $this->servers
             ->filter(fn (array $server): bool => $plexServers->has($server['clientIdentifier']))
@@ -85,13 +90,19 @@ new class extends Component {
                     ? "{$server['name']} — All episodes"
                     : "{$server['name']} — {$episodeCount} of {$airedCount} episodes";
 
+                $ratingKey = $server['show']['ratingKey'] ?? '';
+                $webUrl = "https://app.plex.tv/desktop/#!/server/{$server['clientIdentifier']}/details?key=%2Flibrary%2Fmetadata%2F{$ratingKey}";
+
                 return [
                     'name' => $server['name'],
                     'clientIdentifier' => $server['clientIdentifier'],
-                    'ownerThumb' => $plexServers->get($server['clientIdentifier']),
+                    'ownerThumb' => $plexServers->get($server['clientIdentifier'])->owner_thumb,
+                    'isOnline' => $plexServers->get($server['clientIdentifier'])->is_online,
                     'episodeCount' => $episodeCount,
+                    'airedCount' => $airedCount,
                     'hasAllAired' => $hasAllAired,
                     'tooltip' => $tooltip,
+                    'webUrl' => $webUrl,
                 ];
             })
             ->all();
@@ -100,64 +111,131 @@ new class extends Component {
     /**
      * Transform server-centric data to episode-centric lookup.
      *
-     * @return array<string, array<int, array{name: string, owned: bool}>>
+     * @return array<string, list<array{name: string, clientIdentifier: string, ownerThumb: string|null, isOnline: bool, videoResolution: string|null, duration: int|null, webUrl: string}>>
      */
     public function episodeAvailability(): array
     {
+        if ($this->servers->isEmpty()) {
+            return [];
+        }
+
+        $clientIds = $this->servers->pluck('clientIdentifier')->all();
+        $plexServers = PlexMediaServer::where('visible', true)
+            ->whereIn('client_identifier', $clientIds)
+            ->get()
+            ->keyBy('client_identifier');
+
         $availability = [];
 
         foreach ($this->servers as $server) {
+            $plexServer = $plexServers->get($server['clientIdentifier']);
+            if (! $plexServer) {
+                continue;
+            }
+
             foreach ($server['episodes'] as $ep) {
                 $code = strtoupper(EpisodeCode::generate($ep['season'], $ep['episode']));
-
-                if (! isset($availability[$code])) {
-                    $availability[$code] = [];
-                }
+                $ratingKey = $ep['ratingKey'] ?? '';
+                $webUrl = "https://app.plex.tv/desktop/#!/server/{$server['clientIdentifier']}/details?key=%2Flibrary%2Fmetadata%2F{$ratingKey}";
+                $resolution = $ep['videoResolution'] ?? null;
 
                 $availability[$code][] = [
                     'name' => $server['name'],
-                    'owned' => $server['owned'],
+                    'clientIdentifier' => $server['clientIdentifier'],
+                    'ownerThumb' => $plexServer->owner_thumb,
+                    'isOnline' => $plexServer->is_online,
+                    'videoResolution' => self::formatResolution($resolution),
+                    'duration' => $ep['duration'] ?? null,
+                    'webUrl' => $webUrl,
                 ];
             }
         }
 
         return $availability;
     }
+
+    private static function formatResolution(?string $resolution): ?string
+    {
+        if ($resolution === null) {
+            return null;
+        }
+
+        return match (strtolower($resolution)) {
+            '4k' => '4K',
+            'sd' => 'SD',
+            default => $resolution . 'p',
+        };
+    }
 };
 ?>
 
 <div>
-    @if (count($this->serverDisplayData) > 0)
-        <div
-            class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-2 py-1 backdrop-blur-sm"
-        >
-            <flux:avatar.group class="**:ring-transparent">
-                @foreach ($this->serverDisplayData as $server)
-                    <flux:avatar
-                        wire:key="server-{{ $server['clientIdentifier'] }}"
-                        size="sm"
-                        :src="$server['ownerThumb']"
-                        :name="$server['name']"
-                        :tooltip="$server['tooltip']"
-                        :badge="$server['hasAllAired'] ? '✓' : ($server['episodeCount'] > 99 ? '99+' : (string) $server['episodeCount'])"
-                        badge:color="{{ $server['hasAllAired'] ? 'green' : 'zinc' }}"
-                        badge:position="bottom left"
-                    />
-                @endforeach
-            </flux:avatar.group>
-            <flux:icon.play-circle class="size-4 text-white" />
-        </div>
-    @else
-        <flux:tooltip content="Not on Plex">
-            <div
-                class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
-            >
-                <div class="relative flex min-w-4 items-center justify-center">
-                    <span class="invisible">-</span>
-                    <flux:icon.x-mark variant="mini" class="absolute size-4 text-zinc-400" />
+    <x-section heading="Availability" collapsible>
+        <x-slot:action>
+            @if (count($this->serverDisplayData) > 0)
+                <div class="flex items-center text-sm text-zinc-400">
+                    @foreach ($this->serverDisplayData as $server)
+                        @if (! $loop->first)
+                            <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                        @endif
+
+                        <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
+                            <flux:avatar
+                                size="xs"
+                                circle
+                                :src="$server['ownerThumb']"
+                                :name="$server['name']"
+                                :tooltip="$server['tooltip']"
+                            />
+                            <span>{{ $server['episodeCount'] }}</span>
+                        </div>
+                    @endforeach
                 </div>
-                <flux:icon.play-circle class="size-4 text-zinc-400" />
-            </div>
-        </flux:tooltip>
-    @endif
+            @endif
+        </x-slot>
+
+        @if (count($this->serverDisplayData) > 0)
+            <flux:table class="mt-4">
+                <flux:table.rows>
+                    @foreach ($this->serverDisplayData as $server)
+                        <flux:table.row wire:key="row-{{ $server['clientIdentifier'] }}">
+                            <flux:table.cell variant="strong">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
+                                    ></div>
+                                    <flux:avatar
+                                        size="xs"
+                                        circle
+                                        :src="$server['ownerThumb']"
+                                        :name="$server['name']"
+                                    />
+                                    {{ $server['name'] }}
+                                </div>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                @if ($server['hasAllAired'])
+                                    All
+                                @else
+                                    {{ $server['episodeCount'] }}
+                                @endif
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <flux:button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon="arrow-top-right-on-square"
+                                    href="{{ $server['webUrl'] }}"
+                                    target="_blank"
+                                    inset="top bottom"
+                                />
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
+        @else
+            <flux:text class="mt-4 text-zinc-500">Not available on any Plex server.</flux:text>
+        @endif
+    </x-section>
 </div>

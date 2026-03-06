@@ -66,15 +66,11 @@ new class extends Component {
                     <flux:table.row :key="$server->client_identifier">
                         <flux:table.cell variant="strong">
                             <div class="flex items-center gap-2">
-                                <flux:avatar size="xs" circle :src="$server->owner_thumb" :name="$server->name" />
-                                {{ $server->name }}
-                            </div>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            <div class="flex items-center gap-2">
                                 <div
                                     class="{{ $server->is_online ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
                                 ></div>
+                                <flux:avatar size="xs" circle :src="$server->owner_thumb" :name="$server->name" />
+                                {{ $server->name }}
                                 @unless ($server->is_online)
                                     <flux:text size="xs">
                                         {{ $server->last_seen_at?->shortAbsoluteDiffForHumans() }} ago
