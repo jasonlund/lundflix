@@ -133,7 +133,6 @@ it('renders HD clear logo art for results', function (string $type, string $artT
         'mediable' => $type,
         'id' => $model->sqid,
         'type' => $artType,
-        'preview' => 1,
     ]);
 
     Livewire::test('media-search')

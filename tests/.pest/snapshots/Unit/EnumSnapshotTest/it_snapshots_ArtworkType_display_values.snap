@@ -1,0 +1,14 @@
+{
+    "Poster": {
+        "label": "Poster",
+        "color": "success"
+    },
+    "Backdrop": {
+        "label": "Backdrop",
+        "color": "warning"
+    },
+    "Logo": {
+        "label": "Logo",
+        "color": "info"
+    }
+}

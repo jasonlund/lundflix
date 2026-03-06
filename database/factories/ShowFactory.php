@@ -22,6 +22,7 @@ class ShowFactory extends Factory
             'tvmaze_id' => fake()->unique()->numberBetween(1, 100000),
             'imdb_id' => 'tt'.fake()->unique()->numerify('#######'),
             'thetvdb_id' => fake()->unique()->numberBetween(100000, 999999),
+            'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'name' => fake()->sentence(3),
             'type' => fake()->randomElement(['Scripted', 'Animation', 'Reality', 'Documentary', 'Talk Show']),
             'language' => fake()->randomElement(Language::cases())->getLabel(),
@@ -35,5 +36,14 @@ class ShowFactory extends Factory
             'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States']],
             'web_channel' => null,
         ];
+    }
+
+    public function withTmdbData(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
+            'tmdb_synced_at' => now(),
+            'overview' => fake()->paragraph(),
+        ]);
     }
 }

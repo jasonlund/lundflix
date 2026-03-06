@@ -4,49 +4,26 @@ namespace App\Models\Concerns;
 
 use App\Support\Sqid;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Support\Facades\Cache;
 
 /** @property string|int|null $artwork_external_id */
 trait HasArtwork
 {
-    public function artUrl(string $type, bool $preview = false): ?string
+    public function artUrl(string $type): ?string
     {
-        if (! $this->canFetchArt($type)) {
+        if (! $this->canHaveArt()) {
             return null;
         }
 
-        $params = ['mediable' => $this->artworkMediableType(), 'id' => Sqid::encode($this->id), 'type' => $type];
-
-        if ($preview) {
-            $params['preview'] = 1;
-        }
-
-        return route('art', $params);
+        return route('art', [
+            'mediable' => $this->artworkMediableType(),
+            'id' => Sqid::encode($this->id),
+            'type' => $type,
+        ]);
     }
 
     public function canHaveArt(): bool
     {
         return $this->artwork_external_id !== null;
-    }
-
-    public function canFetchArt(string $type): bool
-    {
-        if (! $this->canHaveArt()) {
-            return false;
-        }
-
-        return ! Cache::has($this->artMissingCacheKey())
-            && ! Cache::has($this->artMissingTypeCacheKey($type));
-    }
-
-    public function artMissingCacheKey(): string
-    {
-        return "fanart:missing:{$this->artworkMediableType()}:{$this->id}";
-    }
-
-    public function artMissingTypeCacheKey(string $type): string
-    {
-        return "{$this->artMissingCacheKey()}:{$type}";
     }
 
     protected function artworkExternalId(): Attribute

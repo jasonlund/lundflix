@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\LanguageFromCode;
 use App\Casts\LanguageFromName;
 use App\Enums\NetworkLogo;
 use App\Enums\ShowStatus;
@@ -32,6 +33,15 @@ class Show extends Model
             'num_votes' => 'integer',
             'status' => ShowStatus::class,
             'language' => LanguageFromName::class,
+            'tmdb_id' => 'integer',
+            'tmdb_synced_at' => 'datetime',
+            'original_language' => LanguageFromCode::class,
+            'spoken_languages' => 'array',
+            'production_companies' => 'array',
+            'origin_country' => 'array',
+            'content_ratings' => 'array',
+            'alternative_titles' => 'array',
+            'in_production' => 'boolean',
         ];
     }
 
@@ -146,7 +156,7 @@ class Show extends Model
 
     protected function artworkExternalIdValue(): string|int|null
     {
-        return $this->thetvdb_id;
+        return $this->tmdb_id;
     }
 
     protected function artworkMediableType(): string

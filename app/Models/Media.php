@@ -2,20 +2,28 @@
 
 namespace App\Models;
 
-use App\Enums\MovieArtwork;
-use App\Enums\TvArtwork;
+use App\Enums\ArtworkType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @property ArtworkType $type
+ */
 class Media extends Model
 {
     use HasFactory;
 
+    private const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+
     protected function casts(): array
     {
         return [
-            'likes' => 'integer',
+            'type' => ArtworkType::class,
+            'vote_average' => 'float',
+            'vote_count' => 'integer',
+            'width' => 'integer',
+            'height' => 'integer',
             'season' => 'integer',
             'is_active' => 'boolean',
         ];
@@ -30,19 +38,20 @@ class Media extends Model
     }
 
     /**
-     * Get the artwork enum for this media item.
+     * Construct the full TMDB CDN URL for a given size.
      */
-    public function getArtwork(): TvArtwork|MovieArtwork|null
+    public function url(?string $size = null): string
     {
-        return TvArtwork::tryFrom($this->type)
-            ?? MovieArtwork::tryFrom($this->type);
+        $size ??= $this->type->defaultSize();
+
+        return self::IMAGE_BASE_URL.'/'.$size.$this->file_path;
     }
 
     /**
-     * Get the display label for this media's artwork type.
+     * Get the full-resolution original URL.
      */
-    public function getTypeLabel(): string
+    public function originalUrl(): string
     {
-        return $this->getArtwork()?->getLabel() ?? $this->type;
+        return $this->url('original');
     }
 }
