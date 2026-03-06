@@ -3,6 +3,7 @@
     'type' => 'logo',
     'alt' => '',
     'preview' => false,
+    'fallback' => true,
 ])
 
 @php
@@ -36,7 +37,9 @@
             class="{{ $aspectClass }} h-full w-auto object-contain"
         />
         <div x-show="failed" x-cloak class="flex h-full items-center">
-            @if ($slot->isEmpty())
+            @if ($slot->isNotEmpty())
+                {{ $slot }}
+            @elseif ($fallback)
                 @if ($type === 'background')
                     <div class="{{ $aspectClass }} bg-black"></div>
                 @else
@@ -46,25 +49,23 @@
                         </span>
                     </div>
                 @endif
-            @else
-                {{ $slot }}
             @endif
         </div>
     </div>
-@else
+@elseif ($slot->isNotEmpty())
     <div {{ $attributes }}>
-        @if ($slot->isEmpty())
-            @if ($type === 'background')
-                <div class="{{ $aspectClass }} bg-black"></div>
-            @else
-                <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                    <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
-                        {{ $name }}
-                    </span>
-                </div>
-            @endif
+        {{ $slot }}
+    </div>
+@elseif ($fallback)
+    <div {{ $attributes }}>
+        @if ($type === 'background')
+            <div class="{{ $aspectClass }} bg-black"></div>
         @else
-            {{ $slot }}
+            <div class="{{ $aspectClass }} flex w-full items-center justify-center">
+                <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
+                    {{ $name }}
+                </span>
+            </div>
         @endif
     </div>
 @endif
