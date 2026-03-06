@@ -126,6 +126,28 @@ it('does not add preview query param by default', function () {
     expect($html)->not->toContain('preview=');
 });
 
+it('renders nothing when fallback is false and no artwork exists', function () {
+    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'thetvdb_id' => null]);
+
+    $html = Blade::render(
+        '<x-artwork :model="$model" type="logo" alt="Test" :fallback="false" />',
+        ['model' => $show]
+    );
+
+    expect(trim($html))->toBeEmpty();
+});
+
+it('still renders fallback text by default when no artwork exists', function () {
+    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'thetvdb_id' => null]);
+
+    $html = Blade::render(
+        '<x-artwork :model="$model" type="logo" alt="Test" />',
+        ['model' => $show]
+    );
+
+    expect($html)->toContain('Nirvanna the Band');
+});
+
 it('passes attributes through to the outer container', function () {
     $show = Show::factory()->create();
 
