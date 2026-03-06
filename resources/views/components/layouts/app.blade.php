@@ -1,5 +1,5 @@
 @php
-    $defaultBackground = Vite::image('default-background.jpg');
+    $defaultBackground = Vite::image('default-background.svg');
     $backgroundImage ??= $defaultBackground;
 @endphp
 
