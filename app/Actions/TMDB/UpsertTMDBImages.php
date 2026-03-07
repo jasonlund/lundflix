@@ -23,6 +23,14 @@ class UpsertTMDBImages
         ];
 
         $records = [];
+        $managedTypes = array_map(
+            fn (ArtworkType $artworkType): string => $artworkType->value,
+            array_values($typeMapping),
+        );
+
+        $model->media()
+            ->whereIn('type', $managedTypes)
+            ->update(['is_active' => false]);
 
         foreach ($typeMapping as $key => $artworkType) {
             $images = $imagesResponse[$key] ?? [];

@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\ArtworkType;
 use App\Models\Episode;
+use App\Models\Media;
 use App\Models\Show;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -121,8 +123,14 @@ describe('art helpers', function () {
         expect($show->artUrl('background'))->toBeNull();
     });
 
-    it('builds an art url when tmdb id is present', function () {
+    it('builds an art url when tmdb id is present and active media exists', function () {
         $show = Show::factory()->create(['tmdb_id' => 12345]);
+
+        Media::factory()->active()->create([
+            'mediable_type' => Show::class,
+            'mediable_id' => $show->id,
+            'type' => ArtworkType::Logo->value,
+        ]);
 
         expect($show->artUrl('logo'))
             ->toBe(route('art', ['mediable' => 'show', 'id' => $show->sqid, 'type' => 'logo']));

@@ -171,6 +171,55 @@ it('updates existing records on re-run with new data', function () {
         ->and($media->vote_count)->toBe(50);
 });
 
+it('deactivates previous active media before setting a new active image', function () {
+    $movie = Movie::factory()->create();
+
+    $upsert = app(UpsertTMDBImages::class);
+
+    $upsert->upsert($movie, [
+        'posters' => [
+            ['file_path' => '/old-poster.jpg', 'iso_639_1' => 'en', 'vote_average' => 5.0, 'vote_count' => 10, 'width' => 500, 'height' => 750],
+        ],
+        'backdrops' => [],
+        'logos' => [],
+    ]);
+
+    $upsert->upsert($movie, [
+        'posters' => [
+            ['file_path' => '/new-poster.jpg', 'iso_639_1' => 'en', 'vote_average' => 8.0, 'vote_count' => 50, 'width' => 500, 'height' => 750],
+        ],
+        'backdrops' => [],
+        'logos' => [],
+    ]);
+
+    expect($movie->media()->where('type', ArtworkType::Poster->value)->where('is_active', true)->count())->toBe(1)
+        ->and($movie->media()->where('file_path', '/old-poster.jpg')->first()?->is_active)->toBeFalse()
+        ->and($movie->media()->where('file_path', '/new-poster.jpg')->first()?->is_active)->toBeTrue();
+});
+
+it('deactivates missing artwork types on re-run', function () {
+    $movie = Movie::factory()->create();
+
+    $upsert = app(UpsertTMDBImages::class);
+
+    $upsert->upsert($movie, [
+        'posters' => [],
+        'backdrops' => [],
+        'logos' => [
+            ['file_path' => '/logo.jpg', 'iso_639_1' => 'en', 'vote_average' => 6.0, 'vote_count' => 5, 'width' => 500, 'height' => 200],
+        ],
+    ]);
+
+    $upsert->upsert($movie, [
+        'posters' => [],
+        'backdrops' => [],
+        'logos' => [],
+    ]);
+
+    expect($movie->media()->where('type', ArtworkType::Logo->value)->where('is_active', true)->count())->toBe(0)
+        ->and($movie->media()->where('file_path', '/logo.jpg')->first()?->is_active)->toBeFalse();
+});
+
 it('works for shows', function () {
     $show = Show::factory()->create();
 
