@@ -6,6 +6,7 @@ use App\Enums\ArtworkType;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\Sqid;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ArtController extends Controller
@@ -16,7 +17,7 @@ class ArtController extends Controller
         'background' => ArtworkType::Backdrop,
     ];
 
-    public function __invoke(string $mediable, string $id, string $type): Response
+    public function __invoke(Request $request, string $mediable, string $id, string $type): Response
     {
         $artworkType = self::TYPE_MAP[$type] ?? null;
 
@@ -49,6 +50,9 @@ class ArtController extends Controller
             abort(404);
         }
 
-        return redirect()->away($media->url());
+        $size = $request->query('size');
+        $validSize = is_string($size) && in_array($size, ArtworkType::VALID_SIZES) ? $size : null;
+
+        return redirect()->away($media->url($validSize));
     }
 }

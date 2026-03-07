@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ArtworkType;
+use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\Formatters;
@@ -129,11 +131,17 @@ it('does not show imdb tip callout for short queries', function () {
 it('renders HD clear logo art for results', function (string $type, string $artType, callable $factory): void {
     $model = $factory();
 
+    Media::factory()->active()->create([
+        'mediable_type' => $model::class,
+        'mediable_id' => $model->id,
+        'type' => ArtworkType::Logo->value,
+    ]);
+
     $expectedUrl = route('art', [
         'mediable' => $type,
         'id' => $model->sqid,
         'type' => $artType,
-    ]);
+    ]).'?size=w200';
 
     Livewire::test('media-search')
         ->set('query', $model->imdb_id)

@@ -12,6 +12,8 @@ enum ArtworkType: string implements HasColor, HasLabel
     case Backdrop = 'backdrop';
     case Logo = 'logo';
 
+    public const VALID_SIZES = ['w92', 'w154', 'w185', 'w200', 'w300', 'w342', 'w500', 'w780', 'w1280', 'original'];
+
     public function getLabel(): string
     {
         return Str::headline($this->name);

@@ -97,6 +97,36 @@ it('returns 404 when model has no tmdb id', function () {
     $this->get("/art/show/{$show->sqid}/poster")->assertNotFound();
 });
 
+it('uses custom size when valid size query param is provided', function () {
+    $movie = Movie::factory()->create();
+
+    $movie->media()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
+        'is_active' => true,
+    ]);
+
+    $this->get("/art/movie/{$movie->sqid}/logo?size=w200")
+        ->assertRedirect('https://image.tmdb.org/t/p/w200/abc123.jpg');
+});
+
+it('ignores invalid size query param and uses default', function () {
+    $movie = Movie::factory()->create();
+
+    $movie->media()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
+        'is_active' => true,
+    ]);
+
+    $this->get("/art/movie/{$movie->sqid}/logo?size=w9999")
+        ->assertRedirect('https://image.tmdb.org/t/p/w500/abc123.jpg');
+});
+
 it('redirects guests to login', function () {
     auth()->logout();
 
