@@ -87,7 +87,7 @@ class TMDBService
         try {
             $response = $this->client()
                 ->get(self::BASE_URL.'/movie/'.$tmdbId, [
-                    'append_to_response' => 'release_dates,alternative_titles,images',
+                    'append_to_response' => 'release_dates,images',
                     'include_image_language' => 'en,null',
                 ]);
 
@@ -123,7 +123,7 @@ class TMDBService
             $responses = Http::pool(fn (Pool $pool) => $pending->map(
                 fn (int $tmdbId) => $this->baseRequest($pool->as((string) $tmdbId))
                     ->get(self::BASE_URL.'/movie/'.$tmdbId, [
-                        'append_to_response' => 'release_dates,alternative_titles,images',
+                        'append_to_response' => 'release_dates,images',
                         'include_image_language' => 'en,null',
                     ]),
             )->all(), concurrency: 20);
@@ -252,7 +252,7 @@ class TMDBService
         try {
             $response = $this->client()
                 ->get(self::BASE_URL.'/tv/'.$tmdbId, [
-                    'append_to_response' => 'images,external_ids,content_ratings,alternative_titles',
+                    'append_to_response' => 'images,external_ids,content_ratings',
                     'include_image_language' => 'en,null',
                 ]);
 
@@ -287,7 +287,7 @@ class TMDBService
             $responses = Http::pool(fn (Pool $pool) => $pending->map(
                 fn (int $tmdbId) => $this->baseRequest($pool->as((string) $tmdbId))
                     ->get(self::BASE_URL.'/tv/'.$tmdbId, [
-                        'append_to_response' => 'images,external_ids,content_ratings,alternative_titles',
+                        'append_to_response' => 'images,external_ids,content_ratings',
                         'include_image_language' => 'en,null',
                     ]),
             )->all(), concurrency: 20);

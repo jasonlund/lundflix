@@ -36,12 +36,7 @@ class Show extends Model
             'tmdb_id' => 'integer',
             'tmdb_synced_at' => 'datetime',
             'original_language' => LanguageFromCode::class,
-            'spoken_languages' => 'array',
-            'production_companies' => 'array',
-            'origin_country' => 'array',
             'content_ratings' => 'array',
-            'alternative_titles' => 'array',
-            'in_production' => 'boolean',
         ];
     }
 

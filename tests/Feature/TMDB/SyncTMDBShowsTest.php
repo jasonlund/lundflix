@@ -72,7 +72,6 @@ it('syncs tmdb data for unsynced shows', function () {
     $show->refresh();
 
     expect($show->tmdb_id)->toBe(1396)
-        ->and($show->overview)->toBe('A great show.')
         ->and($show->tmdb_synced_at)->not->toBeNull()
         ->and($show->media()->count())->toBe(1);
 });
@@ -103,19 +102,18 @@ it('falls back to thetvdb_id when imdb_id not found', function () {
 it('updates recently changed shows', function () {
     $show = Show::factory()->withTmdbData()->create([
         'tmdb_id' => 1396,
-        'overview' => 'Old overview',
     ]);
 
     Http::fake([
         ...fakeTmdbShowChanges([1396]),
-        ...fakeTmdbShowDetails(1396, ['overview' => 'Updated overview']),
+        ...fakeTmdbShowDetails(1396, ['original_name' => 'Updated Name']),
     ]);
 
     $this->artisan('tmdb:sync-shows')->assertSuccessful();
 
     $show->refresh();
 
-    expect($show->overview)->toBe('Updated overview');
+    expect($show->original_name)->toBe('Updated Name');
 });
 
 it('reports when all shows are up to date', function () {
@@ -157,12 +155,9 @@ it('processes all shows with --fresh flag', function () {
         ]),
         "api.themoviedb.org/3/tv/{$show->tmdb_id}*" => Http::response([
             'id' => $show->tmdb_id,
-            'overview' => 'Fresh sync',
-            'tagline' => '',
             'original_name' => 'Test',
             'original_language' => 'en',
             'content_ratings' => ['results' => []],
-            'alternative_titles' => ['results' => []],
             'external_ids' => ['tvdb_id' => $show->thetvdb_id],
             'images' => ['posters' => [], 'backdrops' => [], 'logos' => []],
         ]),
@@ -172,7 +167,7 @@ it('processes all shows with --fresh flag', function () {
 
     $show->refresh();
 
-    expect($show->overview)->toBe('Fresh sync');
+    expect($show->original_name)->toBe('Test');
 });
 
 it('preserves existing thetvdb_id when tmdb lacks tvdb external id', function () {

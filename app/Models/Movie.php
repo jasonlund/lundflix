@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Casts\LanguageFromCode;
-use App\Casts\LanguagesFromJson;
 use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
@@ -39,12 +38,7 @@ class Movie extends Model
             'tmdb_id' => 'integer',
             'release_date' => 'date',
             'digital_release_date' => 'date',
-            'production_companies' => 'array',
-            'spoken_languages' => LanguagesFromJson::class,
-            'alternative_titles' => 'array',
             'original_language' => LanguageFromCode::class,
-            'budget' => 'integer',
-            'revenue' => 'integer',
             'origin_country' => 'array',
             'release_dates' => 'array',
             'tmdb_synced_at' => 'datetime',
