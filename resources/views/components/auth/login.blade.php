@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -16,13 +17,19 @@ new #[Layout('components.layouts.guest')] class extends Component {
 
     public bool $remember = false;
 
-    public function plexConfig(): array
+    public string $plexError = '';
+
+    public function redirectToPlex(PlexService $plex): void
     {
-        return [
-            'clientIdentifier' => config('services.plex.client_identifier'),
-            'productName' => config('services.plex.product_name'),
-            'callbackUrl' => route('auth.plex.callback'),
-        ];
+        try {
+            $pin = $plex->createPin();
+            session(['plex_pin_id' => $pin['id']]);
+
+            $authUrl = $plex->getAuthUrl($pin['code'], route('auth.plex.callback'));
+            $this->redirect($authUrl);
+        } catch (\Throwable) {
+            $this->plexError = __('lundbergh.plex.pin_creation_failed');
+        }
     }
 
     public function login(): void
@@ -98,55 +105,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
             </div>
 
             <flux:modal name="plex-register">
-                <div
-                    class="space-y-6"
-                    x-data="{
-                        loading: false,
-                        error: false,
-                        config: {{ Js::from($this->plexConfig()) }},
-                        async redirectToPlex() {
-                            this.loading = true
-                            this.error = false
-
-                            try {
-                                const response = await fetch(
-                                    'https://plex.tv/api/v2/pins?strong=true',
-                                    {
-                                        method: 'POST',
-                                        headers: {
-                                            'Accept': 'application/json',
-                                            'Content-Type': 'application/x-www-form-urlencoded',
-                                            'X-Plex-Client-Identifier':
-                                                this.config.clientIdentifier,
-                                            'X-Plex-Product': this.config.productName,
-                                            'X-Plex-Version': '1.0.0',
-                                            'X-Plex-Device-Name': this.config.productName,
-                                        },
-                                    },
-                                )
-
-                                if (! response.ok) throw new Error()
-
-                                const data = await response.json()
-                                const forwardUrl = new URL(this.config.callbackUrl)
-                                forwardUrl.searchParams.set('pin_id', data.id)
-
-                                const params = new URLSearchParams({
-                                    clientID: this.config.clientIdentifier,
-                                    code: data.code,
-                                    forwardUrl: forwardUrl.toString(),
-                                    'context[device][product]': this.config.productName,
-                                })
-
-                                window.location.href =
-                                    'https://app.plex.tv/auth#?' + params.toString()
-                            } catch {
-                                this.loading = false
-                                this.error = true
-                            }
-                        },
-                    }"
-                >
+                <div class="space-y-6">
                     <div>
                         <flux:heading size="lg">You are leaving lundflix</flux:heading>
                         <flux:text class="mt-2">
@@ -154,21 +113,22 @@ new #[Layout('components.layouts.guest')] class extends Component {
                         </flux:text>
                     </div>
 
-                    <flux:text x-show="error" x-cloak class="text-red-400">
-                        {{ __('lundbergh.plex.pin_creation_failed') }}
-                    </flux:text>
+                    @if ($plexError)
+                        <flux:text class="text-red-400">
+                            {{ $plexError }}
+                        </flux:text>
+                    @endif
 
                     <div class="flex">
                         <flux:spacer />
                         <flux:button
+                            wire:click="redirectToPlex"
                             variant="primary"
                             class="inline-flex items-center gap-1"
-                            x-on:click="redirectToPlex()"
-                            x-bind:disabled="loading"
                         >
-                            <flux:icon.loading x-show="loading" x-cloak class="size-4" />
-                            <span x-show="!loading">Continue to</span>
-                            <x-plex-logo x-show="!loading" class="h-4" />
+                            <flux:icon.loading wire:loading wire:target="redirectToPlex" class="size-4" />
+                            <span wire:loading.remove wire:target="redirectToPlex">Continue to</span>
+                            <x-plex-logo wire:loading.remove wire:target="redirectToPlex" class="h-4" />
                         </flux:button>
                     </div>
                 </div>
