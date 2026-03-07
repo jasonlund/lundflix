@@ -27,21 +27,11 @@ function fakeTmdbDetails(int $tmdbId, array $overrides = []): array
     $defaults = [
         'id' => $tmdbId,
         'release_date' => '1994-09-23',
-        'production_companies' => [
-            ['id' => 97, 'name' => 'Castle Rock Entertainment', 'logo_path' => '/logo.png', 'origin_country' => 'US'],
-        ],
-        'spoken_languages' => [
-            ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-        ],
         'original_language' => 'en',
         'original_title' => 'The Shawshank Redemption',
-        'tagline' => 'Fear can hold you prisoner. Hope can set you free.',
         'status' => 'Released',
-        'budget' => 25000000,
-        'revenue' => 58300000,
         'origin_country' => ['US'],
         'release_dates' => ['results' => []],
-        'alternative_titles' => ['titles' => []],
     ];
 
     return ["api.themoviedb.org/3/movie/{$tmdbId}*" => Http::response(array_merge($defaults, $overrides))];
@@ -88,16 +78,9 @@ it('syncs tmdb data for unsynced movies', function () {
     expect($movie->tmdb_id)->toBe(278)
         ->and($movie->release_date->format('Y-m-d'))->toBe('1994-09-23')
         ->and($movie->digital_release_date->format('Y-m-d'))->toBe('1999-09-21')
-        ->and($movie->production_companies)->toHaveCount(1)
-        ->and($movie->production_companies[0]['name'])->toBe('Castle Rock Entertainment')
-        ->and($movie->spoken_languages)->toBe([Language::English])
-        ->and($movie->alternative_titles)->toHaveCount(2)
         ->and($movie->original_language)->toBe(Language::English)
         ->and($movie->original_title)->toBe('The Shawshank Redemption')
-        ->and($movie->tagline)->toBe('Fear can hold you prisoner. Hope can set you free.')
         ->and($movie->status)->toBe(MovieStatus::Released)
-        ->and($movie->budget)->toBe(25000000)
-        ->and($movie->revenue)->toBe(58300000)
         ->and($movie->origin_country)->toBe(['US'])
         ->and($movie->release_dates)->toBeArray()
         ->and($movie->tmdb_synced_at)->not->toBeNull();
@@ -339,26 +322,6 @@ it('handles mixed found and not-found movies in same batch', function () {
         ->and($details404->tmdb_synced_at)->not->toBeNull();
 });
 
-it('stores null for zero budget and revenue', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        ...fakeTmdbFind('tt0111161', 278),
-        ...fakeTmdbDetails(278, [
-            'budget' => 0,
-            'revenue' => 0,
-        ]),
-        ...fakeTmdbChanges(),
-    ]);
-
-    $this->artisan('tmdb:sync-movies')->assertSuccessful();
-
-    $movie->refresh();
-
-    expect($movie->budget)->toBeNull()
-        ->and($movie->revenue)->toBeNull();
-});
-
 it('syncs non-released movie status', function () {
     $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
 
@@ -404,20 +367,4 @@ it('stores full release dates from all countries', function () {
     expect($movie->release_dates)->toHaveCount(2)
         ->and($movie->release_dates[0]['iso_3166_1'])->toBe('US')
         ->and($movie->release_dates[1]['iso_3166_1'])->toBe('FR');
-});
-
-it('stores null tagline for empty string', function () {
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        ...fakeTmdbFind('tt0111161', 278),
-        ...fakeTmdbDetails(278, ['tagline' => '']),
-        ...fakeTmdbChanges(),
-    ]);
-
-    $this->artisan('tmdb:sync-movies')->assertSuccessful();
-
-    $movie->refresh();
-
-    expect($movie->tagline)->toBeNull();
 });

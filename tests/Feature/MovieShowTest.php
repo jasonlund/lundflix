@@ -72,37 +72,15 @@ it('displays genres as badges', function () {
         ->assertSee('Thriller');
 });
 
-it('displays only original language when spoken languages match', function () {
+it('displays original language', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
         'original_language' => Language::English,
-        'spoken_languages' => [
-            ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-        ],
     ]);
 
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
-        ->assertSee('English')
-        ->assertDontSee('English (');
-});
-
-it('displays only primary language without spoken languages', function () {
-    $user = User::factory()->create();
-    $movie = Movie::factory()->create([
-        'original_language' => Language::English,
-        'spoken_languages' => [
-            ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-            ['iso_639_1' => 'fr', 'english_name' => 'French', 'name' => 'Français'],
-            ['iso_639_1' => 'es', 'english_name' => 'Spanish', 'name' => 'Español'],
-        ],
-    ]);
-
-    Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
-        ->assertSee('English')
-        ->assertDontSee('French')
-        ->assertDontSee('Spanish');
+        ->assertSee('English');
 });
 
 it('displays original title when it differs from main title', function () {

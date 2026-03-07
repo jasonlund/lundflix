@@ -43,7 +43,6 @@ class ShowFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'tmdb_synced_at' => now(),
-            'overview' => fake()->paragraph(),
         ]);
     }
 }

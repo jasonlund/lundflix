@@ -51,8 +51,6 @@ new class extends Component {
                     'originalTitle' => $originalTitle,
                     'yearLabel' => $isShow ? Formatters::compactYearLabel($item) : null,
                     'releaseDate' => ! $isShow && $item->release_date ? $item->release_date->format('m/d/y') : null,
-                    'productionCompany' =>
-                        ! $isShow && ! empty($item->production_companies) ? $item->production_companies[0]['name'] : null,
                     'language' => $this->shouldShowLanguage()
                         ? ($isShow
                             ? $item->language?->getLabel()

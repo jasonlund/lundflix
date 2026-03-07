@@ -34,18 +34,8 @@ class MovieFactory extends Factory
             'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'release_date' => fake()->date(),
             'digital_release_date' => fake()->date(),
-            'production_companies' => [
-                ['id' => fake()->numberBetween(1, 9999), 'name' => fake()->company()],
-            ],
-            'spoken_languages' => [
-                ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-            ],
-            'alternative_titles' => [
-                ['iso_3166_1' => 'FR', 'title' => fake()->sentence(2), 'type' => ''],
-            ],
             'original_language' => fake()->randomElement(Language::cases())->value,
             'original_title' => fake()->sentence(3),
-            'tagline' => fake()->sentence(),
             'status' => fake()->randomElement([
                 MovieStatus::Released,
                 MovieStatus::Canceled,
@@ -54,8 +44,6 @@ class MovieFactory extends Factory
                 MovieStatus::Planned,
                 MovieStatus::Rumored,
             ])->value,
-            'budget' => fake()->numberBetween(1_000_000, 200_000_000),
-            'revenue' => fake()->numberBetween(10_000_000, 1_000_000_000),
             'origin_country' => ['US'],
             'release_dates' => [
                 [

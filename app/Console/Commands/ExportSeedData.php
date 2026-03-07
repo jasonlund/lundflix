@@ -102,10 +102,8 @@ class ExportSeedData extends Command
         $columns = [
             'id', 'imdb_id', 'title', 'year', 'runtime', 'genres', 'num_votes',
             'tmdb_id', 'release_date', 'digital_release_date',
-            'production_companies', 'spoken_languages', 'alternative_titles',
-            'original_language', 'original_title', 'tagline', 'status',
-            'budget', 'revenue', 'origin_country', 'release_dates',
-            'tmdb_synced_at',
+            'original_language', 'original_title', 'status',
+            'origin_country', 'release_dates', 'tmdb_synced_at',
         ];
 
         $query = DB::connection($connection)->table('movies');
@@ -165,6 +163,7 @@ class ExportSeedData extends Command
         $columns = [
             'id', 'tvmaze_id', 'imdb_id', 'thetvdb_id', 'name', 'type', 'language', 'genres', 'status',
             'runtime', 'average_runtime', 'premiered', 'ended', 'schedule', 'num_votes', 'network', 'web_channel',
+            'tmdb_id', 'tmdb_synced_at', 'original_name', 'original_language', 'content_ratings',
         ];
 
         $query = DB::connection($connection)->table('shows');
@@ -235,15 +234,9 @@ class ExportSeedData extends Command
             $row->tmdb_id === null ? 'NULL' : (string) $row->tmdb_id,
             $row->release_date === null ? 'NULL' : $this->quote($row->release_date),
             $row->digital_release_date === null ? 'NULL' : $this->quote($row->digital_release_date),
-            $row->production_companies === null ? 'NULL' : $this->quote($row->production_companies),
-            $row->spoken_languages === null ? 'NULL' : $this->quote($row->spoken_languages),
-            $row->alternative_titles === null ? 'NULL' : $this->quote($row->alternative_titles),
             $row->original_language === null ? 'NULL' : $this->quote($row->original_language),
             $row->original_title === null ? 'NULL' : $this->quote($row->original_title),
-            $row->tagline === null ? 'NULL' : $this->quote($row->tagline),
             $row->status === null ? 'NULL' : $this->quote($row->status),
-            $row->budget === null ? 'NULL' : (string) $row->budget,
-            $row->revenue === null ? 'NULL' : (string) $row->revenue,
             $row->origin_country === null ? 'NULL' : $this->quote($row->origin_country),
             $row->release_dates === null ? 'NULL' : $this->quote($row->release_dates),
             $row->tmdb_synced_at === null ? 'NULL' : $this->quote($row->tmdb_synced_at),
@@ -273,6 +266,11 @@ class ExportSeedData extends Command
             $row->num_votes === null ? 'NULL' : (string) $row->num_votes,
             $row->network === null ? 'NULL' : $this->quote($row->network),
             $row->web_channel === null ? 'NULL' : $this->quote($row->web_channel),
+            $row->tmdb_id === null ? 'NULL' : (string) $row->tmdb_id,
+            $row->tmdb_synced_at === null ? 'NULL' : $this->quote($row->tmdb_synced_at),
+            $row->original_name === null ? 'NULL' : $this->quote($row->original_name),
+            $row->original_language === null ? 'NULL' : $this->quote($row->original_language),
+            $row->content_ratings === null ? 'NULL' : $this->quote($row->content_ratings),
         ];
     }
 

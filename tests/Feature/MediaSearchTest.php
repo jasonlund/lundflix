@@ -36,9 +36,6 @@ it('displays movie results in search', function () {
         'original_language' => 'en',
         'release_date' => '1999-03-31',
         'status' => 'Released',
-        'production_companies' => [
-            ['id' => 79, 'name' => 'Warner Bros.', 'logo_path' => null, 'origin_country' => 'US'],
-        ],
     ]);
     $runtime = Formatters::runtime($movie->runtime);
 
