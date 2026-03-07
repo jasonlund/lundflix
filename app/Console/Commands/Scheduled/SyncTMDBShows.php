@@ -194,11 +194,11 @@ class SyncTMDBShows extends Command
                 $details = $detailsMap[$show->tvmaze_id] ?? null;
                 if ($details) {
                     $mapped = UpsertTMDBShowData::mapFromApi($details);
-                    // Backfill thetvdb_id from TMDB if missing locally
-                    if ($show->thetvdb_id === null && $mapped['thetvdb_id'] !== null) {
-                        $row['thetvdb_id'] = $mapped['thetvdb_id'];
-                    }
                     $row = array_merge($row, $mapped);
+                    // Backfill thetvdb_id from TMDB only if missing locally
+                    if ($show->thetvdb_id === null && isset($details['external_ids']['tvdb_id'])) {
+                        $row['thetvdb_id'] = $details['external_ids']['tvdb_id'];
+                    }
                 } elseif (isset($tmdbIdMap[$show->tvmaze_id])) {
                     $row['tmdb_id'] = $tmdbIdMap[$show->tvmaze_id];
                 }
@@ -273,6 +273,10 @@ class SyncTMDBShows extends Command
 
                 if ($showDetails) {
                     $row = array_merge($row, UpsertTMDBShowData::mapFromApi($showDetails));
+                    // Backfill thetvdb_id from TMDB only if missing locally
+                    if ($show->thetvdb_id === null && isset($showDetails['external_ids']['tvdb_id'])) {
+                        $row['thetvdb_id'] = $showDetails['external_ids']['tvdb_id'];
+                    }
                 }
 
                 $upsertData[] = $row;

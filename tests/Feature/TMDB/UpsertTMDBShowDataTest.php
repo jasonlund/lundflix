@@ -51,7 +51,7 @@ it('maps tmdb api response to database columns', function () {
         ->and($mapped['alternative_titles'])->toHaveCount(1)
         ->and($mapped['homepage'])->toBe('https://www.amc.com/shows/breaking-bad')
         ->and($mapped['in_production'])->toBeFalse()
-        ->and($mapped['thetvdb_id'])->toBe(81189);
+        ->and($mapped)->not->toHaveKey('thetvdb_id');
 });
 
 it('stores null for empty overview and tagline', function () {
@@ -99,9 +99,7 @@ it('upserts show data keyed by tvmaze_id', function () {
         ->and($show->tmdb_synced_at)->not->toBeNull();
 });
 
-it('backfills thetvdb_id from tmdb external ids', function () {
-    $show = Show::factory()->create(['thetvdb_id' => null, 'tmdb_id' => null]);
-
+it('does not include thetvdb_id in mapped data', function () {
     $details = [
         'id' => 1396,
         'overview' => 'Test',
@@ -115,5 +113,5 @@ it('backfills thetvdb_id from tmdb external ids', function () {
 
     $mapped = UpsertTMDBShowData::mapFromApi($details);
 
-    expect($mapped['thetvdb_id'])->toBe(81189);
+    expect($mapped)->not->toHaveKey('thetvdb_id');
 });

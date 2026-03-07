@@ -175,6 +175,25 @@ it('processes all shows with --fresh flag', function () {
     expect($show->overview)->toBe('Fresh sync');
 });
 
+it('preserves existing thetvdb_id when tmdb lacks tvdb external id', function () {
+    $show = Show::factory()->create([
+        'thetvdb_id' => 81189,
+        'tmdb_id' => null,
+        'tmdb_synced_at' => null,
+    ]);
+
+    Http::fake([
+        ...fakeTmdbShowFind($show->imdb_id, 1396),
+        ...fakeTmdbShowDetails(1396, ['external_ids' => ['tvdb_id' => null, 'imdb_id' => $show->imdb_id]]),
+        ...fakeTmdbShowChanges(),
+    ]);
+
+    $this->artisan('tmdb:sync-shows')->assertSuccessful();
+
+    $show->refresh();
+    expect($show->thetvdb_id)->toBe(81189);
+});
+
 it('marks show as synced when not found on tmdb', function () {
     $show = Show::factory()->create(['tmdb_id' => null, 'tmdb_synced_at' => null]);
 

@@ -7,7 +7,7 @@ use App\Models\Show;
 class UpsertTMDBShowData
 {
     /**
-     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool, thetvdb_id: ?int}>  $shows
+     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool}>  $shows
      */
     public function upsert(array $shows): int
     {
@@ -32,7 +32,7 @@ class UpsertTMDBShowData
      * Map TMDB API response data to database columns.
      *
      * @param  array<string, mixed>  $details
-     * @return array{tmdb_id: int, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool, thetvdb_id: ?int}
+     * @return array{tmdb_id: int, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool}
      */
     public static function mapFromApi(array $details): array
     {
@@ -56,7 +56,6 @@ class UpsertTMDBShowData
             'alternative_titles' => $details['alternative_titles']['results'] ?? null,
             'homepage' => ($details['homepage'] ?? null) ?: null,
             'in_production' => $details['in_production'] ?? null,
-            'thetvdb_id' => $details['external_ids']['tvdb_id'] ?? null,
         ];
     }
 }
