@@ -345,3 +345,14 @@ use Laravel\Pennant\Feature;
 Feature::define(NewDashboard::class, true);
 expect(Feature::active(NewDashboard::class))->toBeTrue();
 ```
+
+## Merging Branches
+
+- Before merging any branch, always rebase it onto the target branch first (`git rebase main`)
+- After rebasing, if there are conflicts, **always stop and present every conflict to the user for confirmation** before resolving. Never auto-resolve conflicts — show both sides and ask which to keep (or how to combine them).
+- Never blindly accept "ours" or "theirs" for an entire file — each hunk must be reviewed individually with the user.
+- After resolving conflicts, run the full validation suite before committing:
+  - `composer pint` / `npm run format`
+  - `composer phpstan`
+  - `php artisan test --compact`
+- If a rebase or merge has zero conflicts, still confirm with the user before completing the merge commit.

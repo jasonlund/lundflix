@@ -242,61 +242,43 @@ new class extends Component {
             :autoHighlightFirst="true"
         >
             <x-slot:header>
-                <flux:input
-                    wire:model.live.debounce.300ms="query"
-                    icon="magnifying-glass"
-                    placeholder="Search shows & movies and filter by language..."
-                    autofocus
-                    class="min-w-0 flex-1 bg-transparent"
-                    class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400"
-                />
-                @if (! $this->isImdbQuery)
-                    <div
-                        class="flex shrink-0 rounded-md bg-zinc-800 p-0.5 text-xs font-medium"
-                        role="group"
-                        aria-label="Language filter"
-                    >
-                        <flux:tooltip content="English" class="text-xs">
-                            <button
-                                type="button"
-                                wire:click="$set('language', 'en')"
-                                @class([
-                                    'rounded p-1.5 transition-colors',
-                                    'bg-zinc-600 text-white' => $language === 'en',
-                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'en',
-                                ])
-                            >
-                                <flux:icon.a-large-small variant="micro" />
-                            </button>
-                        </flux:tooltip>
-                        <flux:tooltip content="Foreign" class="text-xs">
-                            <button
-                                type="button"
-                                wire:click="$set('language', 'foreign')"
-                                @class([
-                                    'rounded p-1.5 transition-colors',
-                                    'bg-zinc-600 text-white' => $language === 'foreign',
-                                    'text-zinc-400 hover:text-zinc-200' => $language !== 'foreign',
-                                ])
-                            >
-                                <flux:icon.languages variant="micro" />
-                            </button>
-                        </flux:tooltip>
-                        <flux:tooltip content="All" class="text-xs">
-                            <button
-                                type="button"
-                                wire:click="$set('language', '')"
-                                @class([
-                                    'rounded p-1.5 transition-colors',
-                                    'bg-zinc-600 text-white' => $language === '',
-                                    'text-zinc-400 hover:text-zinc-200' => $language !== '',
-                                ])
-                            >
-                                <flux:icon.globe-americas variant="micro" />
-                            </button>
-                        </flux:tooltip>
-                    </div>
-                @endif
+                <flux:input.group class="search-bar">
+                    <flux:input
+                        wire:model.live.debounce.300ms="query"
+                        icon="magnifying-glass"
+                        placeholder="Search by title and filter by language…"
+                        autofocus
+                        class="min-w-0 flex-1 bg-transparent"
+                        class:input="search-input h-14 rounded-none border-0 bg-transparent text-white shadow-none placeholder-zinc-400"
+                    />
+                    @if (! $this->isImdbQuery)
+                        <flux:select
+                            wire:model.live="language"
+                            variant="listbox"
+                            class="max-w-fit"
+                            aria-label="Language filter"
+                        >
+                            <flux:select.option value="en">
+                                <div class="flex items-center gap-2">
+                                    <flux:icon.a-large-small variant="mini" class="text-zinc-400" />
+                                    <span>English</span>
+                                </div>
+                            </flux:select.option>
+                            <flux:select.option value="foreign">
+                                <div class="flex items-center gap-2">
+                                    <flux:icon.languages variant="mini" class="text-zinc-400" />
+                                    <span>Foreign</span>
+                                </div>
+                            </flux:select.option>
+                            <flux:select.option value="">
+                                <div class="flex items-center gap-2">
+                                    <flux:icon.globe-americas variant="mini" class="text-zinc-400" />
+                                    <span>All</span>
+                                </div>
+                            </flux:select.option>
+                        </flux:select>
+                    @endif
+                </flux:input.group>
             </x-slot>
 
             <x-slot:empty>
