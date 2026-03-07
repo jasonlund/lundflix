@@ -95,12 +95,16 @@ new #[Layout('components.layouts.guest')] class extends Component {
 
             <flux:separator class="my-6" />
 
-            <div class="flex justify-center">
+            <div class="flex flex-col items-center gap-3">
                 <flux:modal.trigger name="plex-register">
                     <flux:button variant="subtle" class="inline-flex items-center gap-1 border-b border-current pb-px">
                         Register with
                         <x-plex-logo class="h-4" />
                     </flux:button>
+                </flux:modal.trigger>
+
+                <flux:modal.trigger name="plex-password-reset">
+                    <flux:button variant="subtle" class="border-b border-current pb-px">Forgot Password?</flux:button>
                 </flux:modal.trigger>
             </div>
 
@@ -129,6 +133,25 @@ new #[Layout('components.layouts.guest')] class extends Component {
                             <flux:icon.loading wire:loading wire:target="redirectToPlex" class="size-4" />
                             <span wire:loading.remove wire:target="redirectToPlex">Continue to</span>
                             <x-plex-logo wire:loading.remove wire:target="redirectToPlex" class="h-4" />
+                        </flux:button>
+                    </div>
+                </div>
+            </flux:modal>
+
+            <flux:modal name="plex-password-reset">
+                <div class="space-y-6">
+                    <div>
+                        <flux:heading size="lg">Reset your password</flux:heading>
+                        <flux:text class="mt-2">
+                            {!! nl2br(e(__('lundbergh.form.plex_password_reset'))) !!}
+                        </flux:text>
+                    </div>
+
+                    <div class="flex">
+                        <flux:spacer />
+                        <flux:button variant="primary" class="inline-flex items-center gap-1">
+                            Continue to
+                            <x-plex-logo class="h-4" />
                         </flux:button>
                     </div>
                 </div>

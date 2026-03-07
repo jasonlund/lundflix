@@ -15,6 +15,7 @@ return [
     'form' => [
         'email_description' => "Yeah… if you could use the address associated with your Plex account, that'd be great.",
         'plex_redirect' => "Mmm yeah… so you're gonna be redirected to plex.tv to authenticate your account and verify your access for registration.\n\nYeah… if you don't already have access to the lundflix server, I'm gonna need you to go ahead and not waste everyone's time here. That'd be great.",
+        'plex_password_reset' => "Yeah… so, you forgot your password. That's… not great.\n\nI'm gonna need you to go ahead and sign in with Plex to verify your identity. Once we confirm you are who you say you are, you can set a new password. That'd be great.",
     ],
     'cart' => [
         'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",

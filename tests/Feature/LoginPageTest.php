@@ -34,6 +34,12 @@ it('redirects to the intended url after login', function () {
         ->assertRedirect('/admin');
 });
 
+it('shows the forgot password button', function () {
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('Forgot Password?');
+});
+
 it('redirects to home when there is no intended url', function () {
     $user = User::factory()->create();
 
