@@ -236,7 +236,7 @@ class Movie extends Model
 
     protected function artworkExternalIdValue(): string|int|null
     {
-        return $this->imdb_id;
+        return $this->tmdb_id;
     }
 
     protected function artworkMediableType(): string

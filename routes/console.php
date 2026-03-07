@@ -20,5 +20,5 @@ Schedule::command('tvmaze:sync-shows')
     ->then(fn () => Artisan::call('imdb:sync-movies'))
     ->then(fn () => Artisan::call('imdb:sync-ratings'))
     ->then(fn () => Artisan::call('tmdb:sync-movies'))
-    ->then(fn () => Artisan::call('tvmaze:sync-schedule'))
-    ->then(fn () => Artisan::call('fanart:sync-updates'));
+    ->then(fn () => Artisan::call('tmdb:sync-shows'))
+    ->then(fn () => Artisan::call('tvmaze:sync-schedule'));

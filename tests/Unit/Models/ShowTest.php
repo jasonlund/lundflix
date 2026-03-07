@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\ArtworkType;
 use App\Models\Episode;
+use App\Models\Media;
 use App\Models\Show;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -115,24 +117,30 @@ describe('most_recent_season attribute', function () {
 });
 
 describe('art helpers', function () {
-    it('returns null art url when missing thetvdb id', function () {
-        $show = Show::factory()->create(['thetvdb_id' => null]);
+    it('returns null art url when missing tmdb id', function () {
+        $show = Show::factory()->create(['tmdb_id' => null]);
 
         expect($show->artUrl('background'))->toBeNull();
     });
 
-    it('builds an art url when thetvdb id is present', function () {
-        $show = Show::factory()->create(['thetvdb_id' => 123456]);
+    it('builds an art url when tmdb id is present and active media exists', function () {
+        $show = Show::factory()->create(['tmdb_id' => 12345]);
+
+        Media::factory()->active()->create([
+            'mediable_type' => Show::class,
+            'mediable_id' => $show->id,
+            'type' => ArtworkType::Logo->value,
+        ]);
 
         expect($show->artUrl('logo'))
             ->toBe(route('art', ['mediable' => 'show', 'id' => $show->sqid, 'type' => 'logo']));
     });
 
     it('reports whether art can be fetched', function () {
-        $showWithTvdbId = Show::factory()->create(['thetvdb_id' => 123456]);
-        $showWithoutTvdbId = Show::factory()->create(['thetvdb_id' => null]);
+        $showWithTmdbId = Show::factory()->create(['tmdb_id' => 12345]);
+        $showWithoutTmdbId = Show::factory()->create(['tmdb_id' => null]);
 
-        expect($showWithTvdbId->canHaveArt())->toBeTrue()
-            ->and($showWithoutTvdbId->canHaveArt())->toBeFalse();
+        expect($showWithTmdbId->canHaveArt())->toBeTrue()
+            ->and($showWithoutTmdbId->canHaveArt())->toBeFalse();
     });
 });

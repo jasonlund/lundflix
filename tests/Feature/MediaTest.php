@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ArtworkType;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
@@ -8,11 +9,11 @@ it('can be associated with a movie', function () {
     $movie = Movie::factory()->create();
 
     $media = $movie->media()->create([
-        'fanart_id' => '12345',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/shawshank.png',
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Poster->value,
         'lang' => 'en',
-        'likes' => 5,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
     ]);
 
     expect($media)->toBeInstanceOf(Media::class)
@@ -25,11 +26,11 @@ it('can be associated with a show', function () {
     $show = Show::factory()->create();
 
     $media = $show->media()->create([
-        'fanart_id' => '67890',
-        'type' => 'tvposter',
-        'url' => 'https://assets.fanart.tv/fanart/tv/264492/tvposter/under-the-dome.jpg',
+        'file_path' => '/show_poster.jpg',
+        'type' => ArtworkType::Poster->value,
         'lang' => 'en',
-        'likes' => 10,
+        'vote_average' => 7.0,
+        'vote_count' => 25,
     ]);
 
     expect($media)->toBeInstanceOf(Media::class)
@@ -38,102 +39,104 @@ it('can be associated with a show', function () {
         ->and($show->media)->toHaveCount(1);
 });
 
-it('can store season-specific artwork', function () {
-    $show = Show::factory()->create();
-
-    $media = $show->media()->create([
-        'fanart_id' => '11111',
-        'type' => 'seasonposter',
-        'url' => 'https://assets.fanart.tv/fanart/tv/264492/seasonposter/season01.jpg',
-        'lang' => 'en',
-        'likes' => 3,
-        'season' => 1,
+it('constructs tmdb cdn url with default size', function () {
+    $media = Media::factory()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Poster->value,
     ]);
 
-    expect($media->season)->toBe(1);
+    expect($media->url())->toBe('https://image.tmdb.org/t/p/w780/abc123.jpg');
 });
 
-it('can store disc artwork with disc metadata', function () {
-    $movie = Movie::factory()->create();
-
-    $media = $movie->media()->create([
-        'fanart_id' => '22222',
-        'type' => 'moviedisc',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/moviedisc/shawshank.png',
-        'lang' => 'en',
-        'likes' => 2,
-        'disc' => '1',
-        'disc_type' => 'bluray',
+it('constructs tmdb cdn url with custom size', function () {
+    $media = Media::factory()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Backdrop->value,
     ]);
 
-    expect($media->disc)->toBe('1')
-        ->and($media->disc_type)->toBe('bluray');
+    expect($media->url('w500'))->toBe('https://image.tmdb.org/t/p/w500/abc123.jpg');
 });
 
-it('casts likes to integer', function () {
-    $movie = Movie::factory()->create();
-
-    $media = $movie->media()->create([
-        'fanart_id' => '33333',
-        'type' => 'movieposter',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/movieposter/shawshank.jpg',
-        'likes' => '15',
+it('constructs original url', function () {
+    $media = Media::factory()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
     ]);
 
-    expect($media->likes)->toBe(15)
-        ->and($media->likes)->toBeInt();
+    expect($media->originalUrl())->toBe('https://image.tmdb.org/t/p/original/abc123.jpg');
 });
+
+it('uses correct default size per artwork type', function (ArtworkType $type, string $expectedSize) {
+    $media = Media::factory()->create([
+        'file_path' => '/test.jpg',
+        'type' => $type->value,
+    ]);
+
+    expect($media->url())->toBe("https://image.tmdb.org/t/p/{$expectedSize}/test.jpg");
+})->with([
+    'poster' => [ArtworkType::Poster, 'w780'],
+    'backdrop' => [ArtworkType::Backdrop, 'w1280'],
+    'logo' => [ArtworkType::Logo, 'w500'],
+]);
 
 it('allows null lang for textless images', function () {
     $movie = Movie::factory()->create();
 
     $media = $movie->media()->create([
-        'fanart_id' => '44444',
-        'type' => 'moviebackground',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/moviebackground/shawshank.jpg',
+        'file_path' => '/textless.jpg',
+        'type' => ArtworkType::Backdrop->value,
         'lang' => null,
-        'likes' => 8,
+        'vote_average' => 8.0,
+        'vote_count' => 50,
     ]);
 
     expect($media->lang)->toBeNull();
 });
 
-it('prevents duplicate fanart_id for same mediable', function () {
+it('prevents duplicate file_path for same mediable', function () {
     $movie = Movie::factory()->create();
 
     $movie->media()->create([
-        'fanart_id' => '55555',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/first.png',
-        'likes' => 5,
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Poster->value,
+        'vote_average' => 5.0,
+        'vote_count' => 10,
     ]);
 
     expect(fn () => $movie->media()->create([
-        'fanart_id' => '55555',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/duplicate.png',
-        'likes' => 3,
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Poster->value,
+        'vote_average' => 3.0,
+        'vote_count' => 5,
     ]))->toThrow(Illuminate\Database\QueryException::class);
 });
 
-it('allows same fanart_id for different mediables', function () {
+it('allows same file_path for different mediables', function () {
     $movie1 = Movie::factory()->create();
     $movie2 = Movie::factory()->create();
 
     $media1 = $movie1->media()->create([
-        'fanart_id' => '66666',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/1/hdmovielogo/logo.png',
-        'likes' => 5,
+        'file_path' => '/shared.jpg',
+        'type' => ArtworkType::Poster->value,
+        'vote_average' => 5.0,
+        'vote_count' => 10,
     ]);
 
     $media2 = $movie2->media()->create([
-        'fanart_id' => '66666',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/2/hdmovielogo/logo.png',
-        'likes' => 3,
+        'file_path' => '/shared.jpg',
+        'type' => ArtworkType::Poster->value,
+        'vote_average' => 3.0,
+        'vote_count' => 5,
     ]);
 
     expect($media1)->toBeInstanceOf(Media::class)
         ->and($media2)->toBeInstanceOf(Media::class);
+});
+
+it('casts type to ArtworkType enum', function () {
+    $media = Media::factory()->create([
+        'type' => ArtworkType::Poster->value,
+    ]);
+
+    expect($media->type)->toBe(ArtworkType::Poster);
 });

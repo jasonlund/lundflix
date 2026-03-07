@@ -20,6 +20,7 @@ class MovieFactory extends Factory
     {
         return [
             'imdb_id' => 'tt'.fake()->unique()->numerify('#######'),
+            'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'title' => fake()->sentence(3),
             'year' => fake()->year(),
             'runtime' => fake()->numberBetween(80, 180),

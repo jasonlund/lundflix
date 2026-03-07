@@ -2,51 +2,65 @@
 
 namespace App\Models\Concerns;
 
+use App\Enums\ArtworkType;
 use App\Support\Sqid;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Support\Facades\Cache;
 
 /** @property string|int|null $artwork_external_id */
 trait HasArtwork
 {
-    public function artUrl(string $type, bool $preview = false): ?string
+    private const ART_TYPE_MAP = [
+        'logo' => ArtworkType::Logo,
+        'poster' => ArtworkType::Poster,
+        'background' => ArtworkType::Backdrop,
+    ];
+
+    public function artUrl(string $type, ?string $size = null): ?string
     {
-        if (! $this->canFetchArt($type)) {
+        if (! $this->hasActiveMedia($type)) {
             return null;
         }
 
-        $params = ['mediable' => $this->artworkMediableType(), 'id' => Sqid::encode($this->id), 'type' => $type];
+        $url = route('art', [
+            'mediable' => $this->artworkMediableType(),
+            'id' => Sqid::encode($this->id),
+            'type' => $type,
+        ]);
 
-        if ($preview) {
-            $params['preview'] = 1;
+        if ($size !== null) {
+            $url .= '?size='.$size;
         }
 
-        return route('art', $params);
+        return $url;
     }
 
-    public function canHaveArt(): bool
-    {
-        return $this->artwork_external_id !== null;
-    }
-
-    public function canFetchArt(string $type): bool
+    public function hasActiveMedia(string $type): bool
     {
         if (! $this->canHaveArt()) {
             return false;
         }
 
-        return ! Cache::has($this->artMissingCacheKey())
-            && ! Cache::has($this->artMissingTypeCacheKey($type));
+        $artworkType = self::ART_TYPE_MAP[$type] ?? null;
+
+        if ($artworkType === null) {
+            return false;
+        }
+
+        if ($this->relationLoaded('media')) {
+            return $this->media->contains(
+                fn ($m): bool => $m->type === $artworkType && $m->is_active,
+            );
+        }
+
+        return $this->media()
+            ->where('type', $artworkType->value)
+            ->where('is_active', true)
+            ->exists();
     }
 
-    public function artMissingCacheKey(): string
+    public function canHaveArt(): bool
     {
-        return "fanart:missing:{$this->artworkMediableType()}:{$this->id}";
-    }
-
-    public function artMissingTypeCacheKey(string $type): string
-    {
-        return "{$this->artMissingCacheKey()}:{$type}";
+        return $this->artwork_external_id !== null;
     }
 
     protected function artworkExternalId(): Attribute

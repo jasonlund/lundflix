@@ -1,49 +1,47 @@
 <?php
 
+use App\Enums\ArtworkType;
+use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
-it('allows fetching art when no missing cache keys exist', function (string $mediable, callable $factory): void {
-    Cache::flush();
-
+it('generates art url when model has tmdb_id and active media', function (string $mediable, callable $factory): void {
     $model = $factory();
+
+    Media::factory()->active()->create([
+        'mediable_type' => $model::class,
+        'mediable_id' => $model->id,
+        'type' => ArtworkType::Poster->value,
+    ]);
+
     $expectedUrl = route('art', ['mediable' => $mediable, 'id' => $model->sqid, 'type' => 'poster']);
 
-    expect($model->canFetchArt('poster'))->toBeTrue()
+    expect($model->canHaveArt())->toBeTrue()
         ->and($model->artUrl('poster'))->toBe($expectedUrl);
 })->with([
-    'show' => ['show', fn (): Show => Show::factory()->create(['thetvdb_id' => 123456])],
-    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt9000001'])],
+    'show' => ['show', fn (): Show => Show::factory()->create(['tmdb_id' => 12345])],
+    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['tmdb_id' => 67890])],
 ]);
 
-it('blocks fetching art when the base missing cache key exists', function (callable $factory): void {
-    Cache::flush();
-
+it('returns null art url when model has tmdb_id but no active media', function (string $mediable, callable $factory): void {
     $model = $factory();
 
-    Cache::put($model->artMissingCacheKey(), true, now()->addHour());
-
-    expect($model->canFetchArt('poster'))->toBeFalse()
+    expect($model->canHaveArt())->toBeTrue()
         ->and($model->artUrl('poster'))->toBeNull();
 })->with([
-    'show' => fn (): Show => Show::factory()->create(['thetvdb_id' => 123456]),
-    'movie' => fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt9000002']),
+    'show' => ['show', fn (): Show => Show::factory()->create(['tmdb_id' => 12345])],
+    'movie' => ['movie', fn (): Movie => Movie::factory()->create(['tmdb_id' => 67890])],
 ]);
 
-it('blocks fetching art when the type missing cache key exists', function (callable $factory): void {
-    Cache::flush();
-
+it('returns null art url when model has no tmdb_id', function (callable $factory): void {
     $model = $factory();
 
-    Cache::put($model->artMissingTypeCacheKey('poster'), true, now()->addHour());
-
-    expect($model->canFetchArt('poster'))->toBeFalse()
+    expect($model->canHaveArt())->toBeFalse()
         ->and($model->artUrl('poster'))->toBeNull();
 })->with([
-    'show' => fn (): Show => Show::factory()->create(['thetvdb_id' => 123456]),
-    'movie' => fn (): Movie => Movie::factory()->create(['imdb_id' => 'tt9000003']),
+    'show' => fn (): Show => Show::factory()->create(['tmdb_id' => null]),
+    'movie' => fn (): Movie => Movie::factory()->create(['tmdb_id' => null]),
 ]);

@@ -1,358 +1,130 @@
 <?php
 
-use App\Jobs\StoreFanart;
+use App\Enums\ArtworkType;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Models\User;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Exceptions;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
-    Http::preventStrayRequests();
-    Cache::flush();
     $this->actingAs(User::factory()->create());
 });
 
-it('redirects to active media url when media exists', function () {
+it('redirects to tmdb cdn url when active media exists', function () {
     $movie = Movie::factory()->create();
 
     $movie->media()->create([
-        'fanart_id' => '12345',
-        'type' => 'hdmovielogo',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/cached.png',
-        'path' => "fanart/movie/{$movie->id}/hdmovielogo/12345.png",
-        'likes' => 5,
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
         'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovielogo/cached.png');
-    Http::assertNothingSent();
+    $this->get("/art/movie/{$movie->sqid}/logo")
+        ->assertRedirect('https://image.tmdb.org/t/p/w500/abc123.jpg');
 });
 
-it('redirects to preview url when preview is requested', function () {
+it('returns 404 when no active media exists', function () {
     $movie = Movie::factory()->create();
 
     $movie->media()->create([
-        'fanart_id' => '12345',
-        'type' => 'movieposter',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/movieposter/cached.jpg',
-        'path' => null,
-        'likes' => 5,
-        'is_active' => true,
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
+        'is_active' => false,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->sqid}/poster?preview=1");
-
-    $response->assertRedirect('https://assets.fanart.tv/preview/movies/278/movieposter/cached.jpg');
-    Http::assertNothingSent();
+    $this->get("/art/movie/{$movie->sqid}/logo")
+        ->assertNotFound();
 });
 
-it('preserves query string and fragment when generating preview url', function () {
+it('redirects to correct size per type', function (string $type, ArtworkType $artworkType, string $expectedSize) {
     $movie = Movie::factory()->create();
 
     $movie->media()->create([
-        'fanart_id' => '12346',
-        'type' => 'movieposter',
-        'url' => 'https://assets.fanart.tv/fanart/movies/278/movieposter/cached.jpg?token=abc#section',
-        'path' => null,
-        'likes' => 5,
+        'file_path' => '/test.jpg',
+        'type' => $artworkType->value,
+        'vote_average' => 5.0,
+        'vote_count' => 1,
         'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->sqid}/poster?preview=1");
+    $this->get("/art/movie/{$movie->sqid}/{$type}")
+        ->assertRedirect("https://image.tmdb.org/t/p/{$expectedSize}/test.jpg");
+})->with([
+    'logo' => ['logo', ArtworkType::Logo, 'w500'],
+    'poster' => ['poster', ArtworkType::Poster, 'w780'],
+    'background' => ['background', ArtworkType::Backdrop, 'w1280'],
+]);
 
-    $response->assertRedirect('https://assets.fanart.tv/preview/movies/278/movieposter/cached.jpg?token=abc#section');
-    Http::assertNothingSent();
-});
+it('works for shows', function () {
+    $show = Show::factory()->create();
 
-it('fetches from api and redirects when media does not exist for movie', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'hdmovielogo' => [
-                ['id' => '12345', 'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovielogo/fresh.png', 'lang' => 'en', 'likes' => '5'],
-            ],
-        ]),
+    $show->media()->create([
+        'file_path' => '/show_poster.jpg',
+        'type' => ArtworkType::Poster->value,
+        'vote_average' => 7.0,
+        'vote_count' => 25,
+        'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovielogo/fresh.png');
-    Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $movie->id);
-});
-
-it('fetches from api and redirects when media does not exist for show', function () {
-    Queue::fake();
-
-    $show = Show::factory()->create([
-        'thetvdb_id' => 264492,
-    ]);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/tv/264492' => Http::response([
-            'tvposter' => [
-                ['id' => '67890', 'url' => 'https://assets.fanart.tv/fanart/tv/264492/tvposter/fresh.jpg', 'lang' => 'en', 'likes' => '10'],
-            ],
-        ]),
-    ]);
-
-    $response = $this->get("/art/show/{$show->sqid}/poster");
-
-    $response->assertRedirect('https://assets.fanart.tv/fanart/tv/264492/tvposter/fresh.jpg');
-    Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $show->id);
-});
-
-it('returns 404 when api returns no artwork', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt9999999']);
-    $start = now();
-    $missingCacheKey = "fanart:missing:movie:{$movie->id}";
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt9999999' => Http::response([], 404),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(167));
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(169));
-    expect(Cache::has($missingCacheKey))->toBeFalse();
-
-    $this->travelBack();
-    Queue::assertNothingPushed();
-});
-
-it('returns 404 when requested type is not in api response', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'name' => 'The Shawshank Redemption',
-            'tmdb_id' => '278',
-            'imdb_id' => 'tt0111161',
-            'movieposter' => [
-                ['id' => '12345', 'url' => 'https://assets.fanart.tv/poster.jpg', 'lang' => 'en', 'likes' => '5'],
-            ],
-        ]),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
-    Queue::assertNothingPushed();
-});
-
-it('returns 404 when requested type is an empty array', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'name' => 'The Shawshank Redemption',
-            'tmdb_id' => '278',
-            'imdb_id' => 'tt0111161',
-            'hdmovielogo' => [],
-        ]),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
-    Queue::assertNothingPushed();
-});
-
-it('falls back to clear art when logo is missing', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'hdmovieclearart' => [
-                ['id' => '12345', 'url' => 'https://assets.fanart.tv/fanart/movies/278/hdmovieclearart/clear.png', 'lang' => 'en', 'likes' => '2'],
-            ],
-            'moviethumb' => [
-                ['id' => '67890', 'url' => 'https://assets.fanart.tv/fanart/movies/278/moviethumb/thumb.jpg', 'lang' => 'en', 'likes' => '10'],
-            ],
-        ]),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertRedirect('https://assets.fanart.tv/fanart/movies/278/hdmovieclearart/clear.png');
-    Queue::assertPushed(StoreFanart::class, fn ($job) => $job->model->id === $movie->id);
-});
-
-it('ignores 4k backgrounds when requesting background', function () {
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'moviebackground-4k' => [
-                ['id' => '12345', 'url' => 'https://assets.fanart.tv/fanart/movies/278/moviebackground-4k/bg.jpg', 'lang' => 'en', 'likes' => '5'],
-            ],
-        ]),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/background");
-
-    $response->assertNotFound();
-    expect(Cache::has("fanart:missing:movie:{$movie->id}:background"))->toBeTrue();
-    Queue::assertNothingPushed();
+    $this->get("/art/show/{$show->sqid}/poster")
+        ->assertRedirect('https://image.tmdb.org/t/p/w780/show_poster.jpg');
 });
 
 it('returns 404 when movie does not exist', function () {
-    $response = $this->get('/art/movie/99999/logo');
-
-    $response->assertNotFound();
+    $this->get('/art/movie/99999/logo')->assertNotFound();
 });
 
 it('returns 404 when show does not exist', function () {
-    $response = $this->get('/art/show/99999/poster');
-
-    $response->assertNotFound();
+    $this->get('/art/show/99999/poster')->assertNotFound();
 });
 
 it('returns 404 for invalid mediable type', function () {
-    $response = $this->get('/art/episode/1/logo');
-
-    $response->assertNotFound();
+    $this->get('/art/episode/1/logo')->assertNotFound();
 });
 
 it('returns 404 for unsupported art type', function () {
     $movie = Movie::factory()->create();
 
-    $response = $this->get("/art/movie/{$movie->sqid}/hdmovielogo");
-
-    $response->assertNotFound();
+    $this->get("/art/movie/{$movie->sqid}/hdmovielogo")->assertNotFound();
 });
 
-it('returns 404 when show has no thetvdb_id', function () {
-    Queue::fake();
+it('returns 404 when model has no tmdb id', function () {
+    $show = Show::factory()->create(['tmdb_id' => null]);
 
-    $show = Show::factory()->create([
-        'thetvdb_id' => null,
-    ]);
-
-    $response = $this->get("/art/show/{$show->sqid}/poster");
-
-    $response->assertNotFound();
-    Queue::assertNothingPushed();
+    $this->get("/art/show/{$show->sqid}/poster")->assertNotFound();
 });
 
-it('returns 404 when image url is missing', function () {
-    Queue::fake();
+it('uses custom size when valid size query param is provided', function () {
+    $movie = Movie::factory()->create();
 
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([
-            'hdmovielogo' => [
-                ['id' => '12345', 'lang' => 'en', 'likes' => '5'],
-            ],
-        ]),
+    $movie->media()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
+        'is_active' => true,
     ]);
 
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    expect(Cache::has("fanart:missing:movie:{$movie->id}:logo"))->toBeTrue();
-    Queue::assertPushed(StoreFanart::class);
+    $this->get("/art/movie/{$movie->sqid}/logo?size=w200")
+        ->assertRedirect('https://image.tmdb.org/t/p/w200/abc123.jpg');
 });
 
-it('skips api request when missing artwork is cached', function () {
-    Queue::fake();
+it('ignores invalid size query param and uses default', function () {
+    $movie = Movie::factory()->create();
 
-    $movie = Movie::factory()->create(['imdb_id' => 'tt9999999']);
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt9999999' => Http::response([], 404),
+    $movie->media()->create([
+        'file_path' => '/abc123.jpg',
+        'type' => ArtworkType::Logo->value,
+        'vote_average' => 5.5,
+        'vote_count' => 10,
+        'is_active' => true,
     ]);
 
-    $this->get("/art/movie/{$movie->sqid}/logo")->assertNotFound();
-    Http::assertSentCount(1);
-
-    $this->get("/art/movie/{$movie->sqid}/logo")->assertNotFound();
-    Http::assertSentCount(1);
-    Queue::assertNothingPushed();
-});
-
-it('returns 404 and caches error for 12 hours when api returns server error', function () {
-    Exceptions::fake();
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-    $start = now();
-    $missingCacheKey = "fanart:missing:movie:{$movie->id}";
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => Http::response([], 500),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    Exceptions::assertReported(RequestException::class);
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(11));
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(13));
-    expect(Cache::has($missingCacheKey))->toBeFalse();
-
-    $this->travelBack();
-    Queue::assertNothingPushed();
-});
-
-it('returns 404 and caches error for 12 hours when api times out', function () {
-    Exceptions::fake();
-    Queue::fake();
-
-    $movie = Movie::factory()->create(['imdb_id' => 'tt0111161']);
-    $start = now();
-    $missingCacheKey = "fanart:missing:movie:{$movie->id}";
-
-    Http::fake([
-        'webservice.fanart.tv/v3/movies/tt0111161' => fn () => throw new ConnectionException('Connection timed out'),
-    ]);
-
-    $response = $this->get("/art/movie/{$movie->sqid}/logo");
-
-    $response->assertNotFound();
-    Exceptions::assertReported(ConnectionException::class);
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(11));
-    expect(Cache::has($missingCacheKey))->toBeTrue();
-
-    $this->travelTo($start->copy()->addHours(13));
-    expect(Cache::has($missingCacheKey))->toBeFalse();
-
-    $this->travelBack();
-    Queue::assertNothingPushed();
+    $this->get("/art/movie/{$movie->sqid}/logo?size=w9999")
+        ->assertRedirect('https://image.tmdb.org/t/p/w500/abc123.jpg');
 });
 
 it('redirects guests to login', function () {

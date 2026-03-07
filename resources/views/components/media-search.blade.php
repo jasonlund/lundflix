@@ -347,7 +347,7 @@ new class extends Component {
                                 :model="$result['model']"
                                 type="logo"
                                 :alt="$result['title'] . ' logo'"
-                                :preview="true"
+                                size="w200"
                                 class="h-full w-full overflow-hidden"
                             />
                         </div>

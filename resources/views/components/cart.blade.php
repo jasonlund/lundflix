@@ -193,7 +193,7 @@ new class extends Component {
                                     :model="$movie"
                                     type="logo"
                                     :alt="$movie->title . ' logo'"
-                                    :preview="true"
+                                    size="w200"
                                     class="h-full w-full overflow-hidden"
                                 />
                             </div>
@@ -231,7 +231,7 @@ new class extends Component {
                                     :model="$showGroup['show']"
                                     type="logo"
                                     :alt="$showGroup['show']->name . ' logo'"
-                                    :preview="true"
+                                    size="w200"
                                     class="h-full w-full overflow-hidden"
                                 />
                             </div>

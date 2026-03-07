@@ -1,12 +1,18 @@
 <?php
 
+use App\Enums\ArtworkType;
+use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Cache;
 
 it('renders img with correct src for a show', function () {
     $show = Show::factory()->create();
+    Media::factory()->active()->create([
+        'mediable_type' => Show::class,
+        'mediable_id' => $show->id,
+        'type' => ArtworkType::Logo->value,
+    ]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test logo" />',
@@ -25,6 +31,11 @@ it('renders img with correct src for a show', function () {
 
 it('renders img with correct src for a movie', function () {
     $movie = Movie::factory()->create();
+    Media::factory()->active()->create([
+        'mediable_type' => Movie::class,
+        'mediable_id' => $movie->id,
+        'type' => ArtworkType::Logo->value,
+    ]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Movie logo" />',
@@ -37,7 +48,7 @@ it('renders img with correct src for a movie', function () {
 });
 
 it('renders default fallback with show name for logo type', function () {
-    $show = Show::factory()->create(['name' => 'Breaking Bad', 'thetvdb_id' => null]);
+    $show = Show::factory()->create(['name' => 'Breaking Bad', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test" />',
@@ -51,9 +62,7 @@ it('renders default fallback with show name for logo type', function () {
 });
 
 it('renders default fallback with movie title for poster type', function () {
-    $movie = Movie::factory()->create(['title' => 'The Matrix']);
-
-    Cache::put($movie->artMissingCacheKey(), true);
+    $movie = Movie::factory()->create(['title' => 'The Matrix', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="poster" alt="Test" />',
@@ -67,7 +76,7 @@ it('renders default fallback with movie title for poster type', function () {
 });
 
 it('renders black background div for background type without name', function () {
-    $show = Show::factory()->create(['name' => 'The Wire', 'thetvdb_id' => null]);
+    $show = Show::factory()->create(['name' => 'The Wire', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="background" alt="Test" />',
@@ -82,7 +91,7 @@ it('renders black background div for background type without name', function () 
 });
 
 it('renders slot content when provided instead of default fallback', function () {
-    $show = Show::factory()->create(['name' => 'The Wire', 'thetvdb_id' => null]);
+    $show = Show::factory()->create(['name' => 'The Wire', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test">Custom Fallback</x-artwork>',
@@ -104,30 +113,21 @@ it('renders slot content when model is null', function () {
         ->not->toContain('<img');
 });
 
-it('adds preview query param when preview is true', function () {
-    $show = Show::factory()->create();
-
-    $html = Blade::render(
-        '<x-artwork :model="$model" type="logo" alt="Test" :preview="true" />',
-        ['model' => $show]
-    );
-
-    expect($html)->toContain('preview=1');
-});
-
-it('does not add preview query param by default', function () {
-    $show = Show::factory()->create();
+it('renders fallback when model has tmdb_id but no active media', function () {
+    $show = Show::factory()->create(['name' => 'Breaking Bad']);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test" />',
         ['model' => $show]
     );
 
-    expect($html)->not->toContain('preview=');
+    expect($html)
+        ->toContain('Breaking Bad')
+        ->not->toContain('<img');
 });
 
 it('renders nothing when fallback is false and no artwork exists', function () {
-    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'thetvdb_id' => null]);
+    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test" :fallback="false" />',
@@ -138,7 +138,7 @@ it('renders nothing when fallback is false and no artwork exists', function () {
 });
 
 it('still renders fallback text by default when no artwork exists', function () {
-    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'thetvdb_id' => null]);
+    $show = Show::factory()->create(['name' => 'Nirvanna the Band', 'tmdb_id' => null]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test" />',
@@ -148,8 +148,44 @@ it('still renders fallback text by default when no artwork exists', function () 
     expect($html)->toContain('Nirvanna the Band');
 });
 
+it('appends size query param to art url when size prop is provided', function () {
+    $show = Show::factory()->create();
+    Media::factory()->active()->create([
+        'mediable_type' => Show::class,
+        'mediable_id' => $show->id,
+        'type' => ArtworkType::Logo->value,
+    ]);
+
+    $html = Blade::render(
+        '<x-artwork :model="$model" type="logo" alt="Test" size="w200" />',
+        ['model' => $show]
+    );
+
+    $expectedUrl = route('art', ['mediable' => 'show', 'id' => $show->sqid, 'type' => 'logo']).'?size=w200';
+
+    expect($html)->toContain('src="'.$expectedUrl.'"');
+});
+
+it('uses compact fallback text when size prop is set', function () {
+    $show = Show::factory()->create(['name' => 'Breaking Bad', 'tmdb_id' => null]);
+
+    $html = Blade::render(
+        '<x-artwork :model="$model" type="logo" alt="Test" size="w200" />',
+        ['model' => $show]
+    );
+
+    expect($html)
+        ->toContain('line-clamp-2')
+        ->toContain('text-sm');
+});
+
 it('passes attributes through to the outer container', function () {
     $show = Show::factory()->create();
+    Media::factory()->active()->create([
+        'mediable_type' => Show::class,
+        'mediable_id' => $show->id,
+        'type' => ArtworkType::Logo->value,
+    ]);
 
     $html = Blade::render(
         '<x-artwork :model="$model" type="logo" alt="Test" class="custom-class" data-testid="art" />',

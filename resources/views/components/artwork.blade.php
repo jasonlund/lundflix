@@ -2,19 +2,19 @@
     'model' => null,
     'type' => 'logo',
     'alt' => '',
-    'preview' => false,
     'fallback' => true,
+    'size' => null,
 ])
 
 @php
-    $url = $model?->artUrl($type, $preview);
+    $url = $model?->artUrl($type, $size);
     $aspectClass = match ($type) {
         'poster' => 'aspect-[1000/1426]',
         'background' => 'aspect-[1920/1080]',
         default => 'aspect-[1000/562]',
     };
     $name = $model->name ?? ($model->title ?? '');
-    $fallbackTextClass = $preview ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
+    $fallbackTextClass = $size ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
 @endphp
 
 @if ($url)
