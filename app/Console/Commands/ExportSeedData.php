@@ -12,7 +12,8 @@ use function Laravel\Prompts\spin;
 class ExportSeedData extends Command
 {
     protected $signature = 'db:export-seed
-                            {--all : Export all records (including unrated)}
+                            {--all : Export all records (ignores min-votes)}
+                            {--min-votes=1000 : Minimum num_votes threshold}
                             {--connection=mysql : Database connection to export from}';
 
     protected $description = 'Export rated movies and shows to timestamped seed file';
@@ -21,12 +22,17 @@ class ExportSeedData extends Command
 
     private const SHOW_BATCH_SIZE = 250;
 
+    private const MEDIA_BATCH_SIZE = 500;
+
+    private const MEDIA_PER_TYPE = 5;
+
     /** @var resource|closed-resource|null */
     private $gzHandle = null;
 
     public function handle(): int
     {
         $exportAll = $this->option('all');
+        $minVotes = (int) $this->option('min-votes');
         $connection = $this->option('connection');
 
         $dataDir = database_path('seeders/data');
@@ -37,9 +43,9 @@ class ExportSeedData extends Command
         $this->info("Exporting from '{$connection}' connection...");
 
         if ($exportAll) {
-            $this->info('Mode: full export (including unrated)');
+            $this->info('Mode: full export (all records)');
         } else {
-            $this->info('Mode: rated only (num_votes > 0)');
+            $this->info("Mode: num_votes >= {$minVotes}");
         }
 
         // Open gzip file for streaming writes
@@ -53,11 +59,12 @@ class ExportSeedData extends Command
         $this->write("SET NAMES utf8mb4;\n");
         $this->write("SET FOREIGN_KEY_CHECKS=0;\n\n");
 
-        // Export movies
-        $this->exportMovies($connection, $exportAll);
+        // Export movies and shows
+        $this->exportMovies($connection, $exportAll, $minVotes);
+        $this->exportShows($connection, $exportAll, $minVotes);
 
-        // Export shows
-        $this->exportShows($connection, $exportAll);
+        // Export media for exported movies and shows only
+        $this->exportMedia($connection, $exportAll, $minVotes);
 
         // Close the file
         gzclose($this->gzHandle);
@@ -97,7 +104,7 @@ class ExportSeedData extends Command
         gzwrite($this->gzHandle, $data);
     }
 
-    private function exportMovies(string $connection, bool $exportAll): void
+    private function exportMovies(string $connection, bool $exportAll, int $minVotes): void
     {
         $columns = [
             'id', 'imdb_id', 'title', 'year', 'runtime', 'genres', 'num_votes',
@@ -109,7 +116,7 @@ class ExportSeedData extends Command
         $query = DB::connection($connection)->table('movies');
 
         if (! $exportAll) {
-            $query->where('num_votes', '>', 0);
+            $query->where('num_votes', '>=', $minVotes);
         }
 
         $total = spin(
@@ -158,7 +165,7 @@ class ExportSeedData extends Command
         $this->write("\n");
     }
 
-    private function exportShows(string $connection, bool $exportAll): void
+    private function exportShows(string $connection, bool $exportAll, int $minVotes): void
     {
         $columns = [
             'id', 'tvmaze_id', 'imdb_id', 'thetvdb_id', 'name', 'type', 'language', 'genres', 'status',
@@ -169,7 +176,7 @@ class ExportSeedData extends Command
         $query = DB::connection($connection)->table('shows');
 
         if (! $exportAll) {
-            $query->where('num_votes', '>', 0);
+            $query->where('num_votes', '>=', $minVotes);
         }
 
         $total = spin(
@@ -271,6 +278,108 @@ class ExportSeedData extends Command
             $row->original_name === null ? 'NULL' : $this->quote($row->original_name),
             $row->original_language === null ? 'NULL' : $this->quote($row->original_language),
             $row->content_ratings === null ? 'NULL' : $this->quote($row->content_ratings),
+        ];
+    }
+
+    private function exportMedia(string $connection, bool $exportAll, int $minVotes): void
+    {
+        $columns = [
+            'id', 'mediable_type', 'mediable_id', 'file_path', 'type', 'path', 'lang',
+            'vote_average', 'vote_count', 'width', 'height', 'season', 'is_active',
+        ];
+
+        $db = DB::connection($connection);
+
+        // Use subqueries to match the same vote filter applied to movies/shows
+        $query = $db->query()
+            ->fromSub(function ($sub) use ($db, $exportAll, $minVotes) {
+                $sub->from('media')
+                    ->selectRaw('*, ROW_NUMBER() OVER (PARTITION BY mediable_type, mediable_id, type ORDER BY vote_average DESC, id) as rn')
+                    ->where(function ($q) use ($db, $exportAll, $minVotes) {
+                        $q->where(function ($q) use ($db, $exportAll, $minVotes) {
+                            $movieQuery = $db->table('movies')->select('id');
+                            if (! $exportAll) {
+                                $movieQuery->where('num_votes', '>=', $minVotes);
+                            }
+                            $q->where('mediable_type', 'App\\Models\\Movie')
+                                ->whereIn('mediable_id', $movieQuery);
+                        })->orWhere(function ($q) use ($db, $exportAll, $minVotes) {
+                            $showQuery = $db->table('shows')->select('id');
+                            if (! $exportAll) {
+                                $showQuery->where('num_votes', '>=', $minVotes);
+                            }
+                            $q->where('mediable_type', 'App\\Models\\Show')
+                                ->whereIn('mediable_id', $showQuery);
+                        });
+                    });
+            }, 'ranked')
+            ->where('rn', '<=', self::MEDIA_PER_TYPE);
+
+        $total = spin(
+            fn () => (clone $query)->count(),
+            'Counting media...'
+        );
+
+        $this->info("Found {$total} media to export (top ".self::MEDIA_PER_TYPE.' per type)');
+
+        $this->write("TRUNCATE TABLE media;\n");
+
+        $progress = progress(label: 'Exporting media', steps: $total);
+        $progress->start();
+
+        $exported = 0;
+        $batch = [];
+
+        $query->orderBy('id')->cursor()
+            ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
+                $batch[] = $this->formatMediaRow($row);
+                $exported++;
+
+                if (count($batch) >= self::MEDIA_BATCH_SIZE) {
+                    $this->write($this->buildInsertStatement('media', $columns, $batch));
+                    $batch = [];
+                }
+
+                if ($exported % 1000 === 0) {
+                    $progress->advance(1000);
+                }
+            });
+
+        // Remaining batch
+        if (count($batch) > 0) {
+            $this->write($this->buildInsertStatement('media', $columns, $batch));
+        }
+
+        $remaining = $exported % 1000;
+        if ($remaining > 0) {
+            $progress->advance($remaining);
+        }
+
+        $progress->finish();
+        $this->info("Exported {$exported} media");
+
+        $this->write("\n");
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function formatMediaRow(object $row): array
+    {
+        return [
+            (string) $row->id,
+            $this->quote($row->mediable_type),
+            (string) $row->mediable_id,
+            $this->quote($row->file_path),
+            $this->quote($row->type),
+            $this->quote($row->path),
+            $row->lang === null ? 'NULL' : $this->quote($row->lang),
+            $row->vote_average === null ? 'NULL' : (string) $row->vote_average,
+            $row->vote_count === null ? 'NULL' : (string) $row->vote_count,
+            $row->width === null ? 'NULL' : (string) $row->width,
+            $row->height === null ? 'NULL' : (string) $row->height,
+            $row->season === null ? 'NULL' : (string) $row->season,
+            (string) $row->is_active,
         ];
     }
 
