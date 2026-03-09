@@ -77,26 +77,13 @@ new class extends Component {
                     'clientIdentifier' => $server['clientIdentifier'],
                     'ownerThumb' => $plexServers->get($server['clientIdentifier'])->owner_thumb,
                     'isOnline' => $plexServers->get($server['clientIdentifier'])->is_online,
-                    'videoResolution' => self::formatResolution($resolution),
+                    'videoResolution' => Formatters::formatResolution($resolution),
                     'runtime' => $runtime,
                     'tooltip' => $server['name'],
                     'webUrl' => $webUrl,
                 ];
             })
             ->all();
-    }
-
-    private static function formatResolution(?string $resolution): ?string
-    {
-        if ($resolution === null) {
-            return null;
-        }
-
-        return match (strtolower($resolution)) {
-            '4k' => '4K',
-            'sd' => 'SD',
-            default => $resolution . 'p',
-        };
     }
 };
 ?>

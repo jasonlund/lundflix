@@ -72,6 +72,7 @@ new class extends Component {
         return $this->movie->artUrl('background');
     }
 
+    #[Computed]
     public function contentRating(): ?string
     {
         return $this->movie->contentRating();

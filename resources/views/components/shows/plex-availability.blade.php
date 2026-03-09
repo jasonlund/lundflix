@@ -4,6 +4,7 @@ use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
 use App\Support\EpisodeCode;
+use App\Support\Formatters;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -163,7 +164,7 @@ new class extends Component {
                     'clientIdentifier' => $server['clientIdentifier'],
                     'ownerThumb' => $plexServer->owner_thumb,
                     'isOnline' => $plexServer->is_online,
-                    'videoResolution' => self::formatResolution($resolution),
+                    'videoResolution' => Formatters::formatResolution($resolution),
                     'duration' => $ep['duration'] ?? null,
                     'webUrl' => $webUrl,
                 ];
@@ -171,19 +172,6 @@ new class extends Component {
         }
 
         return $availability;
-    }
-
-    private static function formatResolution(?string $resolution): ?string
-    {
-        if ($resolution === null) {
-            return null;
-        }
-
-        return match (strtolower($resolution)) {
-            '4k' => '4K',
-            'sd' => 'SD',
-            default => $resolution . 'p',
-        };
     }
 };
 ?>
