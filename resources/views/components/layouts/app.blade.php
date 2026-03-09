@@ -99,7 +99,7 @@
                     </div>
                 </flux:header>
 
-                <flux:main :padding="false">
+                <flux:main>
                     <div class="px-4 pb-6 sm:px-6">
                         {{ $slot }}
                     </div>

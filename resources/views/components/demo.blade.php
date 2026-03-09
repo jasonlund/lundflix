@@ -92,26 +92,26 @@ new #[Layout('components.layouts.app')] class extends Component {
     <flux:card class="space-y-4">
         <flux:heading size="lg">Callout</flux:heading>
         <div class="flex flex-col gap-4">
-            <flux:callout>
+            <x-lundflix-callout>
                 <flux:callout.heading icon="sparkles">Lundbergh says...</flux:callout.heading>
                 <flux:callout.text>Keep your request list tidy so it is easy to triage.</flux:callout.text>
-            </flux:callout>
+            </x-lundflix-callout>
 
-            <flux:callout variant="success">
+            <x-lundflix-callout variant="success">
                 <flux:callout.heading icon="check-circle">Request received</flux:callout.heading>
                 <flux:callout.text>We will reach out when your titles are ready to stream.</flux:callout.text>
-            </flux:callout>
+            </x-lundflix-callout>
 
-            <flux:callout variant="danger">
+            <x-lundflix-callout variant="danger">
                 <flux:callout.heading icon="exclamation-triangle">Something went wrong</flux:callout.heading>
                 <flux:callout.text>Please try again in a moment.</flux:callout.text>
-            </flux:callout>
+            </x-lundflix-callout>
         </div>
     </flux:card>
 
     {{-- Skeleton Component --}}
     <flux:card class="space-y-4">
         <flux:heading size="lg">Skeleton</flux:heading>
-        <flux:skeleton />
+        <x-lundflix-skeleton />
     </flux:card>
 </div>
