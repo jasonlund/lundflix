@@ -41,6 +41,10 @@ return [
         'episodes_swapped' => "Yeah… so, your :title episodes have been updated. If you could go ahead and review your cart, that'd be great.",
         'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
     ],
+    'dashboard' => [
+        'greeting' => "Yeah… so, welcome to lundflix.<br>I'm gonna need you to go ahead and make yourself at home. That'd be great.",
+        'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
+    ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
         'please_wait' => "Mmm yeah… I'm gonna need you to wait while we get that ready. So… yeah.",
