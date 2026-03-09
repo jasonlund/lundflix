@@ -5,7 +5,9 @@ return [
         'auth_failed' => "Yeah… so, we weren't able to authenticate your Plex user. That's… not great.",
         'no_access' => "Mmm yeah… I'm gonna need you to have access to lundflix. So… yeah.",
         'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.",
-        'multi_server' => 'Yeah… so, :code (:title) is available on :servers, and you can go ahead and open them below.',
+        'multi_server_intro' => 'Yeah… so,',
+        'multi_server_middle' => 'is available on',
+        'multi_server_outro' => 'and you can go ahead and open them below.',
         'pin_creation_failed' => "Yeah… so, we had a little trouble connecting to Plex. I'm gonna need you to go ahead and try again. That'd be great.",
     ],
     'auth' => [

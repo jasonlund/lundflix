@@ -11,8 +11,6 @@ class PlexMediaServer extends Model
     /** @use HasFactory<\Database\Factories\PlexMediaServerFactory> */
     use HasFactory;
 
-    protected $guarded = [];
-
     /**
      * Get the Plex web app URL for this server's dashboard.
      */

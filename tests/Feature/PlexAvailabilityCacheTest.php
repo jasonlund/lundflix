@@ -431,6 +431,47 @@ describe('show plex availability caching', function () {
             ->and($displayData[0]['tooltip'])->toContain('2 of 3');
     });
 
+    it('does not count unaired plex episodes toward aired completeness', function () {
+        $user = User::factory()->withPlex()->create();
+        $show = Show::factory()->create(['imdb_id' => 'tt31987295']);
+
+        PlexMediaServer::factory()->create([
+            'client_identifier' => 'server-future-only',
+            'visible' => true,
+        ]);
+
+        Episode::factory()->count(4)->sequence(
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek()],
+            ['season' => 1, 'number' => 4, 'airdate' => now()->addWeeks(2)],
+        )->create(['show_id' => $show->id]);
+
+        $cacheKey = "plex:show:{$user->id}:{$show->id}";
+        Cache::put($cacheKey, collect([
+            [
+                'name' => 'Future Only',
+                'clientIdentifier' => 'server-future-only',
+                'owned' => true,
+                'show' => ['ratingKey' => '999'],
+                'episodes' => [
+                    ['season' => 1, 'episode' => 3, 'title' => 'Ep 3', 'ratingKey' => '103'],
+                    ['season' => 1, 'episode' => 4, 'title' => 'Ep 4', 'ratingKey' => '104'],
+                ],
+            ],
+        ]), now()->addMinutes(10));
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $displayData = $component->instance()->serverDisplayData;
+
+        expect($displayData[0]['hasAllAired'])->toBeFalse()
+            ->and($displayData[0]['episodeCount'])->toBe(0)
+            ->and($displayData[0]['airedCount'])->toBe(2)
+            ->and($displayData[0]['tooltip'])->toContain('0 of 2');
+    });
+
     it('uses owner_thumb from PlexMediaServer model', function () {
         $user = User::factory()->withPlex()->create();
         $show = Show::factory()->create(['imdb_id' => 'tt31987295']);

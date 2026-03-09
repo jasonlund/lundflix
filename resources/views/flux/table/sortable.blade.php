@@ -18,7 +18,7 @@
 >
     {{ $slot }}
 
-    <div class="rounded-sm text-zinc-400 group-hover/sortable:text-zinc-800 dark:group-hover/sortable:text-white">
+    <div class="rounded-sm text-zinc-400 group-hover/sortable:text-white">
         @if ($sorted)
             @if ($direction === 'asc')
                 <flux:icon.chevron-up variant="micro" />

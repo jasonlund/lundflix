@@ -18,8 +18,8 @@
         )
         ->add(
             match ($variant) {
-                'strong' => 'font-medium text-zinc-800 dark:text-white',
-                default => 'text-zinc-500 dark:text-zinc-300',
+                'strong' => 'font-medium text-white',
+                default => 'text-zinc-300',
             },
         )
         ->add(
@@ -35,7 +35,7 @@
                 ]
                 : '',
         )
-        ->add('not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20');
+        ->add('not-in-[tr:first-child]:border-t border-white/20');
 @endphp
 
 <td {{ $attributes->class($classes) }} data-flux-cell>

@@ -55,11 +55,20 @@ new class extends Component {
     }
 
     #[Computed]
-    public function airedEpisodeCount(): int
+    public function airedEpisodeCodes(): array
     {
         return $this->show->episodes
             ->filter(fn ($episode): bool => ! empty($episode->airdate) && Carbon::parse($episode->airdate)->lte(today()))
-            ->count();
+            ->map(fn ($episode): string => strtoupper(EpisodeCode::generate($episode->season, $episode->number)))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    #[Computed]
+    public function airedEpisodeCount(): int
+    {
+        return count($this->airedEpisodeCodes);
     }
 
     /**
@@ -73,6 +82,7 @@ new class extends Component {
         }
 
         $airedCount = $this->airedEpisodeCount;
+        $airedEpisodeCodes = $this->airedEpisodeCodes;
 
         $clientIds = $this->servers->pluck('clientIdentifier')->all();
         $plexServers = PlexMediaServer::where('visible', true)
@@ -82,9 +92,18 @@ new class extends Component {
 
         return $this->servers
             ->filter(fn (array $server): bool => $plexServers->has($server['clientIdentifier']))
-            ->map(function (array $server) use ($airedCount, $plexServers): array {
-                $episodeCount = count($server['episodes']);
-                $hasAllAired = $airedCount > 0 && $episodeCount >= $airedCount;
+            ->map(function (array $server) use ($airedCount, $airedEpisodeCodes, $plexServers): array {
+                $episodeCount = collect($server['episodes'])
+                    ->map(
+                        fn (array $episode): string => strtoupper(
+                            EpisodeCode::generate($episode['season'], $episode['episode']),
+                        ),
+                    )
+                    ->unique()
+                    ->intersect($airedEpisodeCodes)
+                    ->count();
+
+                $hasAllAired = $airedCount > 0 && $episodeCount === $airedCount;
 
                 $tooltip = $hasAllAired
                     ? "{$server['name']} — All episodes"

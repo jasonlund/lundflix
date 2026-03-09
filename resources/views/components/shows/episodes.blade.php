@@ -444,8 +444,17 @@ new class extends Component {
     @teleport('body')
         <flux:modal name="plex-episode-servers" size="sm" :headless="true">
             <div x-show="selectedPlexEpisode" x-cloak>
-                <!-- prettier-ignore -->
-                <p class="text-sm text-zinc-300">Yeah… so, <span class="font-mono" x-text="selectedPlexEpisode?.code"></span> (<span class="font-serif tracking-wide" x-text="selectedPlexEpisode?.name"></span>) is available on <span x-text="oxfordComma(selectedPlexEpisode?.servers?.map((s) => s.name) ?? [])"></span>, and you can go ahead and open them below.</p>
+                <p class="text-sm text-zinc-300">
+                    {{ __('lundbergh.plex.multi_server_intro') }}
+                    <span class="font-mono" x-text="selectedPlexEpisode?.code"></span>
+                    (
+                    <span class="font-serif tracking-wide" x-text="selectedPlexEpisode?.name"></span>
+                    )
+                    {{ __('lundbergh.plex.multi_server_middle') }}
+                    <span x-text="oxfordComma(selectedPlexEpisode?.servers?.map((s) => s.name) ?? [])"></span>
+                    ,
+                    {{ __('lundbergh.plex.multi_server_outro') }}
+                </p>
 
                 <div class="mt-4 divide-y divide-zinc-700">
                     <template x-for="server in selectedPlexEpisode?.servers ?? []" :key="server.clientIdentifier">

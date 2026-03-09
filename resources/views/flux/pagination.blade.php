@@ -22,19 +22,15 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
 
 @if ($simple)
     <div
-        {{ $attributes->class('flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-700') }}
+        {{ $attributes->class('flex items-center justify-between border-t border-zinc-700 pt-3') }}
         data-flux-pagination
     >
         <div></div>
 
         @if ($paginator->hasPages())
-            <div
-                class="flex items-center rounded-[8px] border border-zinc-200 bg-white p-[1px] dark:border-white/10 dark:bg-white/10"
-            >
+            <div class="flex items-center rounded-[8px] border border-white/10 bg-white/10 p-[1px]">
                 @if ($paginator->onFirstPage())
-                    <div
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-300 sm:size-6 dark:text-zinc-500"
-                    >
+                    <div class="flex size-8 items-center justify-center rounded-[6px] text-zinc-500 sm:size-6">
                         <flux:icon.chevron-left variant="micro" />
                     </div>
                 @else
@@ -44,7 +40,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                             wire:key="cursor-{{ $paginator->getCursorName() }}-{{ $paginator->previousCursor()->encode() }}"
                             wire:click="setPage('{{ $paginator->previousCursor()->encode() }}','{{ $paginator->getCursorName() }}')"
                             x-on:click="{{ $scrollIntoViewJsSnippet }}"
-                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-white dark:hover:bg-white/20 dark:hover:text-white"
+                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                         >
                             <flux:icon.chevron-left variant="micro" />
                         </button>
@@ -53,7 +49,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                             type="button"
                             wire:click="previousPage('{{ $paginator->getPageName() }}')"
                             x-on:click="{{ $scrollIntoViewJsSnippet }}"
-                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-white dark:hover:bg-white/20 dark:hover:text-white"
+                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                         >
                             <flux:icon.chevron-left variant="micro" />
                         </button>
@@ -67,7 +63,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                             wire:key="cursor-{{ $paginator->getCursorName() }}-{{ $paginator->nextCursor()->encode() }}"
                             wire:click="setPage('{{ $paginator->nextCursor()->encode() }}','{{ $paginator->getCursorName() }}')"
                             x-on:click="{{ $scrollIntoViewJsSnippet }}"
-                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-white dark:hover:bg-white/20 dark:hover:text-white"
+                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                         >
                             <flux:icon.chevron-right variant="micro" />
                         </button>
@@ -76,15 +72,13 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                             type="button"
                             wire:click="nextPage('{{ $paginator->getPageName() }}')"
                             x-on:click="{{ $scrollIntoViewJsSnippet }}"
-                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-white dark:hover:bg-white/20 dark:hover:text-white"
+                            class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                         >
                             <flux:icon.chevron-right variant="micro" />
                         </button>
                     @endif
                 @else
-                    <div
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-300 sm:size-6 dark:text-zinc-500"
-                    >
+                    <div class="flex size-8 items-center justify-center rounded-[6px] text-zinc-500 sm:size-6">
                         <flux:icon.chevron-right variant="micro" />
                     </div>
                 @endif
@@ -93,11 +87,11 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
     </div>
 @else
     <div
-        {{ $attributes->class('@container flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700') }}
+        {{ $attributes->class('@container flex items-center justify-between gap-3 border-t border-zinc-700 pt-3') }}
         data-flux-pagination
     >
         @if ($paginator->total() > 0)
-            <div class="text-xs font-medium whitespace-nowrap text-zinc-500 dark:text-zinc-400">
+            <div class="text-xs font-medium whitespace-nowrap text-zinc-400">
                 {!! __('Showing') !!} {{ $paginator->firstItem() }} {!! __('to') !!} {{ $paginator->lastItem() }}
                 {!! __('of') !!} {{ $paginator->total() }} {!! __('results') !!}
             </div>
@@ -107,14 +101,12 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
 
         @if ($paginator->hasPages())
             {{-- Mobile pagination --}}
-            <div
-                class="flex items-center rounded-[8px] border border-zinc-200 bg-white p-[1px] @[40rem]:hidden dark:border-white/10 dark:bg-white/10"
-            >
+            <div class="flex items-center rounded-[8px] border border-white/10 bg-white/10 p-[1px] @[40rem]:hidden">
                 @if ($paginator->onFirstPage())
                     <div
                         aria-disabled="true"
                         aria-label="{{ __('pagination.previous') }}"
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-300 sm:size-6 dark:text-zinc-500"
+                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-500 sm:size-6"
                     >
                         <flux:icon.chevron-left variant="micro" />
                     </div>
@@ -124,7 +116,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                         wire:click="previousPage('{{ $paginator->getPageName() }}')"
                         x-on:click="{{ $scrollIntoViewJsSnippet }}"
                         aria-label="{{ __('pagination.previous') }}"
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-zinc-400 dark:hover:bg-white/20 dark:hover:text-white"
+                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                     >
                         <flux:icon.chevron-left variant="micro" />
                     </button>
@@ -136,14 +128,14 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                         wire:click="nextPage('{{ $paginator->getPageName() }}')"
                         x-on:click="{{ $scrollIntoViewJsSnippet }}"
                         aria-label="{{ __('pagination.next') }}"
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 sm:size-6 dark:text-zinc-400 dark:hover:bg-white/20 dark:hover:text-white"
+                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white sm:size-6"
                     >
                         <flux:icon.chevron-right variant="micro" />
                     </button>
                 @else
                     <div
                         aria-label="{{ __('pagination.next') }}"
-                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-300 sm:size-6 dark:text-zinc-500"
+                        class="flex size-8 items-center justify-center rounded-[6px] text-zinc-500 sm:size-6"
                     >
                         <flux:icon.chevron-right variant="micro" />
                     </div>
@@ -151,14 +143,12 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
             </div>
 
             {{-- Desktop pagination --}}
-            <div
-                class="hidden items-center rounded-[8px] border border-zinc-200 bg-white p-[1px] @[40rem]:flex dark:border-white/10 dark:bg-white/10"
-            >
+            <div class="hidden items-center rounded-[8px] border border-white/10 bg-white/10 p-[1px] @[40rem]:flex">
                 @if ($paginator->onFirstPage())
                     <div
                         aria-disabled="true"
                         aria-label="{{ __('pagination.previous') }}"
-                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-300 dark:text-zinc-500"
+                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-500"
                     >
                         <flux:icon.chevron-left variant="micro" />
                     </div>
@@ -168,7 +158,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                         wire:click="previousPage('{{ $paginator->getPageName() }}')"
                         x-on:click="{{ $scrollIntoViewJsSnippet }}"
                         aria-label="{{ __('pagination.previous') }}"
-                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/20 dark:hover:text-white"
+                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white"
                     >
                         <flux:icon.chevron-left variant="micro" />
                     </button>
@@ -179,7 +169,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                     @if (is_string($element))
                         <div
                             aria-disabled="true"
-                            class="flex size-6 cursor-default items-center justify-center rounded-[6px] text-xs font-medium text-zinc-400 dark:text-zinc-400"
+                            class="flex size-6 cursor-default items-center justify-center rounded-[6px] text-xs font-medium text-zinc-400"
                         >
                             {{ $element }}
                         </div>
@@ -192,7 +182,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                                 <div
                                     wire:key="paginator-{{ $paginator->getPageName() }}-page{{ $page }}"
                                     aria-current="page"
-                                    class="flex h-6 cursor-default items-center justify-center rounded-[6px] px-2 text-xs font-medium text-zinc-800 dark:text-white"
+                                    class="flex h-6 cursor-default items-center justify-center rounded-[6px] px-2 text-xs font-medium text-white"
                                 >
                                     {{ $page }}
                                 </div>
@@ -202,7 +192,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                                     wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')"
                                     x-on:click="{{ $scrollIntoViewJsSnippet }}"
                                     type="button"
-                                    class="h-6 rounded-[6px] px-2 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/20 dark:hover:text-white"
+                                    class="h-6 rounded-[6px] px-2 text-xs font-medium text-zinc-400 hover:bg-white/20 hover:text-white"
                                 >
                                     {{ $page }}
                                 </button>
@@ -217,14 +207,14 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                         wire:click="nextPage('{{ $paginator->getPageName() }}')"
                         x-on:click="{{ $scrollIntoViewJsSnippet }}"
                         aria-label="{{ __('pagination.next') }}"
-                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-white/20 dark:hover:text-white"
+                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-400 hover:bg-white/20 hover:text-white"
                     >
                         <flux:icon.chevron-right variant="micro" />
                     </button>
                 @else
                     <div
                         aria-label="{{ __('pagination.next') }}"
-                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-300 dark:text-zinc-500"
+                        class="flex size-6 items-center justify-center rounded-[6px] text-zinc-500"
                     >
                         <flux:icon.chevron-right variant="micro" />
                     </div>
