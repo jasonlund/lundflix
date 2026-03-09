@@ -315,6 +315,19 @@ test('searchByExternalId returns servers that have the content', function () {
                 ],
             ],
         ]),
+        'http://server-b.example.com:32400/library/metadata/12345' => Http::response([
+            'MediaContainer' => [
+                'Metadata' => [
+                    [
+                        'title' => 'Inception',
+                        'year' => 2010,
+                        'ratingKey' => '12345',
+                        'duration' => 8880000,
+                        'Media' => [['videoResolution' => '1080', 'videoCodec' => 'h264']],
+                    ],
+                ],
+            ],
+        ]),
     ]);
 
     $service = new PlexService;
@@ -322,7 +335,9 @@ test('searchByExternalId returns servers that have the content', function () {
 
     expect($results)->toHaveCount(1)
         ->and($results->first()['name'])->toBe('Server B')
-        ->and($results->first()['match']['title'])->toBe('Inception');
+        ->and($results->first()['match']['title'])->toBe('Inception')
+        ->and($results->first()['match']['duration'])->toBe(8880000)
+        ->and($results->first()['match']['Media'][0]['videoResolution'])->toBe('1080');
 });
 
 test('searchByExternalId returns empty collection when external ID cannot be resolved', function () {
@@ -369,11 +384,32 @@ test('searchShowWithEpisodes returns servers with episode lists', function () {
                 ],
             ],
         ]),
+        'http://test.example.com:32400/library/metadata/12345' => Http::response([
+            'MediaContainer' => [
+                'Metadata' => [
+                    ['title' => 'The Chair Company', 'year' => 2025, 'ratingKey' => '12345'],
+                ],
+            ],
+        ]),
         'http://test.example.com:32400/library/metadata/12345/allLeaves' => Http::response([
             'MediaContainer' => [
                 'Metadata' => [
-                    ['parentIndex' => 1, 'index' => 1, 'title' => 'Episode One'],
-                    ['parentIndex' => 1, 'index' => 2, 'title' => 'Episode Two'],
+                    [
+                        'parentIndex' => 1,
+                        'index' => 1,
+                        'title' => 'Episode One',
+                        'ratingKey' => '500',
+                        'duration' => 3600000,
+                        'Media' => [['videoResolution' => '1080']],
+                    ],
+                    [
+                        'parentIndex' => 1,
+                        'index' => 2,
+                        'title' => 'Episode Two',
+                        'ratingKey' => '501',
+                        'duration' => 2700000,
+                        'Media' => [['videoResolution' => '720']],
+                    ],
                 ],
             ],
         ]),
@@ -390,6 +426,9 @@ test('searchShowWithEpisodes returns servers with episode lists', function () {
             'season' => 1,
             'episode' => 1,
             'title' => 'Episode One',
+            'ratingKey' => '500',
+            'duration' => 3600000,
+            'videoResolution' => '1080',
         ]);
 });
 

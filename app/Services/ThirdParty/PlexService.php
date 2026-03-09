@@ -87,6 +87,19 @@ class PlexService
     }
 
     /**
+     * Get the authenticated user's friends list.
+     *
+     * @return Collection<int, array{id: int, uuid: string, title: string, username: string, thumb: string|null, email: string}>
+     */
+    public function getFriends(string $token): Collection
+    {
+        $response = $this->client($token)
+            ->get(self::BASE_URL.'/friends');
+
+        return collect($response->json());
+    }
+
+    /**
      * Get all resources (servers, players) the user has access to.
      */
     public function getUserResources(string $token): Collection
@@ -184,8 +197,8 @@ class PlexService
             return collect();
         }
 
-        // Query all servers concurrently
-        $responses = Http::pool(fn (Pool $pool) => $servers->map(
+        // Query all servers concurrently to find which have the content
+        $searchResponses = Http::pool(fn (Pool $pool) => $servers->map(
             fn (array $server) => $pool
                 ->as($server['clientIdentifier'])
                 ->withHeaders([
@@ -197,9 +210,10 @@ class PlexService
                 ->get($server['uri'].'/library/all', ['guid' => $plexGuid])
         )->all());
 
-        return $servers
-            ->map(function (array $server) use ($responses): ?array {
-                $response = $responses[$server['clientIdentifier']] ?? null;
+        // Collect servers that have the content with their ratingKeys
+        $matched = $servers
+            ->map(function (array $server) use ($searchResponses): ?array {
+                $response = $searchResponses[$server['clientIdentifier']] ?? null;
 
                 if (! $response || $response instanceof \Throwable || $response->failed()) {
                     return null;
@@ -211,6 +225,36 @@ class PlexService
             })
             ->filter()
             ->values();
+
+        if ($matched->isEmpty()) {
+            return $matched;
+        }
+
+        // Fetch full metadata (with Media array) for each match concurrently
+        $detailResponses = Http::pool(fn (Pool $pool) => $matched->map(
+            fn (array $server) => $pool
+                ->as($server['clientIdentifier'])
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'X-Plex-Client-Identifier' => $this->clientIdentifier,
+                    'X-Plex-Token' => $server['accessToken'],
+                ])
+                ->timeout(10)
+                ->get($server['uri']."/library/metadata/{$server['match']['ratingKey']}")
+        )->all());
+
+        return $matched->map(function (array $server) use ($detailResponses): array {
+            $response = $detailResponses[$server['clientIdentifier']] ?? null;
+
+            if ($response && ! $response instanceof \Throwable && $response->successful()) {
+                $detail = $response->json('MediaContainer.Metadata.0');
+                if ($detail) {
+                    $server['match'] = $detail;
+                }
+            }
+
+            return $server;
+        });
     }
 
     /**
@@ -247,6 +291,9 @@ class PlexService
                     'season' => $ep['parentIndex'] ?? 0,
                     'episode' => $ep['index'] ?? 0,
                     'title' => $ep['title'] ?? 'Unknown',
+                    'ratingKey' => $ep['ratingKey'] ?? '',
+                    'duration' => $ep['duration'] ?? null,
+                    'videoResolution' => $ep['Media'][0]['videoResolution'] ?? null,
                 ])->all()
                 : [];
 

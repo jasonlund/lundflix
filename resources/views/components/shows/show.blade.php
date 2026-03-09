@@ -188,32 +188,33 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        <div
-            x-data="{ syncing: false }"
-            @cart-syncing.window="syncing = true"
-            @cart-updated.window="syncing = false"
-            class="absolute top-4 right-4 z-10"
-        >
-            <flux:tooltip content="Add/Remove Episodes Below">
-                <div
-                    class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
-                >
-                    <div class="relative flex min-w-4 items-center justify-center">
-                        @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
-                            <span class="invisible">{{ $cartEpisodeCount }}</span>
-                            <span :class="syncing && 'opacity-0'" class="absolute">
-                                <flux:icon.check class="size-4" />
-                            </span>
-                        @else
-                            <span :class="syncing && 'opacity-0'">
-                                {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
-                            </span>
-                        @endif
-                        <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+        <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+            <div
+                x-data="{ syncing: false }"
+                @cart-syncing.window="syncing = true"
+                @cart-updated.window="syncing = false"
+            >
+                <flux:tooltip content="Add/Remove Episodes Below">
+                    <div
+                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
+                    >
+                        <div class="relative flex min-w-4 items-center justify-center">
+                            @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
+                                <span class="invisible">{{ $cartEpisodeCount }}</span>
+                                <span :class="syncing && 'opacity-0'" class="absolute">
+                                    <flux:icon.check class="size-4" />
+                                </span>
+                            @else
+                                <span :class="syncing && 'opacity-0'">
+                                    {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
+                                </span>
+                            @endif
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                        </div>
+                        <flux:icon.shopping-cart class="size-4" />
                     </div>
-                    <flux:icon.shopping-cart class="size-4" />
-                </div>
-            </flux:tooltip>
+                </flux:tooltip>
+            </div>
         </div>
 
         <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
