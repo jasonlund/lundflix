@@ -92,6 +92,10 @@ ui-toast-group {
     @apply p-0;
 }
 
+[data-flux-cell] {
+    @apply py-2;
+}
+
 [data-flux-modal] > dialog:not([data-flux-flyout])::backdrop {
     background-color: transparent;
 }

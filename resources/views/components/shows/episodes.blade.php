@@ -493,10 +493,6 @@ new class extends Component {
                     </template>
                 </div>
             </div>
-        @empty
-            <x-lundflix-callout :variant="$error ? 'danger' : null" class="mt-4">
-                <flux:callout.text>{{ $error ?? __('lundbergh.empty.episodes') }}</flux:callout.text>
-            </x-lundflix-callout>
-        @endforelse
-    </div>
+        </flux:modal>
+    @endteleport
 </div>

@@ -172,6 +172,7 @@ public function networkInfo(): ?array
 - Dark mode is permanently enabled in this application — there is no light mode. The app always renders in dark mode.
 - **Never use `dark:` prefixed Tailwind classes.** Since dark mode is always on, use the dark variant colors directly as the default (e.g., use `bg-zinc-900` instead of `bg-white dark:bg-zinc-900`).
 - All new components and pages must be styled for dark mode only.
+- Vendor/third-party files (including Flux vendor components) may use `dark:` prefixed classes — this is fine. Since dark mode is always on, `dark:` classes always apply. Never publish or override vendor components solely to remove `dark:` prefixes.
 
 ## Flux Component Customization Priority
 
