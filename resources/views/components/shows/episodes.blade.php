@@ -36,7 +36,7 @@ new class extends Component {
     {
         return <<<'HTML'
         <div>
-            <flux:skeleton />
+            <x-lundflix-skeleton />
         </div>
         HTML;
     }
@@ -397,9 +397,9 @@ new class extends Component {
                 </flux:checkbox.group>
             </div>
         @empty
-            <flux:callout :variant="$error ? 'danger' : null" class="mt-4">
+            <x-lundflix-callout :variant="$error ? 'danger' : null" class="mt-4">
                 <flux:callout.text>{{ $error ?? __('lundbergh.empty.episodes') }}</flux:callout.text>
-            </flux:callout>
+            </x-lundflix-callout>
         @endforelse
     </div>
 </div>

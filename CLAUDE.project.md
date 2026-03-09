@@ -173,20 +173,14 @@ public function networkInfo(): ?array
 - **Never use `dark:` prefixed Tailwind classes.** Since dark mode is always on, use the dark variant colors directly as the default (e.g., use `bg-zinc-900` instead of `bg-white dark:bg-zinc-900`).
 - All new components and pages must be styled for dark mode only.
 
-## Tailwind Important Modifier
+## Flux Component Customization Priority
 
-**NEVER use Tailwind's `!` (important) modifier unless absolutely unavoidable.** Using `!important` is a code smell that indicates a deeper problem with CSS specificity or component design.
+When customizing Flux UI components, follow this priority order:
 
-When you encounter a situation where `!` seems necessary:
-
-1. **Prefer publishing Flux components** - Use `php artisan flux:publish` to customize components with proper props or variants
-2. **Create a custom component** - Build a new component for your specific use case
-3. **Use CSS custom properties** - Override design tokens in `@theme` instead of fighting specificity
-
-If `!important` is truly unavoidable (extremely rare), document why in a code comment explaining:
-- What you tried instead
-- Why those alternatives didn't work
-- What would need to change to remove the `!important`
+1. **CSS overrides with `data-flux-*` selectors** (preferred) — Use attribute selectors in `resources/css/app.css`. Unlayered CSS beats Tailwind's `@layer utilities`, so `@apply` rules win without `!`.
+2. **Wrapper components** (when CSS alone isn't enough) — Create a custom Blade component (e.g., `<x-lundflix-callout>`) that wraps the vendor Flux component. Use CSS to strip the vendor's visual shell, then wrap in project components like `<x-lundbergh-bubble>`. Update call sites to use the wrapper instead of the Flux component directly.
+3. **`!` important modifier** (when regular CSS can't override) — Use `!` on specific properties when vendor utility classes have equal or higher specificity. No justification comment needed.
+4. **Publishing Flux components** (last resort) — Only publish when the change is structural and can't be achieved by the above (e.g., component is auto-invoked by Flux internals, Alpine.js integration changes, sub-component API changes). Never publish solely for styling.
 
 ## Laravel Scout
 
