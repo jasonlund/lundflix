@@ -180,7 +180,8 @@ new class extends Component {
     <x-section heading="Availability" collapsible>
         <x-slot:action>
             @if (count($this->serverDisplayData) > 0)
-                <div class="flex items-center text-sm text-zinc-400">
+                <div class="flex items-center gap-1.5 text-sm text-zinc-400">
+                    <flux:icon.check class="size-4" />
                     @foreach ($this->serverDisplayData as $server)
                         @if (! $loop->first)
                             <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
@@ -197,6 +198,11 @@ new class extends Component {
                             <span>{{ $server['episodeCount'] }}</span>
                         </div>
                     @endforeach
+                </div>
+            @else
+                <div class="flex items-center gap-1.5 text-zinc-400">
+                    <flux:icon.x-mark class="size-4" />
+                    <span class="text-sm font-semibold">Unavailable</span>
                 </div>
             @endif
         </x-slot>
