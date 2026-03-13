@@ -229,61 +229,67 @@ new class extends Component {
 };
 ?>
 
-<flux:card size="sm">
-    <div class="flex items-center justify-between">
-        <flux:heading size="lg">{{ __('lundbergh.dashboard.requests_heading') }}</flux:heading>
+<div>
+    @if ($this->allRows->isNotEmpty())
+        <flux:card size="sm">
+            <div class="flex items-center justify-between">
+                <flux:heading size="lg">{{ __('lundbergh.dashboard.requests_heading') }}</flux:heading>
 
-        <flux:dropdown align="end">
-            <flux:button variant="subtle" size="sm" icon:trailing="funnel">
-                <span class="font-mono">{{ count($statusFilters) }}</span>
-            </flux:button>
+                <flux:dropdown align="end">
+                    <flux:button variant="subtle" size="sm" icon:trailing="funnel">
+                        <span class="font-mono">{{ count($statusFilters) }}</span>
+                    </flux:button>
 
-            <flux:menu>
-                <flux:menu.checkbox.group wire:model.live="statusFilters">
-                    @foreach (RequestItemStatus::cases() as $status)
-                        <flux:menu.checkbox value="{{ $status->value }}" keep-open>
-                            {{ $status->getLabel() }}
-                        </flux:menu.checkbox>
-                    @endforeach
-                </flux:menu.checkbox.group>
-            </flux:menu>
-        </flux:dropdown>
-    </div>
+                    <flux:menu>
+                        <flux:menu.checkbox.group wire:model.live="statusFilters">
+                            @foreach (RequestItemStatus::cases() as $status)
+                                <flux:menu.checkbox value="{{ $status->value }}" keep-open>
+                                    {{ $status->getLabel() }}
+                                </flux:menu.checkbox>
+                            @endforeach
+                        </flux:menu.checkbox.group>
+                    </flux:menu>
+                </flux:dropdown>
+            </div>
 
-    @if ($this->allRows->isEmpty())
-        <flux:text class="mt-2 text-zinc-500">
-            {{ __('lundbergh.empty.requests') }}
-        </flux:text>
-    @elseif ($this->rows->isEmpty())
-        <flux:text class="mt-2 text-zinc-500">
-            {{ __('lundbergh.dashboard.no_matching_requests') }}
-        </flux:text>
-    @else
-        <flux:table :paginate="$this->rows" class="mt-3">
-            <flux:table.rows>
-                @foreach ($this->rows as $row)
-                    <flux:table.row wire:key="request-row-{{ $loop->index }}-{{ $this->rows->currentPage() }}">
-                        <flux:table.cell variant="strong">
-                            <div class="flex items-center gap-2">
-                                <flux:badge size="sm" :color="$row['status']->getFluxColor()" inset="top bottom">
-                                    {{ $row['status']->getLabel() }}
-                                </flux:badge>
-                                <span>
-                                    {{ $row['title'] }}
-                                    @if ($row['subtitle'])
-                                        <span class="text-sm text-zinc-400">{{ $row['subtitle'] }}</span>
-                                    @endif
-                                </span>
-                            </div>
-                        </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <span class="text-sm text-zinc-400">
-                                {{ $row['created_at']->format('m/d/y') }}
-                            </span>
-                        </flux:table.cell>
-                    </flux:table.row>
-                @endforeach
-            </flux:table.rows>
-        </flux:table>
+            @if ($this->rows->isEmpty())
+                <flux:text class="mt-2 text-zinc-500">
+                    {{ __('lundbergh.dashboard.no_matching_requests') }}
+                </flux:text>
+            @else
+                <flux:table :paginate="$this->rows" class="mt-3">
+                    <flux:table.rows>
+                        @foreach ($this->rows as $row)
+                            <flux:table.row
+                                wire:key="request-row-{{ $loop->index }}-{{ $this->rows->currentPage() }}"
+                            >
+                                <flux:table.cell variant="strong">
+                                    <div class="flex items-center gap-2">
+                                        <flux:badge
+                                            size="sm"
+                                            :color="$row['status']->getFluxColor()"
+                                            inset="top bottom"
+                                        >
+                                            {{ $row['status']->getLabel() }}
+                                        </flux:badge>
+                                        <span>
+                                            {{ $row['title'] }}
+                                            @if ($row['subtitle'])
+                                                <span class="text-sm text-zinc-400">{{ $row['subtitle'] }}</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                </flux:table.cell>
+                                <flux:table.cell class="text-right">
+                                    <span class="text-sm text-zinc-400">
+                                        {{ $row['created_at']->format('m/d/y') }}
+                                    </span>
+                                </flux:table.cell>
+                            </flux:table.row>
+                        @endforeach
+                    </flux:table.rows>
+                </flux:table>
+            @endif
+        </flux:card>
     @endif
-</flux:card>
+</div>

@@ -23,10 +23,10 @@ it('renders on the dashboard', function () {
         ->assertSeeLivewire('dashboard.requests');
 });
 
-it('shows the empty state when the user has no requests', function () {
+it('hides the card when the user has no requests', function () {
     Livewire::test('dashboard.requests')
         ->assertSuccessful()
-        ->assertSee(__('lundbergh.empty.requests'));
+        ->assertDontSee(__('lundbergh.dashboard.requests_heading'));
 });
 
 it('shows a filter-specific empty state when filters match no requests', function () {
