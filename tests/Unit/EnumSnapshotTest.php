@@ -86,7 +86,7 @@ it('snapshots NetworkLogo display values', function () {
 
 it('snapshots RequestItemStatus display values', function () {
     $values = collect(RequestItemStatus::cases())->mapWithKeys(fn (RequestItemStatus $e) => [
-        $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor()],
+        $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor(), 'fluxColor' => $e->getFluxColor()],
     ])->all();
 
     expect($values)->toMatchSnapshot();
