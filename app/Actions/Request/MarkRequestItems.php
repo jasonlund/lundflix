@@ -3,6 +3,8 @@
 namespace App\Actions\Request;
 
 use App\Enums\RequestItemStatus;
+use App\Enums\RequestStatus;
+use App\Events\RequestFulfilled;
 use App\Models\Request;
 
 class MarkRequestItems
@@ -39,6 +41,10 @@ class MarkRequestItems
             ->update($updates);
 
         $request->refresh();
+
+        if ($status === RequestItemStatus::Fulfilled && $request->status === RequestStatus::Fulfilled) { // @phpstan-ignore property.notFound (computed attribute)
+            RequestFulfilled::dispatch($request);
+        }
 
         return $count;
     }
