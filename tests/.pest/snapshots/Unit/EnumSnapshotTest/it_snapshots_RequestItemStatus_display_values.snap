@@ -1,18 +1,22 @@
 {
     "Pending": {
         "label": "Pending",
-        "color": "gray"
+        "color": "gray",
+        "fluxColor": "zinc"
     },
     "Fulfilled": {
         "label": "Fulfilled",
-        "color": "success"
+        "color": "success",
+        "fluxColor": "green"
     },
     "Rejected": {
         "label": "Rejected",
-        "color": "danger"
+        "color": "danger",
+        "fluxColor": "red"
     },
     "NotFound": {
         "label": "Not Found",
-        "color": "warning"
+        "color": "warning",
+        "fluxColor": "amber"
     }
 }

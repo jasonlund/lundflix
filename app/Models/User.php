@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -64,6 +65,12 @@ class User extends Authenticatable implements FilamentUser
             ->take(2)
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
+    }
+
+    /** @return HasMany<Request, $this> */
+    public function requests(): HasMany
+    {
+        return $this->hasMany(Request::class);
     }
 
     /**
