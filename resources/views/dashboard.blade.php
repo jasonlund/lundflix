@@ -3,7 +3,7 @@
         <livewire:dashboard.greeting />
 
         <div class="mt-6 space-y-6">
-            <livewire:dashboard.requests lazy />
+            <livewire:dashboard.requests />
             <livewire:plex.server-status lazy />
         </div>
     </div>
