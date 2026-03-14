@@ -1,8 +1,3 @@
-@php
-    $defaultBackground = Vite::image('default-background.svg');
-    $backgroundImage ??= $defaultBackground;
-@endphp
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
@@ -28,11 +23,7 @@
                 <div
                     class="absolute inset-0 bg-gradient-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
                 ></div>
-                <div class="flicker absolute inset-0 bg-zinc-900/5"></div>
-                <div class="scanlines absolute inset-0"></div>
-                <div class="scanline absolute inset-0">
-                    <div class="block h-px w-full bg-white/15 opacity-50"></div>
-                </div>
+                <x-crt-effects />
             </div>
 
             <div
@@ -116,6 +107,12 @@
         </div>
 
         <livewire:media-search />
+
+        <x-error-overlay />
+
+        <script>
+            window.lundflixErrors = {{ Js::from($errorPages) }}
+        </script>
 
         @fluxScripts
     </body>

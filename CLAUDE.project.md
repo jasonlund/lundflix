@@ -82,6 +82,7 @@ When committing changes, use this format:
 - Common patterns: "Yeah… so,", "Mmm yeah…", "I'm gonna need you to", "That'd be great.", "So… yeah."
 - Use `__('lundbergh.section.key')` to reference strings in Blade templates and PHP
 - Never hardcode user-facing text — always use the lang file
+- **Exception: HTTP error pages** — Error pages (404, 500, etc.) use the standard HTTP reason phrase (e.g., "Internal Server Error") instead of Lundberghese. These are defined in `config/error-pages.php`.
 
 ## Blade Components
 

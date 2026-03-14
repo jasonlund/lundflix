@@ -35,6 +35,20 @@ it('displays movie page for authenticated users', function () {
         ->assertSeeLivewire('movies.show');
 });
 
+it('displays movie page when bound by imdb id', function () {
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'The Matrix',
+        'imdb_id' => 'tt0133093',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('movies.show', ['movie' => $movie->imdb_id]))
+        ->assertSuccessful()
+        ->assertSeeLivewire('movies.show')
+        ->assertSee($movie->title);
+});
+
 it('displays movie title and release date', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
