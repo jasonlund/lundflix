@@ -42,6 +42,8 @@ it('displays trace ID on real 500 error page', function () {
 });
 
 it('displays caption on error page when configured', function () {
+    config(['app.debug' => false]);
+
     Route::get('/test-403', fn () => abort(403));
 
     $response = $this->get('/test-403');
@@ -52,6 +54,8 @@ it('displays caption on error page when configured', function () {
 });
 
 it('does not display caption when not configured', function () {
+    config(['app.debug' => false]);
+
     Route::get('/test-404', fn () => abort(404));
 
     $response = $this->get('/test-404');
