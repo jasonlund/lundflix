@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Support\ErrorPageResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -41,5 +43,16 @@ class AppServiceProvider extends ServiceProvider
         Vite::macro('image', fn (string $asset) => Vite::asset("resources/images/{$asset}"));
 
         Blaze::optimize();
+
+        View::composer('components.layouts.app', function ($view) {
+            $data = $view->getData();
+            $defaultBackground = Vite::image('default-background.svg');
+
+            $view->with([
+                'defaultBackground' => $defaultBackground,
+                'backgroundImage' => $data['backgroundImage'] ?? $defaultBackground,
+                'errorPages' => $data['errorPages'] ?? ErrorPageResolver::all(),
+            ]);
+        });
     }
 }

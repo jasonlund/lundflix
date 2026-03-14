@@ -19,7 +19,9 @@ use Laravel\Scout\Searchable;
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
+        HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
+    }
 
     protected function casts(): array
     {
@@ -60,6 +62,19 @@ class Show extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(Episode::class);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        if ($field === null && is_string($value) && str_starts_with($value, 'tt')) {
+            return $query->where('imdb_id', $value);
+        }
+
+        return $this->resolveSqidRouteBindingQuery($query, $value, $field);
     }
 
     /**
