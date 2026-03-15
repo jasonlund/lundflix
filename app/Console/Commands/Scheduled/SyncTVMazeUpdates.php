@@ -12,7 +12,7 @@ use function Laravel\Prompts\progress;
 
 class SyncTVMazeUpdates extends Command
 {
-    protected $signature = 'tvmaze:sync-updates {--since=day : Time period (day, week, month)}';
+    protected $signature = 'tvmaze:sync-updates {--since=week : Time period (day, week, month)}';
 
     protected $description = 'Sync recently updated TV shows from TVMaze';
 

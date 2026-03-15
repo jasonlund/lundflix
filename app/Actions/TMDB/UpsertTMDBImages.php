@@ -6,6 +6,7 @@ use App\Enums\ArtworkType;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Support\DatabaseRetry;
 
 class UpsertTMDBImages
 {
@@ -28,9 +29,9 @@ class UpsertTMDBImages
             array_values($typeMapping),
         );
 
-        $model->media()
+        DatabaseRetry::run(fn (): int => $model->media()
             ->whereIn('type', $managedTypes)
-            ->update(['is_active' => false]);
+            ->update(['is_active' => false]));
 
         foreach ($typeMapping as $key => $artworkType) {
             $images = $imagesResponse[$key] ?? [];
@@ -66,11 +67,11 @@ class UpsertTMDBImages
         }
 
         if ($records !== []) {
-            Media::upsert(
+            DatabaseRetry::run(fn (): int => Media::upsert(
                 $records,
                 ['mediable_type', 'mediable_id', 'file_path'],
                 ['type', 'lang', 'vote_average', 'vote_count', 'width', 'height', 'is_active']
-            );
+            ));
         }
     }
 

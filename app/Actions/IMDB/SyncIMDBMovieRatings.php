@@ -2,6 +2,7 @@
 
 namespace App\Actions\IMDB;
 
+use App\Support\DatabaseRetry;
 use Illuminate\Support\Facades\DB;
 
 class SyncIMDBMovieRatings
@@ -31,6 +32,6 @@ class SyncIMDBMovieRatings
         $sql = "UPDATE movies SET num_votes = CASE {$caseStatement} END WHERE imdb_id IN ({$placeholders})";
         $bindings = array_merge($bindings, $ids);
 
-        return DB::update($sql, $bindings);
+        return DatabaseRetry::run(fn (): int => DB::update($sql, $bindings));
     }
 }
