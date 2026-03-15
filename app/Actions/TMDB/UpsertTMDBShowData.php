@@ -3,6 +3,7 @@
 namespace App\Actions\TMDB;
 
 use App\Models\Show;
+use App\Support\DatabaseRetry;
 
 class UpsertTMDBShowData
 {
@@ -21,11 +22,11 @@ class UpsertTMDBShowData
             return $show;
         }, $shows);
 
-        return Show::upsert(
+        return DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
             ['tmdb_id', 'tmdb_synced_at', 'content_ratings', 'original_name', 'original_language', 'thetvdb_id']
-        );
+        ));
     }
 
     /**

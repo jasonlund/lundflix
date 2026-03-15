@@ -19,7 +19,7 @@ it('updates existing shows that have changed in TVMaze', function () {
     ]);
 
     Http::fake([
-        'api.tvmaze.com/updates/shows?since=day' => Http::response([
+        'api.tvmaze.com/updates/shows?since=week' => Http::response([
             '112' => 1704067200, // This show was updated
             '999' => 1704067200, // This show we don't have
         ]),
@@ -62,7 +62,7 @@ it('only fetches shows that exist in the database', function () {
     Show::factory()->create(['tvmaze_id' => 100]);
 
     Http::fake([
-        'api.tvmaze.com/updates/shows?since=day' => Http::response([
+        'api.tvmaze.com/updates/shows?since=week' => Http::response([
             '100' => 1704067200,
             '200' => 1704067200, // We don't have this one
             '300' => 1704067200, // Or this one
@@ -99,7 +99,7 @@ it('handles no tracked shows needing updates', function () {
     Show::factory()->create(['tvmaze_id' => 999]);
 
     Http::fake([
-        'api.tvmaze.com/updates/shows?since=day' => Http::response([
+        'api.tvmaze.com/updates/shows?since=week' => Http::response([
             '100' => 1704067200, // Different show than what we have
         ]),
     ]);
@@ -111,7 +111,7 @@ it('handles no tracked shows needing updates', function () {
 
 it('throws exception when updates endpoint fails', function () {
     Http::fake([
-        'api.tvmaze.com/updates/shows?since=day' => Http::response(null, 500),
+        'api.tvmaze.com/updates/shows?since=week' => Http::response(null, 500),
     ]);
 
     $this->artisan('tvmaze:sync-updates');
@@ -153,7 +153,7 @@ it('handles shows that no longer exist in TVMaze', function () {
     Show::factory()->create(['tvmaze_id' => 200]);
 
     Http::fake([
-        'api.tvmaze.com/updates/shows?since=day' => Http::response([
+        'api.tvmaze.com/updates/shows?since=week' => Http::response([
             '100' => 1704067200,
             '200' => 1704067200,
         ]),
