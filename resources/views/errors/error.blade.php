@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
-        @include('partials.head')
+        @include('partials.head', ['title' => $message])
     </head>
     <body class="flex min-h-screen items-center justify-center bg-zinc-950">
         <div class="px-6 text-center">

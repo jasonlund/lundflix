@@ -179,9 +179,11 @@ new class extends Component {
 
     public function render(): mixed
     {
-        return $this->view()->layout('components.layouts.app', [
-            'backgroundImage' => $this->backgroundUrl(),
-        ]);
+        return $this->view()
+            ->layout('components.layouts.app', [
+                'backgroundImage' => $this->backgroundUrl(),
+            ])
+            ->title($this->show->name);
     }
 };
 ?>
