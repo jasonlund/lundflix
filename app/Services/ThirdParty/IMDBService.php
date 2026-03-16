@@ -19,7 +19,7 @@ class IMDBService
     public function downloadExport(): string
     {
         $tempFile = tempnam(sys_get_temp_dir(), 'imdb_');
-        Http::sink($tempFile)->timeout(600)->get(self::EXPORT_URL)->throw();
+        Http::resilient()->sink($tempFile)->timeout(600)->get(self::EXPORT_URL)->throw();
 
         return $tempFile;
     }
@@ -99,7 +99,7 @@ class IMDBService
     public function downloadRatings(): string
     {
         $tempFile = tempnam(sys_get_temp_dir(), 'imdb_ratings_');
-        Http::sink($tempFile)->timeout(600)->get(self::RATINGS_URL)->throw();
+        Http::resilient()->sink($tempFile)->timeout(600)->get(self::RATINGS_URL)->throw();
 
         return $tempFile;
     }
