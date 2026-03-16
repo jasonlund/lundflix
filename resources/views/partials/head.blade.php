@@ -2,10 +2,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 @php
-    $appTitle = $title ?? config('app.name');
+    $suffix = config('app.name') . ', home of lundbergh';
+    $pageTitle = isset($title) ? $title . ' · ' . $suffix : $suffix;
     $displayTitle = app()->environment('local')
-        ? Str::before(request()->getHost(), '.') . ' - ' . $appTitle
-        : $appTitle;
+        ? Str::before(request()->getHost(), '.') . ' · ' . $pageTitle
+        : $pageTitle;
 @endphp
 
 <title>{{ $displayTitle }}</title>
