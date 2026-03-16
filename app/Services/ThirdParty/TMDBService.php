@@ -355,7 +355,6 @@ class TMDBService
 
     private function client(): PendingRequest
     {
-        return $this->baseRequest(Http::createPendingRequest())
-            ->retry(3, 1000, when: fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429);
+        return $this->baseRequest(Http::resilient());
     }
 }
