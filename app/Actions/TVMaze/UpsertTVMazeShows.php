@@ -4,6 +4,7 @@ namespace App\Actions\TVMaze;
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use App\Support\DatabaseRetry;
 
 class UpsertTVMazeShows
 {
@@ -12,7 +13,7 @@ class UpsertTVMazeShows
      */
     public function upsert(array $shows): int
     {
-        return Show::upsert(
+        return DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
             [
@@ -20,7 +21,7 @@ class UpsertTVMazeShows
                 'average_runtime', 'premiered', 'ended', 'schedule', 'network',
                 'web_channel', 'thetvdb_id',
             ]
-        );
+        ));
     }
 
     /**

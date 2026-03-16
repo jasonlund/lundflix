@@ -4,6 +4,7 @@ namespace App\Actions\TMDB;
 
 use App\Enums\TMDBReleaseType;
 use App\Models\Movie;
+use App\Support\DatabaseRetry;
 
 class UpsertTMDBData
 {
@@ -22,11 +23,11 @@ class UpsertTMDBData
             return $movie;
         }, $movies);
 
-        return Movie::upsert(
+        return DatabaseRetry::run(fn (): int => Movie::upsert(
             $movies,
             ['imdb_id'],
             ['tmdb_id', 'release_date', 'digital_release_date', 'original_language', 'original_title', 'status', 'origin_country', 'release_dates', 'tmdb_synced_at']
-        );
+        ));
     }
 
     /**

@@ -147,17 +147,45 @@ class PlexService
 
     /**
      * Select the best connection URI from a server's connections.
-     * Prefers non-local, non-relay connections that don't use plex.direct.
+     * Prefers non-local direct IPv4, then direct IPv6, then relay connections.
      */
     private function selectBestConnection(array $connections): ?string
     {
-        $nonLocal = collect($connections)->filter(fn (array $c): bool => ! $c['local']);
+        $nonLocal = collect($connections)->filter(fn (array $c): bool => ! ($c['local'] ?? false));
 
-        // Prefer direct connections (not plex.direct relay)
-        $direct = $nonLocal->first(fn (array $c): bool => ! str_contains($c['uri'], 'plex.direct'));
-        $fallback = $nonLocal->first();
+        $directIpv4 = $nonLocal->first(fn (array $c): bool => ! $this->isRelayConnection($c) && ! $this->isIpv6Connection($c));
+        $directIpv6 = $nonLocal->first(fn (array $c): bool => ! $this->isRelayConnection($c) && $this->isIpv6Connection($c));
+        $relay = $nonLocal->first(fn (array $c): bool => $this->isRelayConnection($c));
 
-        return $direct['uri'] ?? $fallback['uri'] ?? null;
+        return $directIpv4['uri'] ?? $directIpv6['uri'] ?? $relay['uri'] ?? null;
+    }
+
+    private function isRelayConnection(array $connection): bool
+    {
+        if (array_key_exists('relay', $connection)) {
+            return (bool) $connection['relay'];
+        }
+
+        $host = parse_url($connection['uri'] ?? '', PHP_URL_HOST);
+
+        return is_string($host) && str_starts_with($host, 'relay.');
+    }
+
+    private function isIpv6Connection(array $connection): bool
+    {
+        if (array_key_exists('IPv6', $connection)) {
+            return (bool) $connection['IPv6'];
+        }
+
+        $host = parse_url($connection['uri'] ?? '', PHP_URL_HOST);
+
+        if (! is_string($host) || ! str_contains($host, 'plex.direct')) {
+            return false;
+        }
+
+        $firstLabel = explode('.', $host)[0];
+
+        return ! preg_match('/^\d+(?:-\d+){3}$/', $firstLabel) && (bool) preg_match('/[a-f]/i', $firstLabel);
     }
 
     /**
@@ -330,6 +358,6 @@ class PlexService
             $headers['X-Plex-Token'] = $token;
         }
 
-        return Http::withHeaders($headers)->throw();
+        return Http::resilient()->withHeaders($headers)->throw();
     }
 }

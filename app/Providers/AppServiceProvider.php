@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Support\ErrorPageResolver;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
@@ -38,6 +40,13 @@ class AppServiceProvider extends ServiceProvider
 
         Http::globalRequestMiddleware(fn ($request) => $request->withHeader(
             'User-Agent', config('app.name').'/1.0 (+'.config('app.url').')'
+        ));
+
+        Http::macro('resilient', fn () => Http::retry(
+            3,
+            1000,
+            when: fn ($e) => $e instanceof ConnectionException
+                || ($e instanceof RequestException && in_array($e->response->status(), [408, 429, 502, 503, 504])),
         ));
 
         Vite::macro('image', fn (string $asset) => Vite::asset("resources/images/{$asset}"));
