@@ -54,7 +54,8 @@
                         href="{{ route('home') }}"
                         wire:navigate
                         :logo="Vite::image('logo.png')"
-                        class="me-4"
+                        class="drop-shadow-glow-subtle me-4 transition-[filter] duration-300 ease-out"
+                        x-bind:class="{ 'drop-shadow-none': scrolled }"
                     />
 
                     <flux:spacer />
