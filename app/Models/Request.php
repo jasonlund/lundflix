@@ -50,7 +50,7 @@ class Request extends Model
 
                 return RequestStatus::Pending;
             }
-        );
+        )->shouldCache();
     }
 
     protected function hasRejectedItems(): Attribute
@@ -59,7 +59,7 @@ class Request extends Model
             get: fn (): bool => $this->items
                 ->where('status', RequestItemStatus::Rejected)
                 ->isNotEmpty()
-        );
+        )->shouldCache();
     }
 
     protected function hasNotFoundItems(): Attribute
@@ -68,7 +68,7 @@ class Request extends Model
             get: fn (): bool => $this->items
                 ->where('status', RequestItemStatus::NotFound)
                 ->isNotEmpty()
-        );
+        )->shouldCache();
     }
 
     public function user(): BelongsTo

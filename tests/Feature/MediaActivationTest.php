@@ -1,16 +1,15 @@
 <?php
 
 use App\Actions\Media\ActivateMedia;
+use App\Enums\ArtworkType;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
-use Illuminate\Support\Facades\Http;
 
 it('can activate a media item', function () {
     $movie = Movie::factory()->create();
     $media = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12345.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => false,
     ]);
 
@@ -22,7 +21,7 @@ it('can activate a media item', function () {
 it('can deactivate a media item', function () {
     $movie = Movie::factory()->create();
     $media = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
+        'type' => ArtworkType::Poster->value,
         'is_active' => true,
     ]);
 
@@ -35,13 +34,11 @@ it('deactivates siblings when activating for same type', function () {
     $movie = Movie::factory()->create();
 
     $media1 = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12345.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => true,
     ]);
     $media2 = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12346.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => false,
     ]);
 
@@ -55,19 +52,16 @@ it('does not deactivate media of different types', function () {
     $movie = Movie::factory()->create();
 
     $poster = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12345.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => true,
     ]);
     $logo = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'hdmovielogo',
-        'path' => 'fanart/movie/1/hdmovielogo/12346.png',
+        'type' => ArtworkType::Logo->value,
         'is_active' => true,
     ]);
 
     $newPoster = Media::factory()->for($movie, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12347.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => false,
     ]);
 
@@ -83,13 +77,11 @@ it('does not deactivate media of different mediables', function () {
     $movie2 = Movie::factory()->create();
 
     $media1 = Media::factory()->for($movie1, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/1/movieposter/12345.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => true,
     ]);
     $media2 = Media::factory()->for($movie2, 'mediable')->create([
-        'type' => 'movieposter',
-        'path' => 'fanart/movie/2/movieposter/12346.jpg',
+        'type' => ArtworkType::Poster->value,
         'is_active' => false,
     ]);
 
@@ -105,24 +97,21 @@ it('allows one active per type per season for shows', function () {
     $season1Poster1 = Media::factory()->create([
         'mediable_type' => Show::class,
         'mediable_id' => $show->id,
-        'type' => 'seasonposter',
-        'path' => 'fanart/show/1/seasonposter/12345.jpg',
+        'type' => ArtworkType::Poster->value,
         'season' => 1,
         'is_active' => true,
     ]);
     $season1Poster2 = Media::factory()->create([
         'mediable_type' => Show::class,
         'mediable_id' => $show->id,
-        'type' => 'seasonposter',
-        'path' => 'fanart/show/1/seasonposter/12346.jpg',
+        'type' => ArtworkType::Poster->value,
         'season' => 1,
         'is_active' => false,
     ]);
     $season2Poster = Media::factory()->create([
         'mediable_type' => Show::class,
         'mediable_id' => $show->id,
-        'type' => 'seasonposter',
-        'path' => 'fanart/show/1/seasonposter/12347.jpg',
+        'type' => ArtworkType::Poster->value,
         'season' => 2,
         'is_active' => true,
     ]);
@@ -132,72 +121,4 @@ it('allows one active per type per season for shows', function () {
     expect($season1Poster1->fresh()->is_active)->toBeFalse()
         ->and($season1Poster2->fresh()->is_active)->toBeTrue()
         ->and($season2Poster->fresh()->is_active)->toBeTrue();
-});
-
-it('treats all seasons as separate from specific seasons', function () {
-    $show = Show::factory()->create();
-
-    $allSeasonsPoster = Media::factory()->create([
-        'mediable_type' => Show::class,
-        'mediable_id' => $show->id,
-        'type' => 'seasonposter',
-        'path' => 'fanart/show/1/seasonposter/12345.jpg',
-        'season' => 0,
-        'is_active' => true,
-    ]);
-    $season1Poster = Media::factory()->create([
-        'mediable_type' => Show::class,
-        'mediable_id' => $show->id,
-        'type' => 'seasonposter',
-        'path' => 'fanart/show/1/seasonposter/12346.jpg',
-        'season' => 1,
-        'is_active' => false,
-    ]);
-
-    app(ActivateMedia::class)->activate($season1Poster);
-
-    expect($allSeasonsPoster->fresh()->is_active)->toBeTrue()
-        ->and($season1Poster->fresh()->is_active)->toBeTrue();
-});
-
-it('activates media without downloading when path is missing', function () {
-    Http::preventStrayRequests();
-
-    $movie = Movie::factory()->create();
-    $media = Media::factory()->for($movie, 'mediable')->create([
-        'fanart_id' => '12345',
-        'type' => 'movieposter',
-        'url' => 'https://assets.fanart.tv/poster.jpg',
-        'path' => null,
-        'is_active' => false,
-    ]);
-
-    app(ActivateMedia::class)->activate($media);
-
-    expect($media->fresh()->path)->toBeNull()
-        ->and($media->fresh()->is_active)->toBeTrue();
-    Http::assertNothingSent();
-});
-
-it('keeps existing path when activating media with a stored path', function () {
-    Http::preventStrayRequests();
-
-    $movie = Movie::factory()->create();
-    $existingPath = "fanart/movie/{$movie->id}/movieposter/12345.jpg";
-
-    $media = Media::factory()->for($movie, 'mediable')->create([
-        'fanart_id' => '12345',
-        'type' => 'movieposter',
-        'url' => 'https://assets.fanart.tv/poster.jpg',
-        'path' => $existingPath,
-        'is_active' => false,
-    ]);
-
-    app(ActivateMedia::class)->activate($media);
-
-    expect($media->fresh()->path)->toBe($existingPath)
-        ->and($media->fresh()->is_active)->toBeTrue();
-
-    // Verify no HTTP requests were made
-    Http::assertNothingSent();
 });

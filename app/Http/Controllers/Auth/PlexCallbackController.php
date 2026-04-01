@@ -13,10 +13,10 @@ class PlexCallbackController extends Controller
 {
     public function __invoke(Request $request, PlexService $plex): RedirectResponse
     {
-        $pinId = $request->integer('pin_id');
+        $pinId = session()->pull('plex_pin_id');
 
         if (! $pinId) {
-            report(new InvalidArgumentException('Plex auth failed: missing pin_id from request'));
+            report(new InvalidArgumentException('Plex auth failed: missing plex_pin_id from session'));
 
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.auth_failed')]);

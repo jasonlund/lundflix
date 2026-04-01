@@ -3,8 +3,7 @@
 namespace App\Filament\Tables;
 
 use App\Actions\Media\ActivateMedia;
-use App\Enums\MovieArtwork;
-use App\Enums\TvArtwork;
+use App\Enums\ArtworkType;
 use App\Models\Media;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\ImageEntry;
@@ -35,22 +34,21 @@ class MediaTable
                         : 'lucide-circle-minus')
                     ->color(fn (?string $state): string => $state ? 'success' : 'gray'),
                 TextColumn::make('type')
-                    ->badge()
-                    ->formatStateUsing(fn (Media $record): string => $record->getTypeLabel())
-                    ->color(fn (Media $record): string => $record->getArtwork()?->getColor() ?? 'primary'),
-                TextColumn::make('url')
-                    ->label('URL')
+                    ->badge(),
+                TextColumn::make('file_path')
+                    ->label('File Path')
                     ->limit(50)
-                    ->tooltip(fn (Media $record): string => $record->url)
+                    ->tooltip(fn (Media $record): string => $record->file_path)
                     ->copyable()
-                    ->copyMessage('URL copied'),
+                    ->copyMessage('File path copied'),
                 TextColumn::make('lang')
                     ->label('Language')
                     ->placeholder('—')
                     ->badge()
                     ->color('gray'),
-                TextColumn::make('likes')
-                    ->numeric()
+                TextColumn::make('vote_average')
+                    ->label('Rating')
+                    ->numeric(2)
                     ->sortable(),
                 TextColumn::make('season')
                     ->placeholder('—')
@@ -58,18 +56,7 @@ class MediaTable
             ])
             ->filters([
                 SelectFilter::make('type')
-                    ->options(fn ($livewire) => $livewire->getOwnerRecord()
-                        ->media()
-                        ->distinct()
-                        ->orderBy('type')
-                        ->pluck('type', 'type')
-                        ->mapWithKeys(fn ($type) => [
-                            $type => TvArtwork::tryFrom($type)?->getLabel()
-                                ?? MovieArtwork::tryFrom($type)?->getLabel()
-                                ?? $type,
-                        ])
-                        ->toArray()
-                    ),
+                    ->options(ArtworkType::class),
                 SelectFilter::make('lang')
                     ->label('Language')
                     ->options(fn ($livewire) => $livewire->getOwnerRecord()
@@ -81,11 +68,11 @@ class MediaTable
                         ->toArray()
                     ),
             ])
-            ->defaultSort('likes', 'desc')
+            ->defaultSort('vote_average', 'desc')
             ->recordActions([
                 Action::make('setActive')
                     ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
-                    ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-check')
+                    ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-minus')
                     ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
                     ->action(fn (Media $record) => app(ActivateMedia::class)->activate($record))
                     ->disabled(fn (Media $record): bool => $record->is_active),
@@ -93,21 +80,23 @@ class MediaTable
                     ->label('Preview')
                     ->color('gray')
                     ->icon('lucide-eye')
-                    ->modalHeading(fn (Media $record): string => $record->getTypeLabel())
+                    ->modalHeading(fn (Media $record): string => $record->type->getLabel())
                     ->schema([
                         Section::make()
                             ->schema([
-                                ImageEntry::make('url')
+                                ImageEntry::make('file_path')
                                     ->hiddenLabel()
+                                    ->state(fn (Media $record): string => $record->url())
                                     ->extraImgAttributes([
                                         'class' => 'max-h-[70vh] w-auto mx-auto',
                                         'loading' => 'lazy',
                                     ]),
-                                TextEntry::make('fanart_id')
-                                    ->label('FanArt ID')
+                                TextEntry::make('file_path')
+                                    ->label('TMDB Path')
                                     ->copyable(),
-                                TextEntry::make('likes')
-                                    ->icon('lucide-heart'),
+                                TextEntry::make('vote_average')
+                                    ->label('Rating')
+                                    ->icon('lucide-star'),
                             ]),
                     ])
                     ->modalSubmitAction(false)

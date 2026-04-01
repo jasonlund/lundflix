@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\ArtworkType;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,20 +17,18 @@ class MediaFactory extends Factory
      */
     public function definition(): array
     {
-        $types = ['movieposter', 'moviebackground', 'hdmovielogo', 'moviedisc', 'moviebanner'];
-
         return [
             'mediable_type' => Movie::class,
             'mediable_id' => Movie::factory(),
-            'fanart_id' => $this->faker->unique()->numerify('######'),
-            'type' => $this->faker->randomElement($types),
-            'url' => $this->faker->imageUrl(1000, 1500, 'movies'),
+            'file_path' => '/'.$this->faker->unique()->md5().'.jpg',
+            'type' => $this->faker->randomElement(ArtworkType::cases())->value,
             'path' => null,
             'lang' => $this->faker->randomElement(['en', 'de', 'fr', 'es', null]),
-            'likes' => $this->faker->numberBetween(0, 500),
+            'vote_average' => $this->faker->randomFloat(3, 0, 10),
+            'vote_count' => $this->faker->numberBetween(0, 500),
+            'width' => $this->faker->randomElement([500, 780, 1280, 1920]),
+            'height' => $this->faker->randomElement([750, 1170, 720, 1080]),
             'season' => null,
-            'disc' => null,
-            'disc_type' => null,
             'is_active' => false,
         ];
     }
@@ -43,12 +42,9 @@ class MediaFactory extends Factory
 
     public function forShow(): static
     {
-        $types = ['tvposter', 'showbackground', 'hdtvlogo', 'seasonposter'];
-
         return $this->state(fn (array $attributes) => [
             'mediable_type' => Show::class,
             'mediable_id' => Show::factory(),
-            'type' => $this->faker->randomElement($types),
         ]);
     }
 

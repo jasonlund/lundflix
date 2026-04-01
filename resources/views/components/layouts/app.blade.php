@@ -1,8 +1,3 @@
-@php
-    $defaultBackground = Vite::image('default-background.jpg');
-    $backgroundImage ??= $defaultBackground;
-@endphp
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
@@ -28,6 +23,7 @@
                 <div
                     class="absolute inset-0 bg-gradient-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
                 ></div>
+                <x-crt-effects />
             </div>
 
             <div
@@ -94,7 +90,7 @@
                     </div>
                 </flux:header>
 
-                <flux:main :padding="false">
+                <flux:main>
                     <div class="px-4 pb-6 sm:px-6">
                         {{ $slot }}
                     </div>
@@ -111,6 +107,12 @@
         </div>
 
         <livewire:media-search />
+
+        <x-error-overlay />
+
+        <script>
+            window.lundflixErrors = {{ Js::from($errorPages) }}
+        </script>
 
         @fluxScripts
     </body>

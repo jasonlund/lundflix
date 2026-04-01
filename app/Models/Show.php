@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\LanguageFromCode;
 use App\Casts\LanguageFromName;
 use App\Enums\NetworkLogo;
 use App\Enums\ShowStatus;
@@ -18,7 +19,9 @@ use Laravel\Scout\Searchable;
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
+        HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
+    }
 
     protected function casts(): array
     {
@@ -32,6 +35,10 @@ class Show extends Model
             'num_votes' => 'integer',
             'status' => ShowStatus::class,
             'language' => LanguageFromName::class,
+            'tmdb_id' => 'integer',
+            'tmdb_synced_at' => 'datetime',
+            'original_language' => LanguageFromCode::class,
+            'content_ratings' => 'array',
         ];
     }
 
@@ -55,6 +62,19 @@ class Show extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(Episode::class);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        if ($field === null && is_string($value) && str_starts_with($value, 'tt')) {
+            return $query->where('imdb_id', $value);
+        }
+
+        return $this->resolveSqidRouteBindingQuery($query, $value, $field);
     }
 
     /**
@@ -154,7 +174,7 @@ class Show extends Model
 
     protected function artworkExternalIdValue(): string|int|null
     {
-        return $this->thetvdb_id;
+        return $this->tmdb_id;
     }
 
     protected function artworkMediableType(): string

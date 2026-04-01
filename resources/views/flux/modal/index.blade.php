@@ -7,7 +7,9 @@
     "trigger" => null,
     "variant" => null,
     "flyout" => null,
+    "headless" => false,
     "name" => null,
+    "size" => null,
 ])
 
 @php
@@ -19,6 +21,12 @@
     $closable ??= $variant === "bare" ? false : true;
 
     $useBubble = ! $flyout && $variant !== "bare";
+
+    $maxWidth = match ($size) {
+        "sm" => "max-w-screen-sm",
+        "lg" => "max-w-screen-lg",
+        default => "max-w-screen-md",
+    };
 
     if ($flyout) {
         $classes = Flux::classes()
@@ -45,12 +53,12 @@
                 },
             );
     } elseif ($useBubble) {
-        $classes = Flux::classes()->add("p-0 m-auto px-4 bg-transparent border-0 ring-0 shadow-none w-full max-w-screen-md");
+        $classes = Flux::classes()->add("p-0 m-auto px-4 bg-transparent border-0 ring-0 shadow-none w-full $maxWidth");
     } else {
         $classes = Flux::classes()
             ->add(
                 match ($variant) {
-                    default => "p-6 m-auto px-4 w-full max-w-screen-md shadow-lg rounded-xl",
+                    default => "p-6 m-auto px-4 w-full $maxWidth shadow-lg rounded-xl",
                     "bare" => "",
                 },
             )
@@ -93,11 +101,11 @@
 @endphp
 
 <ui-modal {{ $attributes }} data-flux-modal>
-    <?php if ($trigger): ?>
+    <?php if ($trigger) { ?>
 
     {{ $trigger }}
 
-    <?php endif; ?>
+    <?php } ?>
 
     <dialog
         wire:ignore.self
@@ -106,6 +114,43 @@
         @if ($name) data-modal="{{ $name }}" @endif
         @if ($flyout) data-flux-flyout @endif
         x-data
+        @if ($useBubble)
+            x-init="
+                let d = $el
+                let backdrop = null
+                let header = null
+                let closeHandler = (e) => {
+                    if (! d.contains(e.target)) d.close()
+                }
+                d.showModal = function () {
+                    backdrop = document.createElement('div')
+                    backdrop.className = 'fixed inset-0 z-[29]'
+                    d.parentElement.appendChild(backdrop)
+                    HTMLDialogElement.prototype.show.call(d)
+                    header = document.querySelector('[data-flux-header]')
+                    if (header) {
+                        header.parentElement.style.paddingTop = header.offsetHeight - 1 + 'px'
+                        header.classList.add('modal-open-header')
+                    }
+                    setTimeout(() => document.addEventListener('click', closeHandler), 0)
+                }
+                let origClose = HTMLDialogElement.prototype.close
+                d.close = function (rv) {
+                    document.removeEventListener('click', closeHandler)
+                    if (backdrop) {
+                        backdrop.remove()
+                        backdrop = null
+                    }
+                    if (header) {
+                        header.parentElement.style.paddingTop = ''
+                        header.classList.remove('modal-open-header')
+                        header = null
+                    }
+                    origClose.call(d, rv)
+                }
+            "
+            x-on:keydown.escape.window="if ($el.open) $el.close()"
+        @endif
         @isset($__livewire)
             x-on:modal-show.document="
                 if ($event.detail.name === @js($name) && $event.detail.scope === @js($__livewire->getId()))
@@ -135,7 +180,7 @@
                 data-flux-modal-bubble
             >
                 <div class="relative">
-                    <?php if ($closable): ?>
+                    <?php if ($closable) { ?>
 
                     <div class="absolute end-1 top-1">
                         <flux:modal.close>
@@ -143,9 +188,9 @@
                         </flux:modal.close>
                     </div>
 
-                    <?php endif; ?>
+                    <?php } ?>
 
-                    <div class="space-y-4">
+                    <div @class(["space-y-4", "pe-8 pt-4" => $headless])>
                         {{ $slot }}
                     </div>
                 </div>
@@ -153,7 +198,7 @@
         @else
             {{ $slot }}
 
-            <?php if ($closable): ?>
+            <?php if ($closable) { ?>
 
             <div class="absolute end-0 top-0 me-4 mt-4">
                 <flux:modal.close>
@@ -161,7 +206,7 @@
                 </flux:modal.close>
             </div>
 
-            <?php endif; ?>
+            <?php } ?>
         @endif
     </dialog>
 </ui-modal>

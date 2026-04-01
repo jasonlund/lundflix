@@ -2,18 +2,19 @@
     'model' => null,
     'type' => 'logo',
     'alt' => '',
-    'preview' => false,
+    'fallback' => true,
+    'size' => null,
 ])
 
 @php
-    $url = $model?->artUrl($type, $preview);
+    $url = $model?->artUrl($type, $size);
     $aspectClass = match ($type) {
         'poster' => 'aspect-[1000/1426]',
         'background' => 'aspect-[1920/1080]',
         default => 'aspect-[1000/562]',
     };
     $name = $model->name ?? ($model->title ?? '');
-    $fallbackTextClass = $preview ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
+    $fallbackTextClass = $size ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
 @endphp
 
 @if ($url)
@@ -36,7 +37,9 @@
             class="{{ $aspectClass }} h-full w-auto object-contain"
         />
         <div x-show="failed" x-cloak class="flex h-full items-center">
-            @if ($slot->isEmpty())
+            @if ($slot->isNotEmpty())
+                {{ $slot }}
+            @elseif ($fallback)
                 @if ($type === 'background')
                     <div class="{{ $aspectClass }} bg-black"></div>
                 @else
@@ -46,25 +49,23 @@
                         </span>
                     </div>
                 @endif
-            @else
-                {{ $slot }}
             @endif
         </div>
     </div>
-@else
+@elseif ($slot->isNotEmpty())
     <div {{ $attributes }}>
-        @if ($slot->isEmpty())
-            @if ($type === 'background')
-                <div class="{{ $aspectClass }} bg-black"></div>
-            @else
-                <div class="{{ $aspectClass }} flex w-full items-center justify-center">
-                    <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
-                        {{ $name }}
-                    </span>
-                </div>
-            @endif
+        {{ $slot }}
+    </div>
+@elseif ($fallback)
+    <div {{ $attributes }}>
+        @if ($type === 'background')
+            <div class="{{ $aspectClass }} bg-black"></div>
         @else
-            {{ $slot }}
+            <div class="{{ $aspectClass }} flex w-full items-center justify-center">
+                <span class="{{ $fallbackTextClass }} w-full text-center text-zinc-400">
+                    {{ $name }}
+                </span>
+            </div>
         @endif
     </div>
 @endif

@@ -5,6 +5,9 @@ return [
         'auth_failed' => "Yeah… so, we weren't able to authenticate your Plex user. That's… not great.",
         'no_access' => "Mmm yeah… I'm gonna need you to have access to lundflix. So… yeah.",
         'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.",
+        'multi_server_intro' => 'Yeah… so,',
+        'multi_server_middle' => 'is available on',
+        'multi_server_outro' => 'and you can go ahead and open them below.',
         'pin_creation_failed' => "Yeah… so, we had a little trouble connecting to Plex. I'm gonna need you to go ahead and try again. That'd be great.",
     ],
     'auth' => [
@@ -26,6 +29,7 @@ return [
         'search_no_results_filter' => "I'm gonna need you to refine your search term and... mmm.... filter by language.",
         'imdb_not_found' => "Yeah… so, we couldn't find that IMDb ID. I'm gonna need you to go ahead and come in tomorrow and… double-check it. That'd be great.",
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
+        'requests' => "Yeah… so, you haven't submitted any requests yet. I'm gonna need you to go ahead and search for something, add it to your cart, and submit a request. That'd be great.",
     ],
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
@@ -44,6 +48,17 @@ return [
         'subscribe' => 'Yeah… go ahead and subscribe to this show.',
         'unsubscribe' => 'Mmm yeah… click to unsubscribe.',
         'subscribe_disabled' => "Yeah… so, this show has ended. Subscribing wouldn't really help anyone.",
+    ],
+    'dashboard' => [
+        'last_fulfilled' => '{1} Mmkay… we added :count item for you :when.|[2,*] Mmkay… we added :count items for you :when.',
+        'pending' => "{1} Yeah… so, you've got :count item pending. I'm gonna need you to run that by the Bobs.|[2,*] Yeah… so, you've got :count items pending. I'm gonna need you to run those by the Bobs.",
+        'review_requests' => "Go ahead and review all your requests below. That'd be great.",
+        'requests_heading' => 'Your Requests, Mmkay?',
+        'no_matching_requests' => "Mmkay… none of your requests match those filters. I'm gonna need you to adjust them. That'd be great.",
+        'when_today' => 'today',
+        'when_yesterday' => 'yesterday',
+        'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
+        'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

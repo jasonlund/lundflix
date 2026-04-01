@@ -188,8 +188,8 @@ test('getOnlineServers returns only online servers with non-local URIs', functio
                 'provides' => 'server',
                 'presence' => true,
                 'connections' => [
-                    ['uri' => 'http://192.168.1.1:32400', 'local' => true],
-                    ['uri' => 'http://server.example.com:32400', 'local' => false],
+                    ['uri' => 'http://192.168.1.1:32400', 'local' => true, 'relay' => false, 'IPv6' => false],
+                    ['uri' => 'http://server.example.com:32400', 'local' => false, 'relay' => false, 'IPv6' => false],
                 ],
             ],
             [
@@ -200,7 +200,7 @@ test('getOnlineServers returns only online servers with non-local URIs', functio
                 'provides' => 'server',
                 'presence' => false,
                 'connections' => [
-                    ['uri' => 'http://offline.example.com:32400', 'local' => false],
+                    ['uri' => 'http://offline.example.com:32400', 'local' => false, 'relay' => false, 'IPv6' => false],
                 ],
             ],
             [
@@ -288,7 +288,7 @@ test('searchByExternalId returns servers that have the content', function () {
                 'provides' => 'server',
                 'presence' => true,
                 'connections' => [
-                    ['uri' => 'http://server-a.example.com:32400', 'local' => false],
+                    ['uri' => 'http://server-a.example.com:32400', 'local' => false, 'relay' => false, 'IPv6' => false],
                 ],
             ],
             [
@@ -299,7 +299,7 @@ test('searchByExternalId returns servers that have the content', function () {
                 'provides' => 'server',
                 'presence' => true,
                 'connections' => [
-                    ['uri' => 'http://server-b.example.com:32400', 'local' => false],
+                    ['uri' => 'http://server-b.example.com:32400', 'local' => false, 'relay' => false, 'IPv6' => false],
                 ],
             ],
         ]),
@@ -315,6 +315,19 @@ test('searchByExternalId returns servers that have the content', function () {
                 ],
             ],
         ]),
+        'http://server-b.example.com:32400/library/metadata/12345' => Http::response([
+            'MediaContainer' => [
+                'Metadata' => [
+                    [
+                        'title' => 'Inception',
+                        'year' => 2010,
+                        'ratingKey' => '12345',
+                        'duration' => 8880000,
+                        'Media' => [['videoResolution' => '1080', 'videoCodec' => 'h264']],
+                    ],
+                ],
+            ],
+        ]),
     ]);
 
     $service = new PlexService;
@@ -322,7 +335,9 @@ test('searchByExternalId returns servers that have the content', function () {
 
     expect($results)->toHaveCount(1)
         ->and($results->first()['name'])->toBe('Server B')
-        ->and($results->first()['match']['title'])->toBe('Inception');
+        ->and($results->first()['match']['title'])->toBe('Inception')
+        ->and($results->first()['match']['duration'])->toBe(8880000)
+        ->and($results->first()['match']['Media'][0]['videoResolution'])->toBe('1080');
 });
 
 test('searchByExternalId returns empty collection when external ID cannot be resolved', function () {
@@ -358,7 +373,7 @@ test('searchShowWithEpisodes returns servers with episode lists', function () {
                 'provides' => 'server',
                 'presence' => true,
                 'connections' => [
-                    ['uri' => 'http://test.example.com:32400', 'local' => false],
+                    ['uri' => 'http://test.example.com:32400', 'local' => false, 'relay' => false, 'IPv6' => false],
                 ],
             ],
         ]),
@@ -369,11 +384,32 @@ test('searchShowWithEpisodes returns servers with episode lists', function () {
                 ],
             ],
         ]),
+        'http://test.example.com:32400/library/metadata/12345' => Http::response([
+            'MediaContainer' => [
+                'Metadata' => [
+                    ['title' => 'The Chair Company', 'year' => 2025, 'ratingKey' => '12345'],
+                ],
+            ],
+        ]),
         'http://test.example.com:32400/library/metadata/12345/allLeaves' => Http::response([
             'MediaContainer' => [
                 'Metadata' => [
-                    ['parentIndex' => 1, 'index' => 1, 'title' => 'Episode One'],
-                    ['parentIndex' => 1, 'index' => 2, 'title' => 'Episode Two'],
+                    [
+                        'parentIndex' => 1,
+                        'index' => 1,
+                        'title' => 'Episode One',
+                        'ratingKey' => '500',
+                        'duration' => 3600000,
+                        'Media' => [['videoResolution' => '1080']],
+                    ],
+                    [
+                        'parentIndex' => 1,
+                        'index' => 2,
+                        'title' => 'Episode Two',
+                        'ratingKey' => '501',
+                        'duration' => 2700000,
+                        'Media' => [['videoResolution' => '720']],
+                    ],
                 ],
             ],
         ]),
@@ -390,7 +426,139 @@ test('searchShowWithEpisodes returns servers with episode lists', function () {
             'season' => 1,
             'episode' => 1,
             'title' => 'Episode One',
+            'ratingKey' => '500',
+            'duration' => 3600000,
+            'videoResolution' => '1080',
         ]);
+});
+
+test('getOnlineServers prefers direct IPv4 over IPv6 and relay connections', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'Remote Server',
+                'clientIdentifier' => 'server-remote',
+                'accessToken' => 'token-remote',
+                'owned' => false,
+                'provides' => 'server',
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'https://10-0-0-1.abc.plex.direct:32400', 'local' => true, 'relay' => false, 'IPv6' => false],
+                    ['uri' => 'https://2601-abc.def.plex.direct:32400', 'local' => false, 'relay' => false, 'IPv6' => true],
+                    ['uri' => 'https://73-129-236-135.abc.plex.direct:16651', 'local' => false, 'relay' => false, 'IPv6' => false],
+                    ['uri' => 'https://139-162-175-123.abc.plex.direct:8443', 'local' => false, 'relay' => true, 'IPv6' => false],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = new PlexService;
+    $servers = $service->getOnlineServers('valid-token');
+
+    expect($servers)->toHaveCount(1)
+        ->and($servers->first()['uri'])->toBe('https://73-129-236-135.abc.plex.direct:16651');
+});
+
+test('getOnlineServers falls back to IPv6 when no direct IPv4 available', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'IPv6 Only Server',
+                'clientIdentifier' => 'server-ipv6',
+                'accessToken' => 'token-ipv6',
+                'owned' => false,
+                'provides' => 'server',
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'https://10-0-0-1.abc.plex.direct:32400', 'local' => true, 'relay' => false, 'IPv6' => false],
+                    ['uri' => 'https://2601-abc.def.plex.direct:32400', 'local' => false, 'relay' => false, 'IPv6' => true],
+                    ['uri' => 'https://relay.abc.plex.direct:8443', 'local' => false, 'relay' => true, 'IPv6' => false],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = new PlexService;
+    $servers = $service->getOnlineServers('valid-token');
+
+    expect($servers)->toHaveCount(1)
+        ->and($servers->first()['uri'])->toBe('https://2601-abc.def.plex.direct:32400');
+});
+
+test('getOnlineServers falls back to relay when no direct connections available', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'Relay Only Server',
+                'clientIdentifier' => 'server-relay',
+                'accessToken' => 'token-relay',
+                'owned' => false,
+                'provides' => 'server',
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'https://10-0-0-1.abc.plex.direct:32400', 'local' => true, 'relay' => false, 'IPv6' => false],
+                    ['uri' => 'https://relay.abc.plex.direct:8443', 'local' => false, 'relay' => true, 'IPv6' => false],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = new PlexService;
+    $servers = $service->getOnlineServers('valid-token');
+
+    expect($servers)->toHaveCount(1)
+        ->and($servers->first()['uri'])->toBe('https://relay.abc.plex.direct:8443');
+});
+
+test('getOnlineServers prioritizes legacy connection payloads without relay metadata', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'Legacy Server',
+                'clientIdentifier' => 'server-legacy',
+                'accessToken' => 'token-legacy',
+                'owned' => false,
+                'provides' => 'server',
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'https://relay.abc.plex.direct:8443', 'local' => false],
+                    ['uri' => 'https://2601-abc.def.plex.direct:32400', 'local' => false],
+                    ['uri' => 'https://73-129-236-135.abc.plex.direct:16651', 'local' => false],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = new PlexService;
+    $servers = $service->getOnlineServers('valid-token');
+
+    expect($servers)->toHaveCount(1)
+        ->and($servers->first()['uri'])->toBe('https://73-129-236-135.abc.plex.direct:16651');
+});
+
+test('getOnlineServers falls back to legacy IPv6 when no legacy IPv4 available', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'Legacy IPv6 Server',
+                'clientIdentifier' => 'server-legacy-ipv6',
+                'accessToken' => 'token-legacy-ipv6',
+                'owned' => false,
+                'provides' => 'server',
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'https://relay.abc.plex.direct:8443', 'local' => false],
+                    ['uri' => 'https://2601-abc.def.plex.direct:32400', 'local' => false],
+                ],
+            ],
+        ]),
+    ]);
+
+    $service = new PlexService;
+    $servers = $service->getOnlineServers('valid-token');
+
+    expect($servers)->toHaveCount(1)
+        ->and($servers->first()['uri'])->toBe('https://2601-abc.def.plex.direct:32400');
 });
 
 test('searchShowWithEpisodes returns empty collection when show not found', function () {

@@ -109,6 +109,19 @@ class Formatters
         return sprintf('S%02d', $season);
     }
 
+    public static function formatResolution(?string $resolution): ?string
+    {
+        if ($resolution === null) {
+            return null;
+        }
+
+        return match (strtolower($resolution)) {
+            '4k' => '4K',
+            'sd' => 'SD',
+            default => $resolution.'p',
+        };
+    }
+
     public static function yearLabel(Show|Movie $item): ?string
     {
         if ($item instanceof Movie) {

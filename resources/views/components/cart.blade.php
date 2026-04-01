@@ -135,7 +135,7 @@ new class extends Component {
         <flux:modal
             name="cart"
             variant="bare"
-            class="m-0 h-dvh min-h-dvh w-full max-w-none p-0 md:mx-auto md:max-w-screen-md [&::backdrop]:bg-transparent"
+            class="m-0 h-dvh min-h-dvh w-full max-w-none p-0 md:mx-auto md:max-w-screen-md"
         >
             <x-command-panel
                 name="cart"
@@ -193,7 +193,7 @@ new class extends Component {
                                     :model="$movie"
                                     type="logo"
                                     :alt="$movie->title . ' logo'"
-                                    :preview="true"
+                                    size="w200"
                                     class="h-full w-full overflow-hidden"
                                 />
                             </div>
@@ -231,7 +231,7 @@ new class extends Component {
                                     :model="$showGroup['show']"
                                     type="logo"
                                     :alt="$showGroup['show']->name . ' logo'"
-                                    :preview="true"
+                                    size="w200"
                                     class="h-full w-full overflow-hidden"
                                 />
                             </div>

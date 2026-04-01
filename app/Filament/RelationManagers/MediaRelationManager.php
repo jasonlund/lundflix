@@ -2,16 +2,15 @@
 
 namespace App\Filament\RelationManagers;
 
+use App\Actions\TMDB\UpsertTMDBImages;
 use App\Filament\Tables\MediaTable;
-use App\Jobs\StoreFanart;
 use App\Models\Movie;
 use App\Models\Show;
-use App\Services\ThirdParty\FanartTVService;
+use App\Services\ThirdParty\TMDBService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
-use Illuminate\Http\Client\RequestException;
 
 class MediaRelationManager extends RelationManager
 {
@@ -28,57 +27,35 @@ class MediaRelationManager extends RelationManager
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
                     ->icon('lucide-refresh-cw')
-                    ->action(function (Action $action, FanartTVService $fanart): void {
+                    ->action(function (Action $action, TMDBService $tmdb): void {
                         $owner = $this->getMediableOwner();
 
-                        if ($owner instanceof Movie && ! $owner->imdb_id) {
+                        if (! $owner->tmdb_id) {
                             Notification::make()
-                                ->title('Missing IMDB ID')
-                                ->body('This movie has no IMDB ID configured.')
+                                ->title('Missing TMDB ID')
+                                ->body('This title has no TMDB ID configured.')
                                 ->danger()
                                 ->send();
 
                             $action->halt();
                         }
 
-                        if ($owner instanceof Show && ! $owner->thetvdb_id) {
-                            Notification::make()
-                                ->title('Missing TVDB ID')
-                                ->body('This show has no TVDB ID configured.')
-                                ->danger()
-                                ->send();
+                        $details = match (true) {
+                            $owner instanceof Movie => $tmdb->movieDetails($owner->tmdb_id),
+                            $owner instanceof Show => $tmdb->showDetails($owner->tmdb_id),
+                        };
 
-                            $action->halt();
-                        }
-
-                        $response = null;
-
-                        try {
-                            $response = match (true) {
-                                $owner instanceof Movie => $fanart->movie($owner->imdb_id),
-                                $owner instanceof Show => $fanart->show($owner->thetvdb_id),
-                            };
-                        } catch (RequestException $e) {
-                            Notification::make()
-                                ->title('Failed to fetch artwork')
-                                ->body('Could not connect to FanArt API.')
-                                ->danger()
-                                ->send();
-
-                            $action->halt();
-                        }
-
-                        if ($response === null) {
+                        if (! $details || ! isset($details['images'])) {
                             Notification::make()
                                 ->title('No artwork found')
-                                ->body('FanArt has no artwork for this title.')
+                                ->body('TMDB has no artwork for this title.')
                                 ->warning()
                                 ->send();
 
                             $action->halt();
                         }
 
-                        StoreFanart::dispatchSync($owner);
+                        app(UpsertTMDBImages::class)->upsert($owner, $details['images']);
 
                         $this->dispatch('$refresh')->self();
 

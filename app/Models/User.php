@@ -67,6 +67,12 @@ class User extends Authenticatable implements FilamentUser
             ->implode('');
     }
 
+    /** @return HasMany<Request, $this> */
+    public function requests(): HasMany
+    {
+        return $this->hasMany(Request::class);
+    }
+
     /**
      * Determine if the user is an admin.
      */

@@ -61,11 +61,18 @@ new class extends Component {
     }
 
     #[Computed]
+    public function logoUrl(): ?string
+    {
+        return $this->movie->artUrl('logo');
+    }
+
+    #[Computed]
     public function backgroundUrl(): ?string
     {
         return $this->movie->artUrl('background');
     }
 
+    #[Computed]
     public function contentRating(): ?string
     {
         return $this->movie->contentRating();
@@ -136,14 +143,18 @@ new class extends Component {
                     :model="$movie"
                     type="logo"
                     :alt="$movie->title . ' logo'"
+                    :fallback="false"
                     class="h-24 drop-shadow sm:h-28 md:h-40"
-                >
-                    <flux:heading size="xl" class="font-serif tracking-wide">{{ $movie->title }}</flux:heading>
-                </x-artwork>
+                />
             </div>
 
-            <div class="truncate">
-                <flux:heading size="xl" class="inline font-serif tracking-wide">{{ $movie->title }}</flux:heading>
+            <div class="{{ $this->logoUrl ? '' : 'flex h-[128px] items-end sm:h-[144px] md:h-[192px]' }}">
+                <flux:heading
+                    size="xl"
+                    class="{{ $this->logoUrl ? 'truncate' : 'line-clamp-2 text-5xl' }} font-serif tracking-wide"
+                >
+                    {{ $movie->title }}
+                </flux:heading>
                 @if ($movie->original_title && $movie->original_title !== $movie->title)
                     <span class="ml-3 text-base">{{ $movie->original_title }}</span>
                 @endif

@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Facades\Http;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Http::preventStrayRequests();
@@ -27,7 +29,8 @@ it('redirects new users to registration', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback?pin_id=12345');
+    $response = $this->withSession(['plex_pin_id' => 12345])
+        ->get('/auth/plex/callback');
 
     $response->assertRedirect(route('register'));
     $this->assertGuest();
@@ -42,8 +45,34 @@ it('redirects new users to registration', function () {
     ]);
 });
 
+it('consumes session pin_id after use', function () {
+    Http::fake([
+        'clients.plex.tv/api/v2/pins/12345' => Http::response([
+            'authToken' => 'test-plex-token',
+        ]),
+        'plex.tv/api/v2/user' => Http::response([
+            'id' => 999,
+            'uuid' => 'user-uuid-123',
+            'username' => 'plexuser',
+            'email' => 'plexuser@example.com',
+            'thumb' => 'https://plex.tv/users/999/avatar',
+        ]),
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'clientIdentifier' => config('services.plex.server_identifier'),
+                'provides' => 'server',
+            ],
+        ]),
+    ]);
+
+    $this->withSession(['plex_pin_id' => 12345])
+        ->get('/auth/plex/callback');
+
+    expect(session('plex_pin_id'))->toBeNull();
+});
+
 it('redirects existing plex user to login with error', function () {
-    $existingUser = User::factory()->withPlex()->create([
+    User::factory()->withPlex()->create([
         'plex_id' => '999',
         'name' => 'Existing User',
     ]);
@@ -67,7 +96,8 @@ it('redirects existing plex user to login with error', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback?pin_id=12345');
+    $response = $this->withSession(['plex_pin_id' => 12345])
+        ->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.already_linked')]);
@@ -96,23 +126,16 @@ it('rejects users without server access', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback?pin_id=12345');
+    $response = $this->withSession(['plex_pin_id' => 12345])
+        ->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.no_access')]);
     $this->assertGuest();
 });
 
-it('handles missing pin_id parameter', function () {
+it('rejects callback without session pin_id', function () {
     $response = $this->get('/auth/plex/callback');
-
-    $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
-    $this->assertGuest();
-});
-
-it('handles non-integer pin_id', function () {
-    $response = $this->get('/auth/plex/callback?pin_id=abc');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
@@ -126,9 +149,41 @@ it('handles unclaimed pin', function () {
         ]),
     ]);
 
-    $response = $this->get('/auth/plex/callback?pin_id=12345');
+    $response = $this->withSession(['plex_pin_id' => 12345])
+        ->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
     $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.auth_failed')]);
     $this->assertGuest();
+});
+
+it('creates pin and redirects to plex via livewire action', function () {
+    $mockPlex = Mockery::mock(PlexService::class);
+    $mockPlex->shouldReceive('createPin')->once()->andReturn([
+        'id' => 98765,
+        'code' => 'test-pin-code',
+    ]);
+    $mockPlex->shouldReceive('getAuthUrl')
+        ->once()
+        ->with('test-pin-code', route('auth.plex.callback'))
+        ->andReturn('https://app.plex.tv/auth#?code=test-pin-code');
+
+    app()->instance(PlexService::class, $mockPlex);
+
+    Livewire::test('auth.login')
+        ->call('redirectToPlex')
+        ->assertSessionHas('plex_pin_id', 98765)
+        ->assertRedirect('https://app.plex.tv/auth#?code=test-pin-code');
+});
+
+it('shows error when plex pin creation fails', function () {
+    $mockPlex = Mockery::mock(PlexService::class);
+    $mockPlex->shouldReceive('createPin')->once()->andThrow(new \RuntimeException('Plex API error'));
+
+    app()->instance(PlexService::class, $mockPlex);
+
+    Livewire::test('auth.login')
+        ->call('redirectToPlex')
+        ->assertSet('plexError', __('lundbergh.plex.pin_creation_failed'))
+        ->assertNoRedirect();
 });

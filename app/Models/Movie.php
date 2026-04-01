@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Casts\LanguageFromCode;
-use App\Casts\LanguagesFromJson;
 use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
@@ -27,7 +26,9 @@ use Laravel\Scout\Searchable;
 class Movie extends Model
 {
     /** @use HasFactory<\Database\Factories\MovieFactory> */
-    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
+        HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
+    }
 
     protected function casts(): array
     {
@@ -39,12 +40,7 @@ class Movie extends Model
             'tmdb_id' => 'integer',
             'release_date' => 'date',
             'digital_release_date' => 'date',
-            'production_companies' => 'array',
-            'spoken_languages' => LanguagesFromJson::class,
-            'alternative_titles' => 'array',
             'original_language' => LanguageFromCode::class,
-            'budget' => 'integer',
-            'revenue' => 'integer',
             'origin_country' => 'array',
             'release_dates' => 'array',
             'tmdb_synced_at' => 'datetime',
@@ -242,9 +238,22 @@ class Movie extends Model
         return $this->morphMany(Subscription::class, 'subscribable');
     }
 
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        if ($field === null && is_string($value) && str_starts_with($value, 'tt')) {
+            return $query->where('imdb_id', $value);
+        }
+
+        return $this->resolveSqidRouteBindingQuery($query, $value, $field);
+    }
+
     protected function artworkExternalIdValue(): string|int|null
     {
-        return $this->imdb_id;
+        return $this->tmdb_id;
     }
 
     protected function artworkMediableType(): string

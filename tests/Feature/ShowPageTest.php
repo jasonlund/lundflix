@@ -35,6 +35,33 @@ it('requires authentication to view show page', function () {
         ->assertRedirect(route('login'));
 });
 
+it('displays show page for authenticated users', function () {
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('shows.show', $show))
+        ->assertSuccessful()
+        ->assertSeeLivewire('shows.show')
+        ->assertSee($show->name);
+});
+
+it('displays show page when bound by imdb id', function () {
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'imdb_id' => 'tt0903747',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('shows.show', ['show' => $show->imdb_id]))
+        ->assertSuccessful()
+        ->assertSeeLivewire('shows.show')
+        ->assertSee($show->name);
+});
+
 it('displays show details', function () {
     $show = Show::factory()->create([
         'name' => 'Breaking Bad',

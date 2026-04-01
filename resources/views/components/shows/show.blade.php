@@ -242,70 +242,79 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
-            @if ($this->isSubscribable)
-                <div x-data="{ subscribed: {{ Js::from($isSubscribed) }}, syncing: false }">
-                    <flux:tooltip
-                        :content="$isSubscribed ? __('lundbergh.tooltip.unsubscribe') : __('lundbergh.tooltip.subscribe')"
-                    >
-                        <button
-                            x-on:click="
-                                subscribed = ! subscribed
-                                syncing = true
-                                $wire.toggleSubscription().then(() => {
-                                    syncing = false
-                                })
-                            "
-                            class="flex cursor-pointer items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+        <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+            <div class="flex items-center gap-2">
+                @if ($this->isSubscribable)
+                    <div x-data="{ subscribed: {{ Js::from($isSubscribed) }}, syncing: false }">
+                        <flux:tooltip
+                            :content="$isSubscribed ? __('lundbergh.tooltip.unsubscribe') : __('lundbergh.tooltip.subscribe')"
+                        >
+                            <button
+                                x-on:click="
+                                    subscribed = ! subscribed
+                                    syncing = true
+                                    $wire.toggleSubscription().then(() => {
+                                        syncing = false
+                                    })
+                                "
+                                class="flex cursor-pointer items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                            >
+                                <div class="relative flex min-w-4 items-center justify-center">
+                                    <span class="invisible">+</span>
+                                    <span
+                                        x-show="subscribed"
+                                        x-cloak
+                                        :class="syncing && 'opacity-0'"
+                                        class="absolute"
+                                    >
+                                        -
+                                    </span>
+                                    <span x-show="!subscribed" :class="syncing && 'opacity-0'" class="absolute">
+                                        +
+                                    </span>
+                                    <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                                </div>
+                            </button>
+                        </flux:tooltip>
+                    </div>
+                @elseif ($show->status !== null)
+                    <flux:tooltip :content="__('lundbergh.tooltip.subscribe_disabled')">
+                        <div
+                            class="flex items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
                         >
                             <div class="relative flex min-w-4 items-center justify-center">
-                                <span class="invisible">+</span>
-                                <span x-show="subscribed" x-cloak :class="syncing && 'opacity-0'" class="absolute">
-                                    -
-                                </span>
-                                <span x-show="!subscribed" :class="syncing && 'opacity-0'" class="absolute">+</span>
+                                <span>+</span>
+                            </div>
+                        </div>
+                    </flux:tooltip>
+                @endif
+
+                <div
+                    x-data="{ syncing: false }"
+                    @cart-syncing.window="syncing = true"
+                    @cart-updated.window="syncing = false"
+                >
+                    <flux:tooltip content="Add/Remove Episodes Below">
+                        <div
+                            class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
+                                    <span class="invisible">{{ $cartEpisodeCount }}</span>
+                                    <span :class="syncing && 'opacity-0'" class="absolute">
+                                        <flux:icon.check class="size-4" />
+                                    </span>
+                                @else
+                                    <span :class="syncing && 'opacity-0'">
+                                        {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
+                                    </span>
+                                @endif
                                 <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
                             </div>
-                        </button>
+                            <flux:icon.shopping-cart class="size-4" />
+                        </div>
                     </flux:tooltip>
                 </div>
-            @elseif ($show->status !== null)
-                <flux:tooltip :content="__('lundbergh.tooltip.subscribe_disabled')">
-                    <div
-                        class="flex items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            <span>+</span>
-                        </div>
-                    </div>
-                </flux:tooltip>
-            @endif
-
-            <div
-                x-data="{ syncing: false }"
-                @cart-syncing.window="syncing = true"
-                @cart-updated.window="syncing = false"
-            >
-                <flux:tooltip content="Add/Remove Episodes Below">
-                    <div
-                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
-                                <span class="invisible">{{ $cartEpisodeCount }}</span>
-                                <span :class="syncing && 'opacity-0'" class="absolute">
-                                    <flux:icon.check class="size-4" />
-                                </span>
-                            @else
-                                <span :class="syncing && 'opacity-0'">
-                                    {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
-                                </span>
-                            @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                        </div>
-                        <flux:icon.shopping-cart class="size-4" />
-                    </div>
-                </flux:tooltip>
             </div>
         </div>
 
@@ -315,14 +324,18 @@ new class extends Component {
                     :model="$show"
                     type="logo"
                     :alt="$show->name . ' logo'"
+                    :fallback="false"
                     class="h-24 drop-shadow sm:h-28 md:h-40"
-                >
-                    <flux:heading size="xl" class="font-serif tracking-wide">{{ $show->name }}</flux:heading>
-                </x-artwork>
+                />
             </div>
 
-            <div class="truncate">
-                <flux:heading size="xl" class="inline font-serif tracking-wide">{{ $show->name }}</flux:heading>
+            <div class="{{ $this->logoUrl ? '' : 'flex h-[128px] items-end sm:h-[144px] md:h-[192px]' }}">
+                <flux:heading
+                    size="xl"
+                    class="{{ $this->logoUrl ? 'truncate' : 'line-clamp-2 text-5xl' }} font-serif tracking-wide"
+                >
+                    {{ $show->name }}
+                </flux:heading>
             </div>
 
             <div class="truncate text-zinc-200">

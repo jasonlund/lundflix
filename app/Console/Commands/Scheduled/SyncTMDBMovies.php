@@ -3,6 +3,7 @@
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TMDB\UpsertTMDBData;
+use App\Actions\TMDB\UpsertTMDBImages;
 use App\Models\Movie;
 use App\Services\ThirdParty\TMDBService;
 use Illuminate\Console\Command;
@@ -19,7 +20,7 @@ class SyncTMDBMovies extends Command
         {--fresh : Re-sync all movies, including previously synced ones}
         {--limit=0 : Maximum number of movies to process (0 = unlimited)}';
 
-    protected $description = 'Enrich movies with TMDB metadata (release date, production companies, languages)';
+    protected $description = 'Enrich movies with TMDB metadata, images (release date, production companies, languages)';
 
     private int $synced = 0;
 
@@ -153,6 +154,15 @@ class SyncTMDBMovies extends Command
             $upsertData = $this->buildUpsertData($imdbIds, $moviesByImdbId, $tmdbIdMap, $detailsMap, $now);
             $upsertTMDB->upsert($upsertData);
 
+            // Upsert images for movies with details
+            $upsertImages = app(UpsertTMDBImages::class);
+            foreach ($detailsMap as $imdbId => $details) {
+                if ($details && isset($details['images'])) {
+                    $movie = $moviesByImdbId[$imdbId];
+                    $upsertImages->upsert($movie, $details['images']);
+                }
+            }
+
             $this->synced += count($imdbIds);
             $progress->advance(count($imdbIds));
 
@@ -199,15 +209,9 @@ class SyncTMDBMovies extends Command
                     'tmdb_synced_at' => $now,
                     'release_date' => null,
                     'digital_release_date' => null,
-                    'production_companies' => null,
-                    'spoken_languages' => null,
-                    'alternative_titles' => null,
                     'original_language' => null,
                     'original_title' => null,
-                    'tagline' => null,
                     'status' => null,
-                    'budget' => null,
-                    'revenue' => null,
                     'origin_country' => null,
                     'release_dates' => null,
                 ];
@@ -220,6 +224,15 @@ class SyncTMDBMovies extends Command
             }
 
             $upsertTMDB->upsert($upsertData);
+
+            // Upsert images for movies with details
+            $upsertImages = app(UpsertTMDBImages::class);
+            foreach ($movies as $movie) {
+                $movieDetails = $details[$movie->tmdb_id] ?? null;
+                if ($movieDetails && isset($movieDetails['images'])) {
+                    $upsertImages->upsert($movie, $movieDetails['images']);
+                }
+            }
 
             $count = $movies->count();
             $synced += $count;
@@ -253,15 +266,9 @@ class SyncTMDBMovies extends Command
                 'tmdb_id' => null,
                 'release_date' => null,
                 'digital_release_date' => null,
-                'production_companies' => null,
-                'spoken_languages' => null,
-                'alternative_titles' => null,
                 'original_language' => null,
                 'original_title' => null,
-                'tagline' => null,
                 'status' => null,
-                'budget' => null,
-                'revenue' => null,
                 'origin_country' => null,
                 'release_dates' => null,
             ];

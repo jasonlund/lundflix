@@ -87,7 +87,8 @@ class TMDBService
         try {
             $response = $this->client()
                 ->get(self::BASE_URL.'/movie/'.$tmdbId, [
-                    'append_to_response' => 'release_dates,alternative_titles',
+                    'append_to_response' => 'release_dates,images',
+                    'include_image_language' => 'en,null',
                 ]);
 
             $response->throw();
@@ -122,7 +123,8 @@ class TMDBService
             $responses = Http::pool(fn (Pool $pool) => $pending->map(
                 fn (int $tmdbId) => $this->baseRequest($pool->as((string) $tmdbId))
                     ->get(self::BASE_URL.'/movie/'.$tmdbId, [
-                        'append_to_response' => 'release_dates,alternative_titles',
+                        'append_to_response' => 'release_dates,images',
+                        'include_image_language' => 'en,null',
                     ]),
             )->all(), concurrency: 20);
 
@@ -180,6 +182,169 @@ class TMDBService
         return $ids->unique()->values()->all();
     }
 
+    /**
+     * Find a TMDB show by external ID.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findShowByExternalId(string $externalId, string $source = 'imdb_id'): ?array
+    {
+        $response = $this->client()
+            ->get(self::BASE_URL.'/find/'.$externalId, [
+                'external_source' => $source,
+            ]);
+
+        $response->throw();
+
+        $results = $response->json('tv_results', []);
+
+        return $results[0] ?? null;
+    }
+
+    /**
+     * Find TMDB shows for multiple external IDs concurrently.
+     *
+     * @param  array<int, string>  $ids
+     * @return array<string, array<string, mixed>|null>
+     */
+    public function findManyShowsByExternalId(array $ids, string $source = 'imdb_id'): array
+    {
+        $results = [];
+        $pending = collect($ids);
+
+        for ($attempt = 0; $attempt <= self::POOL_MAX_RETRIES && $pending->isNotEmpty(); $attempt++) {
+            if ($attempt > 0) {
+                sleep(1);
+            }
+
+            $responses = Http::pool(fn (Pool $pool) => $pending->map(
+                fn (string $id) => $this->baseRequest($pool->as($id))
+                    ->get(self::BASE_URL.'/find/'.$id, [
+                        'external_source' => $source,
+                    ]),
+            )->all(), concurrency: 20);
+
+            $pending->each(function (string $id) use ($responses, &$results, $attempt) {
+                $response = $responses[$id];
+
+                if ($response instanceof Response && $response->successful()) {
+                    $results[$id] = $response->json('tv_results', [])[0] ?? null;
+                } elseif ($response instanceof Response && $response->notFound()) {
+                    $results[$id] = null;
+                } elseif ($attempt >= self::POOL_MAX_RETRIES) {
+                    $results[$id] = null;
+                }
+            });
+
+            $pending = $pending->reject(fn (string $id) => array_key_exists($id, $results))->values();
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get full TV show details by TMDB ID.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function showDetails(int $tmdbId): ?array
+    {
+        try {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/tv/'.$tmdbId, [
+                    'append_to_response' => 'images,external_ids,content_ratings',
+                    'include_image_language' => 'en,null',
+                ]);
+
+            $response->throw();
+
+            return $response->json();
+        } catch (RequestException $e) {
+            if ($e->response->notFound()) {
+                return null;
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Get full TV show details for multiple TMDB IDs concurrently.
+     *
+     * @param  array<int, int>  $tmdbIds
+     * @return array<int, array<string, mixed>|null>
+     */
+    public function showDetailsMany(array $tmdbIds): array
+    {
+        $results = [];
+        $pending = collect($tmdbIds);
+
+        for ($attempt = 0; $attempt <= self::POOL_MAX_RETRIES && $pending->isNotEmpty(); $attempt++) {
+            if ($attempt > 0) {
+                sleep(1);
+            }
+
+            $responses = Http::pool(fn (Pool $pool) => $pending->map(
+                fn (int $tmdbId) => $this->baseRequest($pool->as((string) $tmdbId))
+                    ->get(self::BASE_URL.'/tv/'.$tmdbId, [
+                        'append_to_response' => 'images,external_ids,content_ratings',
+                        'include_image_language' => 'en,null',
+                    ]),
+            )->all(), concurrency: 20);
+
+            $pending->each(function (int $tmdbId) use ($responses, &$results, $attempt) {
+                $response = $responses[(string) $tmdbId];
+
+                if ($response instanceof Response && $response->successful()) {
+                    $results[$tmdbId] = $response->json();
+                } elseif ($response instanceof Response && $response->notFound()) {
+                    $results[$tmdbId] = null;
+                } elseif ($attempt >= self::POOL_MAX_RETRIES) {
+                    $results[$tmdbId] = null;
+                }
+            });
+
+            $pending = $pending->reject(fn (int $tmdbId) => array_key_exists($tmdbId, $results))->values();
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get IDs of TV shows that have changed on TMDB within the given date range.
+     *
+     * @return array<int, int>
+     */
+    public function changedShowIds(?string $startDate = null, ?string $endDate = null): array
+    {
+        $ids = collect();
+        $page = 1;
+
+        $params = array_filter([
+            'start_date' => $startDate ?? now()->subDays(14)->format('Y-m-d'),
+            'end_date' => $endDate,
+        ]);
+
+        do {
+            $response = $this->client()
+                ->get(self::BASE_URL.'/tv/changes', [
+                    ...$params,
+                    'page' => $page,
+                ]);
+
+            $response->throw();
+
+            $data = $response->json();
+
+            $ids = $ids->merge(collect($data['results'] ?? [])->pluck('id'));
+
+            $totalPages = $data['total_pages'] ?? 1;
+            $page++;
+        } while ($page <= $totalPages);
+
+        return $ids->unique()->values()->all();
+    }
+
     private function baseRequest(PendingRequest $request): PendingRequest
     {
         return $request
@@ -190,7 +355,6 @@ class TMDBService
 
     private function client(): PendingRequest
     {
-        return $this->baseRequest(Http::createPendingRequest())
-            ->retry(3, 1000, when: fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429);
+        return $this->baseRequest(Http::resilient());
     }
 }

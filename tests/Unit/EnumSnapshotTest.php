@@ -1,12 +1,11 @@
 <?php
 
+use App\Enums\ArtworkType;
 use App\Enums\EpisodeType;
 use App\Enums\Genre;
 use App\Enums\IptCategory;
 use App\Enums\Language;
 use App\Enums\MediaType;
-use App\Enums\MovieArtwork;
-use App\Enums\MovieArtworkLevel;
 use App\Enums\MovieStatus;
 use App\Enums\NetworkLogo;
 use App\Enums\ReleaseQuality;
@@ -14,8 +13,6 @@ use App\Enums\RequestItemStatus;
 use App\Enums\RequestStatus;
 use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
-use App\Enums\TvArtwork;
-use App\Enums\TvArtworkLevel;
 use App\Enums\UserRole;
 
 it('snapshots EpisodeType display values', function () {
@@ -58,17 +55,9 @@ it('snapshots MediaType display values', function () {
     expect($values)->toMatchSnapshot();
 });
 
-it('snapshots MovieArtwork display values', function () {
-    $values = collect(MovieArtwork::cases())->mapWithKeys(fn (MovieArtwork $e) => [
+it('snapshots ArtworkType display values', function () {
+    $values = collect(ArtworkType::cases())->mapWithKeys(fn (ArtworkType $e) => [
         $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor()],
-    ])->all();
-
-    expect($values)->toMatchSnapshot();
-});
-
-it('snapshots MovieArtworkLevel display values', function () {
-    $values = collect(MovieArtworkLevel::cases())->mapWithKeys(fn (MovieArtworkLevel $e) => [
-        $e->name => ['label' => $e->getLabel()],
     ])->all();
 
     expect($values)->toMatchSnapshot();
@@ -97,7 +86,7 @@ it('snapshots NetworkLogo display values', function () {
 
 it('snapshots RequestItemStatus display values', function () {
     $values = collect(RequestItemStatus::cases())->mapWithKeys(fn (RequestItemStatus $e) => [
-        $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor()],
+        $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor(), 'fluxColor' => $e->getFluxColor()],
     ])->all();
 
     expect($values)->toMatchSnapshot();
@@ -127,22 +116,6 @@ it('snapshots ShowStatus display values', function () {
 it('snapshots StreamingLogo display values', function () {
     $values = collect(StreamingLogo::cases())->mapWithKeys(fn (StreamingLogo $e) => [
         $e->name => ['file' => $e->file(), 'source' => $e->source()],
-    ])->all();
-
-    expect($values)->toMatchSnapshot();
-});
-
-it('snapshots TvArtwork display values', function () {
-    $values = collect(TvArtwork::cases())->mapWithKeys(fn (TvArtwork $e) => [
-        $e->name => ['label' => $e->getLabel(), 'color' => $e->getColor()],
-    ])->all();
-
-    expect($values)->toMatchSnapshot();
-});
-
-it('snapshots TvArtworkLevel display values', function () {
-    $values = collect(TvArtworkLevel::cases())->mapWithKeys(fn (TvArtworkLevel $e) => [
-        $e->name => ['label' => $e->getLabel()],
     ])->all();
 
     expect($values)->toMatchSnapshot();

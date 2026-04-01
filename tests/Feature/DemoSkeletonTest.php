@@ -11,7 +11,7 @@ it('renders the demo skeleton with the Lundbergh bubble styling', function () {
         ->assertSee('Skeleton')
         ->assertSee('data-flux-skeleton')
         ->assertSee('data-flux-skeleton-bubble')
-        ->assertSee('data-flux-skeleton-text')
+        ->assertSee('data-flux-skeleton-group')
         ->assertSee('animate-[flux-shimmer_2s_infinite]')
         ->assertSee('rounded-2xl');
 
