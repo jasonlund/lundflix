@@ -45,9 +45,9 @@ return [
         'unsubscribed' => "Mmm yeah… you've been unsubscribed from :title. So… yeah.",
     ],
     'tooltip' => [
-        'subscribe' => 'Yeah… go ahead and subscribe to this show.',
+        'subscribe' => 'Yeah… go ahead and subscribe to this.',
         'unsubscribe' => 'Mmm yeah… click to unsubscribe.',
-        'subscribe_disabled' => "Yeah… so, this show has ended. Subscribing wouldn't really help anyone.",
+        'subscribe_disabled' => "Yeah… so, subscribing to this wouldn't really help anyone.",
     ],
     'dashboard' => [
         'last_fulfilled' => '{1} Mmkay… we added :count item for you :when.|[2,*] Mmkay… we added :count items for you :when.',

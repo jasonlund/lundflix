@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Movie;
+use App\Models\Subscription;
 use App\Services\CartService;
 use App\Support\Formatters;
 use Flux\Flux;
@@ -12,10 +13,62 @@ new class extends Component {
 
     public bool $inCart = false;
 
+    public bool $isSubscribed = false;
+
     public function mount(Movie $movie, CartService $cart): void
     {
         $this->movie = $movie;
         $this->inCart = $cart->has($this->movie->id);
+        $this->isSubscribed =
+            auth()->check() &&
+            Subscription::query()
+                ->where('user_id', auth()->id())
+                ->where('subscribable_type', Movie::class)
+                ->where('subscribable_id', $this->movie->id)
+                ->exists();
+    }
+
+    #[Computed]
+    public function isSubscribable(): bool
+    {
+        $status = $this->movie->status;
+
+        if ($status === null) {
+            return false;
+        }
+
+        return $status->isSubscribable();
+    }
+
+    public function toggleSubscription(): void
+    {
+        if (! $this->isSubscribable) {
+            return;
+        }
+
+        $userId = auth()->id();
+
+        if ($this->isSubscribed) {
+            Subscription::query()
+                ->where('user_id', $userId)
+                ->where('subscribable_type', Movie::class)
+                ->where('subscribable_id', $this->movie->id)
+                ->delete();
+            $this->isSubscribed = false;
+        } else {
+            Subscription::create([
+                'user_id' => $userId,
+                'subscribable_type' => Movie::class,
+                'subscribable_id' => $this->movie->id,
+            ]);
+            $this->isSubscribed = true;
+        }
+
+        Flux::toast(
+            text: __($this->isSubscribed ? 'lundbergh.toast.subscribed' : 'lundbergh.toast.unsubscribed', [
+                'title' => $this->movie->title,
+            ]),
+        );
     }
 
     #[Computed]
@@ -95,46 +148,85 @@ new class extends Component {
 
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
-        <div
-            x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
-            @cart-syncing.window="syncing = true"
-            @cart-updated.window="syncing = false"
-            class="absolute top-4 right-4 z-10"
-        >
-            @if ($this->isCartDisabled)
-                <flux:tooltip content="Not yet released">
+        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+            @if ($this->isSubscribable)
+                <div x-data="{ subscribed: {{ Js::from($isSubscribed) }}, syncing: false }">
+                    <flux:tooltip
+                        :content="$isSubscribed ? __('lundbergh.tooltip.unsubscribe') : __('lundbergh.tooltip.subscribe')"
+                    >
+                        <button
+                            x-on:click="
+                                subscribed = ! subscribed
+                                syncing = true
+                                $wire.toggleSubscription().then(() => {
+                                    syncing = false
+                                })
+                            "
+                            class="flex cursor-pointer items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                <span class="invisible">+</span>
+                                <span x-show="subscribed" x-cloak :class="syncing && 'opacity-0'" class="absolute">
+                                    -
+                                </span>
+                                <span x-show="!subscribed" :class="syncing && 'opacity-0'" class="absolute">+</span>
+                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                            </div>
+                        </button>
+                    </flux:tooltip>
+                </div>
+            @elseif ($movie->status !== null && ! $movie->status->isCartable())
+                <flux:tooltip :content="__('lundbergh.tooltip.subscribe_disabled')">
                     <div
-                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
+                        class="flex items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
                     >
                         <div class="relative flex min-w-4 items-center justify-center">
                             <span>+</span>
                         </div>
-                        <flux:icon.shopping-cart class="size-4" />
                     </div>
                 </flux:tooltip>
-            @else
-                <flux:tooltip :content="$inCart ? 'Remove from Cart' : 'Add to Cart'">
-                    <button
-                        x-on:click="
-                            inCart = ! inCart
-                            syncing = true
-                            window.dispatchEvent(new CustomEvent('cart-syncing'))
-                            $wire.toggleCart()
-                        "
-                        class="flex cursor-pointer items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            <span class="invisible">+</span>
-                            <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
-                                <flux:icon.check class="size-4" />
-                            </span>
-                            <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">+</span>
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                        </div>
-                        <flux:icon.shopping-cart class="size-4" />
-                    </button>
-                </flux:tooltip>
             @endif
+
+            <div
+                x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
+                @cart-syncing.window="syncing = true"
+                @cart-updated.window="syncing = false"
+            >
+                @if ($this->isCartDisabled)
+                    <flux:tooltip content="Not yet released">
+                        <div
+                            class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                <span>+</span>
+                            </div>
+                            <flux:icon.shopping-cart class="size-4" />
+                        </div>
+                    </flux:tooltip>
+                @else
+                    <flux:tooltip :content="$inCart ? 'Remove from Cart' : 'Add to Cart'">
+                        <button
+                            x-on:click="
+                                inCart = ! inCart
+                                syncing = true
+                                window.dispatchEvent(new CustomEvent('cart-syncing'))
+                                $wire.toggleCart()
+                            "
+                            class="flex cursor-pointer items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                <span class="invisible">+</span>
+                                <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
+                                    <flux:icon.check class="size-4" />
+                                </span>
+                                <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">+</span>
+                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                            </div>
+                            <flux:icon.shopping-cart class="size-4" />
+                        </button>
+                    </flux:tooltip>
+                @endif
+            </div>
         </div>
 
         <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
