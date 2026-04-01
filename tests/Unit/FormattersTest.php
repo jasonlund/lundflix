@@ -3,6 +3,7 @@
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\Formatters;
+use Carbon\Carbon;
 
 it('formats runtime in hours and minutes', function () {
     expect(Formatters::runtime(150))->toBe('2h30m');
@@ -166,4 +167,64 @@ it('returns null runtime for a show with no runtime', function () {
     $show = Show::factory()->make(['runtime' => null, 'average_runtime' => null]);
 
     expect(Formatters::runtimeFor($show))->toBeNull();
+});
+
+it('formats time until as hours when less than 24h away', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01'), '20:00'))->toBe('8h');
+});
+
+it('formats time until with minimum of 1h', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01'), '12:30'))->toBe('1h');
+});
+
+it('formats time until as days when less than 7d away', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-05')))->toBe('3d');
+});
+
+it('formats time until as weeks when less than 30d away', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-22')))->toBe('2w');
+});
+
+it('formats time until as months when 30d or more away', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-07-01')))->toBe('3m');
+});
+
+it('formats time since as hours when less than 24h ago', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 20:00:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01'), '12:00'))->toBe('8h');
+});
+
+it('formats time since with minimum of 1h', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:30:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01'), '12:00'))->toBe('1h');
+});
+
+it('formats time since as days when less than 7d ago', function () {
+    $this->travelTo(Carbon::parse('2026-04-05 12:00:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('4d');
+});
+
+it('formats time since as weeks when less than 30d ago', function () {
+    $this->travelTo(Carbon::parse('2026-04-22 12:00:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('3w');
+});
+
+it('formats time since as months when 30d or more ago', function () {
+    $this->travelTo(Carbon::parse('2026-07-01 12:00:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('3m');
 });

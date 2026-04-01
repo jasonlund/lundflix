@@ -53,7 +53,6 @@ return [
         'last_fulfilled' => '{1} Mmkay… we added :count item for you :when.|[2,*] Mmkay… we added :count items for you :when.',
         'pending' => "{1} Yeah… so, you've got :count item pending. I'm gonna need you to run that by the Bobs.|[2,*] Yeah… so, you've got :count items pending. I'm gonna need you to run those by the Bobs.",
         'review_requests' => "Go ahead and review all your requests below. That'd be great.",
-        'requests_heading' => 'Your Requests, Mmkay?',
         'no_matching_requests' => "Mmkay… none of your requests match those filters. I'm gonna need you to adjust them. That'd be great.",
         'when_today' => 'today',
         'when_yesterday' => 'yesterday',
