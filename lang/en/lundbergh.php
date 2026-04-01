@@ -37,6 +37,13 @@ return [
         'episodes_removed' => '{1} Mmm yeah… :count episode of :title has been removed from your cart.|[2,*] Mmm yeah… :count episodes of :title have been removed from your cart.',
         'episodes_swapped' => "Yeah… so, your :title episodes have been updated. If you could go ahead and review your cart, that'd be great.",
         'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
+        'subscribed' => "Yeah… so, you're now subscribed to :title. We'll keep you in the loop. That'd be great.",
+        'unsubscribed' => "Mmm yeah… you've been unsubscribed from :title. So… yeah.",
+    ],
+    'tooltip' => [
+        'subscribe' => 'Yeah… go ahead and subscribe to this show.',
+        'unsubscribe' => 'Mmm yeah… click to unsubscribe.',
+        'subscribe_disabled' => "Yeah… so, this show has ended. Subscribing wouldn't really help anyone.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

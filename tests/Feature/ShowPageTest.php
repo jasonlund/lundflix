@@ -3,6 +3,8 @@
 use App\Enums\ShowStatus;
 use App\Models\Episode;
 use App\Models\Show;
+use App\Models\Subscription;
+use App\Models\User;
 use App\Services\CartService;
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Vite as ViteFacade;
@@ -317,4 +319,94 @@ it('displays count instead of check mark when not all episodes are in cart', fun
     Livewire::test('shows.show', ['show' => $show])
         ->assertDontSeeHtml('m4.5 12.75 6 6 9-13.5')
         ->assertSee('2');
+});
+
+describe('subscription', function () {
+    it('can subscribe to a running show', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', false)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', true);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Show::class)
+            ->where('subscribable_id', $show->id)
+            ->exists())->toBeTrue();
+    });
+
+    it('can unsubscribe from a show', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', true)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Show::class)
+            ->where('subscribable_id', $show->id)
+            ->exists())->toBeFalse();
+    });
+
+    it('allows subscription for subscribable statuses', function (ShowStatus $status) {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => $status->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', true);
+    })->with([
+        'Running' => ShowStatus::Running,
+        'ToBeDetermined' => ShowStatus::ToBeDetermined,
+        'InDevelopment' => ShowStatus::InDevelopment,
+    ]);
+
+    it('disables subscription for ended shows', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Ended->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('disables subscription for shows with null status', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => null]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('prevents toggling subscription for ended shows', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Ended->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
+    });
+
+    it('initializes subscription state from database on mount', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', true);
+    });
 });
