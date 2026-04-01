@@ -5,10 +5,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-new #[Layout('components.layouts.guest')] class extends Component {
+new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Component {
     #[Validate('required|email')]
     public string $email = '';
 
