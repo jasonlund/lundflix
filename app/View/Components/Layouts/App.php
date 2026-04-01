@@ -10,7 +10,7 @@ class App extends Component
 {
     public string $defaultBackground;
 
-    public function __construct(public ?string $backgroundImage = null)
+    public function __construct(public ?string $backgroundImage = null, public ?string $title = null)
     {
         $this->defaultBackground = Vite::image('default-background.svg');
         $this->backgroundImage ??= $this->defaultBackground;

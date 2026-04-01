@@ -2,9 +2,10 @@
 
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Layout('components.layouts.app')] class extends Component {
+new #[Layout('components.layouts.app')] #[Title('Demo')] class extends Component {
     public function mount(): void
     {
         $this->addError('demo_field', "Yeah… so, this is what an error looks like. That's… not great.");
