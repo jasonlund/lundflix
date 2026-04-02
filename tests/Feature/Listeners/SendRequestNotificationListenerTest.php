@@ -29,7 +29,6 @@ it('implements ShouldQueue', function () {
 
 it('sends slack notification when slack is enabled and channel is configured', function () {
     Notification::fake();
-    Log::spy();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
 
     $request = Request::factory()->create();
@@ -40,15 +39,10 @@ it('sends slack notification when slack is enabled and channel is configured', f
     $listener->handle(new RequestSubmitted($request));
 
     Notification::assertSentOnDemand(RequestItemsNotification::class);
-
-    Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message) => $message === 'Slack notification sent')
-        ->once();
 });
 
 it('sends notification with episodes', function () {
     Notification::fake();
-    Log::spy();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
 
     $show = Show::factory()->create();
@@ -65,10 +59,6 @@ it('sends notification with episodes', function () {
     $listener->handle(new RequestSubmitted($request));
 
     Notification::assertSentOnDemand(RequestItemsNotification::class);
-
-    Log::shouldHaveReceived('info')
-        ->withArgs(fn ($message) => $message === 'Slack notification sent')
-        ->once();
 });
 
 it('does not send notification when slack is disabled', function () {
@@ -85,7 +75,7 @@ it('does not send notification when slack is disabled', function () {
 
     Notification::assertNothingSent();
 
-    Log::shouldHaveReceived('warning')
+    Log::shouldHaveReceived('error')
         ->withArgs(fn ($message) => $message === 'Slack notification skipped: Slack is not enabled')
         ->once();
 });
@@ -104,7 +94,7 @@ it('does not send notification when channel is not configured', function () {
 
     Notification::assertNothingSent();
 
-    Log::shouldHaveReceived('warning')
+    Log::shouldHaveReceived('error')
         ->withArgs(fn ($message) => $message === 'Slack notification skipped: channel not configured')
         ->once();
 });
@@ -121,7 +111,7 @@ it('does not send notification when request has no items', function () {
 
     Notification::assertNothingSent();
 
-    Log::shouldHaveReceived('warning')
+    Log::shouldHaveReceived('error')
         ->withArgs(fn ($message) => $message === 'Slack notification skipped: request has no items')
         ->once();
 });

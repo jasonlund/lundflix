@@ -6,7 +6,6 @@ use App\Models\Episode;
 use App\Models\Request;
 use App\Notifications\RequestItemsNotification;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class SendRequestNotification extends Command
@@ -51,12 +50,6 @@ class SendRequestNotification extends Command
 
         Notification::route('slack', $channel)
             ->notify(new RequestItemsNotification($request));
-
-        Log::info('Slack notification sent via command', [
-            'request_id' => $request->id,
-            'channel' => $channel,
-            'items_count' => $request->items->count(),
-        ]);
 
         $this->info("Notification sent for request #{$request->id}.");
 
