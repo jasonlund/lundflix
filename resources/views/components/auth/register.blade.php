@@ -4,10 +4,11 @@ use App\Actions\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-new #[Layout('components.layouts.guest')] class extends Component {
+new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Component {
     public string $plexUsername = '';
 
     public string $plexEmail = '';

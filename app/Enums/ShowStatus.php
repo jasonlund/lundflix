@@ -52,4 +52,9 @@ enum ShowStatus: string implements HasColor, HasIcon, HasLabel
             self::InDevelopment => 'text-blue-400',
         };
     }
+
+    public function isSubscribable(): bool
+    {
+        return $this !== self::Ended;
+    }
 }

@@ -164,6 +164,14 @@ class Show extends Model
         return null;
     }
 
+    /**
+     * @return MorphMany<Subscription, $this>
+     */
+    public function subscriptions(): MorphMany
+    {
+        return $this->morphMany(Subscription::class, 'subscribable');
+    }
+
     protected function artworkExternalIdValue(): string|int|null
     {
         return $this->tmdb_id;
