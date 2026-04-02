@@ -3,6 +3,7 @@
     'panelClass' => '',
     'itemsClass' => '',
     'autoHighlightFirst' => false,
+    'hasItems' => false,
 ])
 
 <div
@@ -108,12 +109,10 @@
         @endif
 
         <div x-ref="items" @class(['min-h-0 flex-1', $itemsClass])>
-            @if (isset($empty))
-                <template x-if="! $refs.items?.querySelector('[data-command-item]')">
-                    <div>
-                        {{ $empty }}
-                    </div>
-                </template>
+            @if (isset($empty) && ! $hasItems)
+                <div>
+                    {{ $empty }}
+                </div>
             @endif
 
             {{ $slot }}
