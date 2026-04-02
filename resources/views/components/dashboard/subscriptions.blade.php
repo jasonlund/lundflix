@@ -71,7 +71,7 @@ new class extends Component {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '>', today())
+                                ->where('airdate', '>=', today())
                                 ->orderBy('airdate')
                                 ->limit(3),
                         ],
@@ -113,7 +113,7 @@ new class extends Component {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '<=', today())
+                                ->where('airdate', '<', today())
                                 ->orderByDesc('airdate')
                                 ->limit(1),
                         ],

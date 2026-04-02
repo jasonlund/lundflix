@@ -77,12 +77,12 @@ When committing changes, use this format:
 
 ## Lundberghese
 
-- All user-facing copy (error messages, toasts, empty states, hints, confirmations) must be written in "Lundberghese" — the voice of Bill Lumbergh from Office Space
-- Strings live in `lang/en/lundbergh.php`, organized by context (e.g., `cart`, `empty`, `error`, `loading`)
+- **Conversational user-facing copy** must be written in "Lundberghese" — the voice of Bill Lumbergh from Office Space. This includes: error messages, toasts, empty states, hints, confirmations, and similar prose.
 - Common patterns: "Yeah… so,", "Mmm yeah…", "I'm gonna need you to", "That'd be great.", "So… yeah."
-- Use `__('lundbergh.section.key')` to reference strings in Blade templates and PHP
-- Never hardcode user-facing text — always use the lang file
+- Lundberghese strings live in `lang/en/lundbergh.php`, organized by context (e.g., `cart`, `empty`, `error`, `loading`). Use `__('lundbergh.section.key')` to reference them.
+- **Short UI labels (1-3 words) do NOT need Lundberghese.** Section titles, table headers, select options, column labels, badges, and similar terse labels (e.g., "Requests", "Upcoming", "Unknown") can be hardcoded directly.
 - **Exception: HTTP error pages** — Error pages (404, 500, etc.) use the standard HTTP reason phrase (e.g., "Internal Server Error") instead of Lundberghese. These are defined in `config/error-pages.php`.
+- **Exception: Filament admin panel** — Admin-facing text does not use Lundberghese.
 
 ## Blade Components
 

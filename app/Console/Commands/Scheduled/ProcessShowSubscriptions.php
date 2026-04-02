@@ -64,7 +64,7 @@ class ProcessShowSubscriptions extends Command
                     $airtime = $episode->airtime ?? '00:00';
                     $airdatetime = Carbon::parse($episode->airdate->format('Y-m-d').' '.$airtime); // @phpstan-ignore method.nonObject (casted to Carbon)
 
-                    return $airdatetime->between($windowStart, $now);
+                    return $airdatetime->greaterThan($windowStart) && $airdatetime->lessThanOrEqualTo($now);
                 })
                 ->sortBy([['season', 'asc'], ['number', 'asc']])
                 ->values();

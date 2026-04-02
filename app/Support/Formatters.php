@@ -166,13 +166,13 @@ class Formatters
             ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
             : $date->copy()->startOfDay();
 
-        $hours = (int) now()->diffInHours($target, absolute: false);
+        $hours = (int) now()->diffInHours($target, absolute: true);
 
         if ($hours < 24) {
             return max(1, $hours).'h';
         }
 
-        $days = (int) now()->diffInDays($target, absolute: false);
+        $days = (int) now()->diffInDays($target, absolute: true);
 
         if ($days < 7) {
             return $days.'d';

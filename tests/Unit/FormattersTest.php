@@ -199,6 +199,12 @@ it('formats time until as months when 30d or more away', function () {
     expect(Formatters::timeUntil(Carbon::parse('2026-07-01')))->toBe('3m');
 });
 
+it('formats time until as positive value for a past date', function () {
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-03-28')))->toBe('4d');
+});
+
 it('formats time since as hours when less than 24h ago', function () {
     $this->travelTo(Carbon::parse('2026-04-01 20:00:00'));
 

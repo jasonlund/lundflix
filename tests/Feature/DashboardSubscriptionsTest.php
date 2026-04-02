@@ -290,6 +290,48 @@ it('shows most recently aired episode in recent view', function () {
         ->and($rows->first()['detail'])->toBe('3d');
 });
 
+it('includes same-day episodes in upcoming view', function () {
+    $this->travelTo(now()->startOfDay()->addHours(12));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Today Show']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today(),
+        'airtime' => '20:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('Today Show')
+        ->and($rows->first()['subtitle'])->toBe('S01E01');
+});
+
+it('excludes same-day episodes from recent view', function () {
+    $this->travelTo(now()->startOfDay()->addHours(12));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Today Show']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today(),
+        'airtime' => '20:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
+
 it('excludes shows with no past episodes from recent view', function () {
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Future Show']);

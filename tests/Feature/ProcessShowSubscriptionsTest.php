@@ -170,3 +170,32 @@ it('creates separate requests for each subscribed user', function () {
 
     Event::assertDispatchedTimes(RequestSubmitted::class, 2);
 });
+
+it('does not duplicate requests for episodes on the window boundary', function () {
+    Event::fake([RequestSubmitted::class]);
+
+    // Simulate the 20:15 run — an episode that aired at 20:00 should NOT match
+    // because it was already processed by the 20:00 run
+    $this->travelTo(today()->setTime(20, 15));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create();
+
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today(),
+        'airtime' => '20:00',
+    ]);
+
+    $this->artisan('process:show-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 0 show subscription(s)');
+
+    expect(Request::count())->toBe(0);
+
+    Event::assertNotDispatched(RequestSubmitted::class);
+});
