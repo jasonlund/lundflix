@@ -238,6 +238,7 @@ new class extends Component {
             panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
             itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
             :autoHighlightFirst="true"
+            :hasItems="$this->results->isNotEmpty()"
         >
             <x-slot:header>
                 <flux:input.group class="search-bar">

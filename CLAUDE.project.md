@@ -13,6 +13,12 @@ When given a task, do it completely and properly. Don't take shortcuts, don't su
 - Livewire, Flux, Alpine.js, and Blaze are all created by Caleb Porzio. They are designed to work together seamlessly and should never conflict with each other. If something appears broken between them, the problem is in your code — not theirs.
 - This extends (to a lesser degree) to Filament and other core ecosystem packages. These are highly respected, battle-tested packages. Trust them. When debugging, assume your integration is wrong before assuming the package is wrong.
 
+## JavaScript: Livewire + Alpine Only
+
+- **All interactivity must use Livewire and Alpine.js.** No vanilla JavaScript DOM queries (`querySelector`, `querySelectorAll`, `children.length`, etc.) to derive UI state. If the server knows it, pass it as a Blade prop or Livewire property — don't re-derive it from the DOM.
+- State that Livewire already tracks (item counts, search results, loading states) must flow through Blade props or `$wire`, never through DOM inspection.
+- Alpine's role is lightweight client-side behavior (toggles, transitions, keyboard navigation). It should read reactive Alpine data or `$wire` properties — never query the DOM to figure out what Livewire already knows.
+
 ---
 
 ## Code Formatting & Quality

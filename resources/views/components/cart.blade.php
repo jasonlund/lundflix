@@ -141,6 +141,7 @@ new class extends Component {
                 name="cart"
                 panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
                 itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
+                :hasItems="$itemCount > 0"
             >
                 <x-slot:header>
                     <div class="flex min-w-0 flex-1 items-center gap-2">

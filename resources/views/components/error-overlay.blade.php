@@ -18,13 +18,9 @@
             this.visible = false
             this.$refs.video?.pause()
         },
-        init() {
-            window.addEventListener('popstate', () => {
-                if (this.visible) this.dismiss()
-            })
-        },
     }"
     x-on:error-overlay-show.window="show($event.detail)"
+    x-on:popstate.window="if (visible) dismiss()"
     x-show="visible"
     x-cloak
     class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 backdrop-blur-sm"

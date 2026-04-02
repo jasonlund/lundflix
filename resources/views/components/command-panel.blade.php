@@ -3,39 +3,32 @@
     'panelClass' => '',
     'itemsClass' => '',
     'autoHighlightFirst' => false,
+    'hasItems' => false,
 ])
 
 <div
     data-command-panel="{{ $name }}"
     class="h-full"
+    x-on:keydown.capture="usingKeyboard = true"
+    x-on:pointerdown.capture="usingKeyboard = false"
+    x-on:pointermove.capture="usingKeyboard = false"
     x-data="{
         usingKeyboard: false,
         autoHighlightFirst: {{ $autoHighlightFirst ? 'true' : 'false' }},
+        observer: null,
         init() {
-            this.$el.addEventListener(
-                'keydown',
-                () => (this.usingKeyboard = true),
-                { capture: true },
-            )
-            this.$el.addEventListener(
-                'pointerdown',
-                () => (this.usingKeyboard = false),
-                { capture: true },
-            )
-            this.$el.addEventListener(
-                'pointermove',
-                () => (this.usingKeyboard = false),
-                { capture: true },
-            )
-
             if (this.autoHighlightFirst) {
                 this.highlightFirst()
 
-                new MutationObserver(() => this.highlightFirst()).observe(
-                    this.$refs.items,
-                    { childList: true, subtree: true },
-                )
+                this.observer = new MutationObserver(() => this.highlightFirst())
+                this.observer.observe(this.$refs.items, {
+                    childList: true,
+                    subtree: true,
+                })
             }
+        },
+        destroy() {
+            this.observer?.disconnect()
         },
         highlightFirst() {
             const items = this.getItems()
@@ -108,12 +101,10 @@
         @endif
 
         <div x-ref="items" @class(['min-h-0 flex-1', $itemsClass])>
-            @if (isset($empty))
-                <template x-if="! $refs.items?.querySelector('[data-command-item]')">
-                    <div>
-                        {{ $empty }}
-                    </div>
-                </template>
+            @if (isset($empty) && ! $hasItems)
+                <div>
+                    {{ $empty }}
+                </div>
             @endif
 
             {{ $slot }}
