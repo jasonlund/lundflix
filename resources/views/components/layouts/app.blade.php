@@ -43,11 +43,7 @@
                     x-data="{ scrolled: false }"
                     x-init="scrolled = window.scrollY > $el.offsetHeight / 2"
                     x-on:scroll.window.passive="scrolled = window.scrollY > $el.offsetHeight / 2"
-                    x-bind:class="
-                        scrolled
-                            ? 'bg-zinc-900/75 backdrop-blur-sm border-zinc-700'
-                            : 'border-transparent'
-                    "
+                    x-bind:class="scrolled ? 'glass-panel border-zinc-700' : 'border-transparent'"
                     class="sticky top-0 z-20 -mt-px border-b border-transparent transition-[background-color,backdrop-filter,border-color] duration-300 ease-out"
                 >
                     <flux:brand

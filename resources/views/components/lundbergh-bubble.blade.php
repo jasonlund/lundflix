@@ -13,15 +13,17 @@
 
     $avatarClasses = match ($variant) {
         'error' => 'size-8 shrink-0 overflow-hidden rounded-full border border-red-500/30 bg-red-950/20 shadow-sm ring-1 ring-red-500/15',
-        default => 'size-8 shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-900/60 shadow-sm',
+        default => 'size-8 shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-900/50 shadow-sm',
     };
 
-    $bubbleBaseClasses = 'relative rounded-2xl border px-3 py-2 text-sm leading-6 shadow-sm before:absolute before:left-[-7px] before:top-[11px] before:border-y-[7px] before:border-r-[7px] before:border-y-transparent before:content-[\'\'] after:absolute after:left-[-6px] after:top-[12px] after:border-y-[6px] after:border-r-[6px] after:border-y-transparent after:content-[\'\']';
+    $bubbleBaseClasses = 'relative rounded-2xl border px-3 py-2 text-sm leading-6 shadow-sm before:absolute before:left-[-7px] before:top-[11px] before:border-y-[7px] before:border-r-[7px] before:border-y-transparent before:content-[\'\']';
 
     $bubbleClasses = match ($variant) {
-        'error' => $bubbleBaseClasses . ' border-red-500/30 bg-zinc-900 text-zinc-300 before:border-r-red-500/30 after:border-r-zinc-900',
-        default => $bubbleBaseClasses . ' border-zinc-700 bg-zinc-900 text-zinc-300 before:border-r-zinc-700 after:border-r-zinc-900',
+        'error' => $bubbleBaseClasses . ' glass-panel border-red-500/30 text-zinc-300 before:border-r-red-500/30',
+        default => $bubbleBaseClasses . ' glass-panel border-zinc-700 text-zinc-300 before:border-r-zinc-700',
     };
+
+    $arrowFillClasses = 'arrow-clip-left glass-panel absolute top-[12px] left-[-6px] h-3 w-[6px]';
 
     $bubbleClasses = trim($bubbleClasses . ' ' . $bubbleClass);
 
@@ -37,6 +39,8 @@
         />
     </div>
     <div class="{{ $bubbleClasses }}">
+        <div class="{{ $arrowFillClasses }}"></div>
+
         @if ($contentTag === 'div')
             <div class="leading-6">{{ $message ?? $slot }}</div>
         @else
