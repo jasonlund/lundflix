@@ -3,6 +3,7 @@
 use App\Enums\Language;
 use App\Enums\MovieStatus;
 use App\Models\Movie;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\CartService;
 use App\Support\Sqid;
@@ -401,5 +402,122 @@ describe('cart', function () {
             ->assertNotDispatched('cart-updated');
 
         expect(app(CartService::class)->has($movie->id))->toBeFalse();
+    });
+});
+
+describe('subscription', function () {
+    it('can subscribe to an unreleased movie', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Planned->value]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribed', false)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', true);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Movie::class)
+            ->where('subscribable_id', $movie->id)
+            ->exists())->toBeTrue();
+    });
+
+    it('can unsubscribe from a movie', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Planned->value]);
+        Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribed', true)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Movie::class)
+            ->where('subscribable_id', $movie->id)
+            ->exists())->toBeFalse();
+    });
+
+    it('allows subscription for subscribable statuses', function (string $rawStatus) {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create([
+            'status' => $rawStatus,
+            'release_date' => now()->addYear(),
+            'digital_release_date' => null,
+            'release_dates' => [],
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribable', true);
+    })->with([
+        'Rumored',
+        'Planned',
+        'In Production',
+        'Post Production',
+    ]);
+
+    it('disables subscription for released movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Released->value]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('disables subscription for canceled movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Canceled->value]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('disables subscription for movies with null status', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->create(['status' => null]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('prevents toggling subscription for released movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Released->value]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
+    });
+
+    it('prevents toggling subscription for canceled movies', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Canceled->value]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
+    });
+
+    it('initializes subscription state from database on mount', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Planned->value]);
+        Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('isSubscribed', true);
     });
 });

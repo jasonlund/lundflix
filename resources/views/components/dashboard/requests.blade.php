@@ -26,11 +26,9 @@ new class extends Component {
 
     public function placeholder(): string
     {
-        $heading = e(__('lundbergh.dashboard.requests_heading'));
-
         return <<<HTML
         <flux:card size="sm">
-            <flux:heading size="lg">{$heading}</flux:heading>
+            <p class="font-semibold text-white">Requests</p>
             <div class="mt-3 space-y-3">
                 <flux:skeleton class="h-4 w-full" />
                 <flux:skeleton class="h-4 w-3/4" />
@@ -233,7 +231,7 @@ new class extends Component {
     @if ($this->allRows->isNotEmpty())
         <flux:card size="sm">
             <div class="flex items-center justify-between">
-                <flux:heading size="lg">{{ __('lundbergh.dashboard.requests_heading') }}</flux:heading>
+                <p class="font-semibold text-white">Requests</p>
 
                 <flux:dropdown align="end">
                     <flux:button variant="subtle" size="sm" icon:trailing="funnel">

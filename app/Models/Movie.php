@@ -231,6 +231,14 @@ class Movie extends Model
     }
 
     /**
+     * @return MorphMany<Subscription, $this>
+     */
+    public function subscriptions(): MorphMany
+    {
+        return $this->morphMany(Subscription::class, 'subscribable');
+    }
+
+    /**
      * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */

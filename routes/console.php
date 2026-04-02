@@ -11,6 +11,9 @@ Artisan::command('inspire', function () {
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('plex:sync-servers')->everyFifteenMinutes();
 
+Schedule::command('process:show-subscriptions')->everyFifteenMinutes();
+Schedule::command('process:movie-subscriptions')->dailyAt('08:00')->timezone('America/New_York');
+
 Schedule::command('sync:nightly')
     ->daily()
     ->at('02:00')

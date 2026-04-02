@@ -2,9 +2,11 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use App\Models\Subscription;
 use App\Services\CartService;
 use App\Support\Formatters;
 use Carbon\Carbon;
+use Flux\Flux;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -17,16 +19,68 @@ new class extends Component {
 
     public int $totalEpisodeCount = 0;
 
+    public bool $isSubscribed = false;
+
     public function mount(CartService $cart): void
     {
         $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
         $this->totalEpisodeCount = $this->show->episodes->count();
+        $this->isSubscribed =
+            auth()->check() &&
+            Subscription::query()
+                ->where('user_id', auth()->id())
+                ->where('subscribable_type', Show::class)
+                ->where('subscribable_id', $this->show->id)
+                ->exists();
     }
 
     #[On('cart-updated')]
     public function refreshCartCount(CartService $cart): void
     {
         $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
+    }
+
+    #[Computed]
+    public function isSubscribable(): bool
+    {
+        $status = $this->show->status;
+
+        if ($status === null) {
+            return false;
+        }
+
+        return $status->isSubscribable();
+    }
+
+    public function toggleSubscription(): void
+    {
+        if (! $this->isSubscribable) {
+            return;
+        }
+
+        $userId = auth()->id();
+
+        if ($this->isSubscribed) {
+            Subscription::query()
+                ->where('user_id', $userId)
+                ->where('subscribable_type', Show::class)
+                ->where('subscribable_id', $this->show->id)
+                ->delete();
+            $this->isSubscribed = false;
+        } else {
+            Subscription::create([
+                'user_id' => $userId,
+                'subscribable_type' => Show::class,
+                'subscribable_id' => $this->show->id,
+            ]);
+            $this->isSubscribed = true;
+        }
+
+        Flux::toast(
+            text: __($this->isSubscribed ? 'lundbergh.toast.subscribed' : 'lundbergh.toast.unsubscribed', [
+                'title' => $this->show->name,
+            ]),
+        );
     }
 
     #[Computed]
@@ -191,31 +245,78 @@ new class extends Component {
 <div class="flex flex-col">
     <div class="relative overflow-hidden">
         <div class="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-            <div
-                x-data="{ syncing: false }"
-                @cart-syncing.window="syncing = true"
-                @cart-updated.window="syncing = false"
-            >
-                <flux:tooltip content="Add/Remove Episodes Below">
-                    <div
-                        class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
-                                <span class="invisible">{{ $cartEpisodeCount }}</span>
-                                <span :class="syncing && 'opacity-0'" class="absolute">
-                                    <flux:icon.check class="size-4" />
-                                </span>
-                            @else
-                                <span :class="syncing && 'opacity-0'">
-                                    {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
-                                </span>
-                            @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                        </div>
-                        <flux:icon.shopping-cart class="size-4" />
+            <div class="flex items-center gap-2">
+                @if ($this->isSubscribable)
+                    <div x-data="{ subscribed: {{ Js::from($isSubscribed) }}, syncing: false }">
+                        <flux:tooltip
+                            :content="$isSubscribed ? __('lundbergh.tooltip.unsubscribe') : __('lundbergh.tooltip.subscribe')"
+                        >
+                            <button
+                                x-on:click="
+                                    subscribed = ! subscribed
+                                    syncing = true
+                                    $wire.toggleSubscription().then(() => {
+                                        syncing = false
+                                    })
+                                "
+                                class="flex cursor-pointer items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
+                            >
+                                <div class="relative flex min-w-4 items-center justify-center">
+                                    <span class="invisible">+</span>
+                                    <span
+                                        x-show="subscribed"
+                                        x-cloak
+                                        :class="syncing && 'opacity-0'"
+                                        class="absolute"
+                                    >
+                                        -
+                                    </span>
+                                    <span x-show="!subscribed" :class="syncing && 'opacity-0'" class="absolute">
+                                        +
+                                    </span>
+                                    <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                                </div>
+                            </button>
+                        </flux:tooltip>
                     </div>
-                </flux:tooltip>
+                @elseif ($show->status !== null)
+                    <flux:tooltip :content="__('lundbergh.tooltip.subscribe_disabled')">
+                        <div
+                            class="flex items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                <span>+</span>
+                            </div>
+                        </div>
+                    </flux:tooltip>
+                @endif
+
+                <div
+                    x-data="{ syncing: false }"
+                    @cart-syncing.window="syncing = true"
+                    @cart-updated.window="syncing = false"
+                >
+                    <flux:tooltip content="Add/Remove Episodes Below">
+                        <div
+                            class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
+                        >
+                            <div class="relative flex min-w-4 items-center justify-center">
+                                @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
+                                    <span class="invisible">{{ $cartEpisodeCount }}</span>
+                                    <span :class="syncing && 'opacity-0'" class="absolute">
+                                        <flux:icon.check class="size-4" />
+                                    </span>
+                                @else
+                                    <span :class="syncing && 'opacity-0'">
+                                        {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
+                                    </span>
+                                @endif
+                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                            </div>
+                            <flux:icon.shopping-cart class="size-4" />
+                        </div>
+                    </flux:tooltip>
+                </div>
             </div>
         </div>
 
