@@ -33,7 +33,7 @@ class ShowFactory extends Factory
             'premiered' => fake()->date(),
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => ['Monday']],
-            'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States']],
+            'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
             'web_channel' => null,
         ];
     }

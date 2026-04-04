@@ -25,8 +25,8 @@ it('creates a request for episodes airing within the 15-minute window', function
         'show_id' => $show->id,
         'season' => 6,
         'number' => 1,
-        'airdate' => today(),
-        'airtime' => now()->subMinutes(5)->format('H:i'),
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
     ]);
 
     $this->artisan('process:show-subscriptions')
@@ -73,7 +73,7 @@ it('groups multiple episodes into a single request per show', function () {
 
     Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
 
-    $airtime = now()->subMinutes(5)->format('H:i');
+    $airtime = now('America/New_York')->subMinutes(5)->format('H:i');
 
     Episode::factory()->count(3)->sequence(
         ['number' => 1],
@@ -82,7 +82,7 @@ it('groups multiple episodes into a single request per show', function () {
     )->create([
         'show_id' => $show->id,
         'season' => 1,
-        'airdate' => today(),
+        'airdate' => today('America/New_York'),
         'airtime' => $airtime,
     ]);
 
@@ -99,7 +99,7 @@ it('groups multiple episodes into a single request per show', function () {
 it('treats null airtime as midnight', function () {
     Event::fake([RequestSubmitted::class]);
 
-    $this->travelTo(today()->addMinutes(10));
+    $this->travelTo(today('America/New_York')->addMinutes(10));
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'The Wire']);
@@ -110,7 +110,7 @@ it('treats null airtime as midnight', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'airdate' => today(),
+        'airdate' => today('America/New_York'),
         'airtime' => null,
     ]);
 
@@ -159,8 +159,8 @@ it('creates separate requests for each subscribed user', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'airdate' => today(),
-        'airtime' => now()->subMinutes(5)->format('H:i'),
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
     ]);
 
     $this->artisan('process:show-subscriptions')
