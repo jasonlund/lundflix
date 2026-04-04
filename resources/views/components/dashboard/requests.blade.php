@@ -6,6 +6,7 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Support\EpisodeCode;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -280,7 +281,7 @@ new class extends Component {
                                 </flux:table.cell>
                                 <flux:table.cell class="text-right">
                                     <span class="text-sm text-zinc-400">
-                                        {{ $row['created_at']->format('m/d/y') }}
+                                        {{ UserTime::format($row['created_at']) }}
                                     </span>
                                 </flux:table.cell>
                             </flux:table.row>

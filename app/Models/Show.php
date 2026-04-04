@@ -9,6 +9,7 @@ use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
+use App\Support\AirDateTime;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -96,7 +97,7 @@ class Show extends Model
     protected function mostRecentSeason(): Attribute
     {
         return Attribute::get(function (): ?int {
-            $today = now()->startOfDay();
+            $cutoff = AirDateTime::effectiveAirDateCutoff($this->web_channel, $this->network); // @phpstan-ignore argument.type, argument.type (casted to array)
 
             // Priority: 1) Currently airing (has past AND future episodes)
             //           2) Completed (has only past episodes)
@@ -104,11 +105,11 @@ class Show extends Model
             // Within each tier, prefer the highest season number.
             $result = $this->episodes()
                 ->selectRaw('season')
-                ->selectRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) as past_count', [$today])
-                ->selectRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) as future_count', [$today])
+                ->selectRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) as past_count', [$cutoff])
+                ->selectRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) as future_count', [$cutoff])
                 ->groupBy('season')
-                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0) DESC', [$today, $today])
-                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0) DESC', [$today])
+                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0) DESC', [$cutoff, $cutoff])
+                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0) DESC', [$cutoff])
                 ->orderByDesc('season')
                 ->first();
 

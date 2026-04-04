@@ -2,6 +2,7 @@
 
 use App\Models\Movie;
 use App\Models\Show;
+use App\Models\User;
 use App\Support\Formatters;
 use Carbon\Carbon;
 
@@ -233,4 +234,18 @@ it('formats time since as months when 30d or more ago', function () {
     $this->travelTo(Carbon::parse('2026-07-01 12:00:00'));
 
     expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('3m');
+});
+
+it('formats time until with an authenticated user in a different timezone', function () {
+    $this->actingAs(User::factory()->make(['timezone' => 'America/Los_Angeles']));
+    $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
+
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-05')))->toBe('3d');
+});
+
+it('formats time since with an authenticated user in a different timezone', function () {
+    $this->actingAs(User::factory()->make(['timezone' => 'America/Los_Angeles']));
+    $this->travelTo(Carbon::parse('2026-04-05 12:00:00'));
+
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('4d');
 });

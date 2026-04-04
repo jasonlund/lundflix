@@ -4,6 +4,7 @@ use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -54,6 +55,29 @@ it('shows the fulfilled line when items were fulfilled today', function () {
     RequestItem::factory()->forRequestable($movie)->fulfilled($user->id)->create([
         'request_id' => $request->id,
         'actioned_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->get('/')
+        ->assertSuccessful()
+        ->assertSee(trans_choice('lundbergh.dashboard.last_fulfilled', 1, [
+            'count' => 1,
+            'when' => __('lundbergh.dashboard.when_today'),
+        ]), false);
+});
+
+it('groups fulfilled items by the user timezone, not UTC', function () {
+    // Freeze time: Apr 3 05:00 UTC = Apr 2 22:00 PDT
+    $this->travelTo(Carbon::parse('2026-04-03 05:00:00', 'UTC'));
+
+    $user = User::factory()->create(['timezone' => 'America/Los_Angeles']);
+    $request = Request::factory()->for($user)->create();
+
+    $movie = Movie::factory()->create();
+    // Fulfilled at 1am UTC on Apr 3 — which is 6pm PDT on Apr 2
+    RequestItem::factory()->forRequestable($movie)->fulfilled($user->id)->create([
+        'request_id' => $request->id,
+        'actioned_at' => '2026-04-03 01:00:00',
     ]);
 
     $this->actingAs($user)
