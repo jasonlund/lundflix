@@ -38,6 +38,30 @@ class ShowFactory extends Factory
         ];
     }
 
+    public function appleTvPlus(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 310, 'name' => 'Apple TV+'],
+        ]);
+    }
+
+    public function paramountPlus(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 107, 'name' => 'Paramount+'],
+        ]);
+    }
+
+    public function hboMax(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 329, 'name' => 'Max'],
+        ]);
+    }
+
     public function withTmdbData(): static
     {
         return $this->state(fn (array $attributes) => [

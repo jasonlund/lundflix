@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\RequestItem;
+use App\Support\UserTime;
 use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -11,6 +12,8 @@ new class extends Component {
     {
         $user = auth()->user();
         $userRequestScope = fn ($query) => $query->where('user_id', $user->id);
+
+        $tz = UserTime::timezone();
 
         $lastFulfilled = RequestItem::whereHas('request', $userRequestScope)
             ->fulfilled()
@@ -30,7 +33,7 @@ new class extends Component {
         $lines = [];
 
         if ($lastFulfilled) {
-            $daysAgo = (int) Carbon::parse($lastFulfilled->fulfilled_date)->diffInDays(today());
+            $daysAgo = (int) Carbon::parse($lastFulfilled->fulfilled_date)->diffInDays(today($tz));
             $when = match (true) {
                 $daysAgo === 0 => __('lundbergh.dashboard.when_today'),
                 $daysAgo === 1 => __('lundbergh.dashboard.when_yesterday'),

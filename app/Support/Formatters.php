@@ -135,13 +135,15 @@ class Formatters
             ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
             : $date->copy()->startOfDay();
 
-        $hours = (int) now()->diffInHours($target, absolute: true);
+        $now = now(UserTime::timezone());
+
+        $hours = (int) $now->diffInHours($target, absolute: true);
 
         if ($hours < 24) {
             return max(1, $hours).'h';
         }
 
-        $days = (int) now()->diffInDays($target, absolute: true);
+        $days = (int) $now->diffInDays($target, absolute: true);
 
         if ($days < 7) {
             return $days.'d';
@@ -166,13 +168,15 @@ class Formatters
             ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
             : $date->copy()->startOfDay();
 
-        $hours = (int) now()->diffInHours($target, absolute: true);
+        $now = now(UserTime::timezone());
+
+        $hours = (int) $now->diffInHours($target, absolute: true);
 
         if ($hours < 24) {
             return max(1, $hours).'h';
         }
 
-        $days = (int) now()->diffInDays($target, absolute: true);
+        $days = (int) $now->diffInDays($target, absolute: true);
 
         if ($days < 7) {
             return $days.'d';

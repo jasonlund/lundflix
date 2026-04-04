@@ -9,6 +9,7 @@ use App\Events\RequestSubmitted;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
+use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -43,8 +44,8 @@ class ProcessShowSubscriptions extends Command
         $shows = Show::query()
             ->whereIn('id', $showIds)
             ->with(['episodes' => fn ($q) => $q
-                ->whereDate('airdate', '>=', $windowStartDate)
-                ->whereDate('airdate', '<=', $nowDate),
+                ->whereDate('airdate', '>=', Carbon::parse($windowStartDate)->subDay()->toDateString())
+                ->whereDate('airdate', '<=', Carbon::parse($nowDate)->addDay()->toDateString()),
             ])
             ->get()
             ->keyBy('id');
@@ -56,13 +57,16 @@ class ProcessShowSubscriptions extends Command
             $show = $shows->get($subscription->subscribable_id);
 
             $newEpisodes = $show->episodes
-                ->filter(function (Episode $episode) use ($windowStart, $now): bool {
+                ->filter(function (Episode $episode) use ($windowStart, $now, $show): bool {
                     if (! $episode->airdate) {
                         return false;
                     }
 
-                    $airtime = $episode->airtime ?? '00:00';
-                    $airdatetime = Carbon::parse($episode->airdate->format('Y-m-d').' '.$airtime); // @phpstan-ignore method.nonObject (casted to Carbon)
+                    $airdatetime = AirDateTime::resolve(
+                        $episode->airdate->format('Y-m-d'), // @phpstan-ignore method.nonObject (casted to Carbon)
+                        $episode->airtime,
+                        $show->web_channel, // @phpstan-ignore argument.type (casted to array)
+                    );
 
                     return $airdatetime->greaterThan($windowStart) && $airdatetime->lessThanOrEqualTo($now);
                 })

@@ -2,9 +2,11 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use App\Support\AirDateTime;
 use App\Models\Subscription;
 use App\Services\CartService;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Collection;
@@ -162,7 +164,9 @@ new class extends Component {
             return null;
         }
 
-        $days = $this->show->schedule['days'];
+        $schedule = AirDateTime::adjustSchedule($this->show->schedule, $this->show->web_channel);
+
+        $days = $schedule['days'];
 
         usort($days, fn ($a, $b) => Carbon::parse($a)->dayOfWeekIso - Carbon::parse($b)->dayOfWeekIso);
 
@@ -170,10 +174,21 @@ new class extends Component {
 
         $dayLabel = $this->collapseDayRanges($abbrevs);
 
-        $time = $this->show->schedule['time'] ?? '';
-        $timeLabel = $time !== '' ? $this->formatCompactTime($time) : null;
+        $time = $schedule['time'] ?? '';
+        $sourceTz = $this->scheduleTimezone();
+        $timeLabel =
+            $time !== ''
+                ? ($sourceTz
+                    ? UserTime::convertAirtime($time, $sourceTz)
+                    : $this->formatCompactTime($time))
+                : null;
 
         return $timeLabel ? "{$dayLabel} {$timeLabel}" : $dayLabel;
+    }
+
+    private function scheduleTimezone(): ?string
+    {
+        return AirDateTime::scheduleTimezone($this->show->network, $this->show->web_channel);
     }
 
     /**
