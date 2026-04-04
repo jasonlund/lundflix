@@ -173,7 +173,10 @@ new class extends Component {
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
-                if (! empty($airdate) && AirDateTime::hasAired($airdate, null, $this->show->web_channel)) {
+                if (
+                    ! empty($airdate) &&
+                    AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network)
+                ) {
                     $expandedSeason = $season['number'];
 
                     break;
@@ -284,7 +287,7 @@ new class extends Component {
             return false;
         }
 
-        return AirDateTime::hasAired($airdate, null, $this->show->web_channel);
+        return AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network);
     }
 
     public function pad(int $number): string
@@ -406,7 +409,7 @@ new class extends Component {
                                                                 &middot;
                                                             @endif
 
-                                                            {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $this->show->schedule['time'] ?? null, $this->show->web_channel)) }}
+                                                            {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $this->show->schedule['time'] ?? null, $this->show->web_channel, $this->show->network)) }}
                                                         @endif
                                                     </span>
                                                 </div>

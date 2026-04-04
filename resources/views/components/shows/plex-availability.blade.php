@@ -62,7 +62,12 @@ new class extends Component {
         return $this->show->episodes
             ->filter(
                 fn ($episode): bool => ! empty($episode->airdate) &&
-                    AirDateTime::hasAired($episode->airdate, $episode->airtime, $this->show->web_channel),
+                    AirDateTime::hasAired(
+                        $episode->airdate,
+                        $episode->airtime,
+                        $this->show->web_channel,
+                        $this->show->network,
+                    ),
             )
             ->map(fn ($episode): string => strtoupper(EpisodeCode::generate($episode->season, $episode->number)))
             ->unique()

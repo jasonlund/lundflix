@@ -3,7 +3,6 @@
 use App\Actions\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
@@ -52,7 +51,6 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
     /**
      * @return array<string, string>
      */
-    #[Computed]
     public function timezoneOptions(): array
     {
         $timezones = [];
@@ -134,7 +132,7 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
                 >
                     <flux:label>Timezone</flux:label>
                     <flux:select variant="listbox" searchable wire:model="timezone" placeholder="Select timezone...">
-                        @foreach ($this->timezoneOptions as $value => $label)
+                        @foreach ($this->timezoneOptions() as $value => $label)
                             <flux:select.option :$value>{{ $label }}</flux:select.option>
                         @endforeach
                     </flux:select>

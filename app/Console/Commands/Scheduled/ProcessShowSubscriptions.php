@@ -66,6 +66,7 @@ class ProcessShowSubscriptions extends Command
                         $episode->airdate->format('Y-m-d'), // @phpstan-ignore method.nonObject (casted to Carbon)
                         $episode->airtime,
                         $show->web_channel, // @phpstan-ignore argument.type (casted to array)
+                        $show->network, // @phpstan-ignore argument.type (casted to array)
                     );
 
                     return $airdatetime->greaterThan($windowStart) && $airdatetime->lessThanOrEqualTo($now);

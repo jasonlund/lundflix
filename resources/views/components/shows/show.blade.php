@@ -2,9 +2,9 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
-use App\Support\AirDateTime;
 use App\Models\Subscription;
 use App\Services\CartService;
+use App\Support\AirDateTime;
 use App\Support\Formatters;
 use App\Support\UserTime;
 use Carbon\Carbon;
@@ -167,21 +167,36 @@ new class extends Component {
         $schedule = AirDateTime::adjustSchedule($this->show->schedule, $this->show->web_channel);
 
         $days = $schedule['days'];
+        $time = $schedule['time'] ?? '';
+        $sourceTz = $this->scheduleTimezone();
+
+        $dayOffset = 0;
+        $timeLabel = null;
+
+        if ($time !== '') {
+            if ($sourceTz) {
+                $result = UserTime::convertAirtimeWithDayOffset($time, $sourceTz);
+                $timeLabel = $result['time'];
+                $dayOffset = $result['dayOffset'];
+            } else {
+                $timeLabel = $this->formatCompactTime($time);
+            }
+        }
+
+        if ($dayOffset !== 0) {
+            $days = array_map(
+                fn (string $day) => Carbon::parse($day)
+                    ->addDays($dayOffset)
+                    ->format('l'),
+                $days,
+            );
+        }
 
         usort($days, fn ($a, $b) => Carbon::parse($a)->dayOfWeekIso - Carbon::parse($b)->dayOfWeekIso);
 
         $abbrevs = array_map(fn ($d) => Carbon::parse($d)->minDayName, $days);
 
         $dayLabel = $this->collapseDayRanges($abbrevs);
-
-        $time = $schedule['time'] ?? '';
-        $sourceTz = $this->scheduleTimezone();
-        $timeLabel =
-            $time !== ''
-                ? ($sourceTz
-                    ? UserTime::convertAirtime($time, $sourceTz)
-                    : $this->formatCompactTime($time))
-                : null;
 
         return $timeLabel ? "{$dayLabel} {$timeLabel}" : $dayLabel;
     }

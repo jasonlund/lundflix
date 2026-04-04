@@ -21,8 +21,9 @@ class AirDateTime
      * Resolve when an episode actually becomes available.
      *
      * @param  array<string, mixed>|null  $webChannel  The show's web_channel data from TVMaze
+     * @param  array<string, mixed>|null  $network  The show's network data from TVMaze
      */
-    public static function resolve(string $airdate, ?string $airtime, ?array $webChannel): Carbon
+    public static function resolve(string $airdate, ?string $airtime, ?array $webChannel, ?array $network = null): Carbon
     {
         $override = self::overrideFor($webChannel);
 
@@ -33,19 +34,22 @@ class AirDateTime
                 ->utc();
         }
 
-        return Carbon::parse($airdate.' '.($airtime ?? '00:00'));
+        $sourceTimezone = self::scheduleTimezone($network, $webChannel) ?? 'UTC';
+
+        return Carbon::parse($airdate.' '.($airtime ?? '00:00'), $sourceTimezone)->utc();
     }
 
     /**
      * Check if an episode has aired based on network-specific release schedules.
      *
      * @param  array<string, mixed>|null  $webChannel
+     * @param  array<string, mixed>|null  $network
      */
-    public static function hasAired(string|Carbon $airdate, ?string $airtime, ?array $webChannel): bool
+    public static function hasAired(string|Carbon $airdate, ?string $airtime, ?array $webChannel, ?array $network = null): bool
     {
         $airdateString = $airdate instanceof Carbon ? $airdate->format('Y-m-d') : $airdate;
 
-        return self::resolve($airdateString, $airtime, $webChannel)->lte(now());
+        return self::resolve($airdateString, $airtime, $webChannel, $network)->lte(now());
     }
 
     /**
@@ -56,8 +60,9 @@ class AirDateTime
      * adjustment) are already available — so the cutoff shifts accordingly.
      *
      * @param  array<string, mixed>|null  $webChannel
+     * @param  array<string, mixed>|null  $network
      */
-    public static function effectiveAirDateCutoff(?array $webChannel): Carbon
+    public static function effectiveAirDateCutoff(?array $webChannel, ?array $network = null): Carbon
     {
         $override = self::overrideFor($webChannel);
 
@@ -74,7 +79,9 @@ class AirDateTime
             return $localToday->subDays($override['dayOffset'])->subDay();
         }
 
-        return today();
+        $sourceTimezone = self::scheduleTimezone($network, $webChannel);
+
+        return $sourceTimezone ? today($sourceTimezone) : today();
     }
 
     /**

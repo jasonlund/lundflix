@@ -97,7 +97,7 @@ class Show extends Model
     protected function mostRecentSeason(): Attribute
     {
         return Attribute::get(function (): ?int {
-            $cutoff = AirDateTime::effectiveAirDateCutoff($this->web_channel); // @phpstan-ignore argument.type (casted to array)
+            $cutoff = AirDateTime::effectiveAirDateCutoff($this->web_channel, $this->network); // @phpstan-ignore argument.type, argument.type (casted to array)
 
             // Priority: 1) Currently airing (has past AND future episodes)
             //           2) Completed (has only past episodes)

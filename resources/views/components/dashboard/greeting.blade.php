@@ -2,7 +2,6 @@
 
 use App\Models\RequestItem;
 use App\Support\UserTime;
-use Carbon\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -15,12 +14,32 @@ new class extends Component {
 
         $tz = UserTime::timezone();
 
-        $lastFulfilled = RequestItem::whereHas('request', $userRequestScope)
+        $latestFulfilled = RequestItem::whereHas('request', $userRequestScope)
             ->fulfilled()
-            ->selectRaw('DATE(actioned_at) as fulfilled_date, COUNT(*) as item_count')
-            ->groupBy('fulfilled_date')
-            ->orderByDesc('fulfilled_date')
+            ->latest('actioned_at')
             ->first();
+
+        $lastFulfilled = null;
+
+        if ($latestFulfilled) {
+            $fulfilledDate = UserTime::toUserTz($latestFulfilled->actioned_at)->startOfDay();
+
+            $utcStart = $fulfilledDate->copy()->setTimezone('UTC');
+            $utcEnd = $fulfilledDate
+                ->copy()
+                ->endOfDay()
+                ->setTimezone('UTC');
+
+            $itemCount = RequestItem::whereHas('request', $userRequestScope)
+                ->fulfilled()
+                ->whereBetween('actioned_at', [$utcStart, $utcEnd])
+                ->count();
+
+            $lastFulfilled = (object) [
+                'fulfilled_date' => $fulfilledDate,
+                'item_count' => $itemCount,
+            ];
+        }
 
         $pendingCount = RequestItem::whereHas('request', $userRequestScope)
             ->pending()
@@ -33,7 +52,7 @@ new class extends Component {
         $lines = [];
 
         if ($lastFulfilled) {
-            $daysAgo = (int) Carbon::parse($lastFulfilled->fulfilled_date)->diffInDays(today($tz));
+            $daysAgo = (int) $lastFulfilled->fulfilled_date->diffInDays(today($tz));
             $when = match (true) {
                 $daysAgo === 0 => __('lundbergh.dashboard.when_today'),
                 $daysAgo === 1 => __('lundbergh.dashboard.when_yesterday'),

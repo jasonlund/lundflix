@@ -28,16 +28,35 @@ class UserTime
      */
     public static function convertAirtime(string $time, string $sourceTimezone): string
     {
-        $carbon = Carbon::createFromTimeString($time, $sourceTimezone)
-            ->setTimezone(self::timezone());
+        return self::convertAirtimeWithDayOffset($time, $sourceTimezone)['time'];
+    }
 
-        $suffix = $carbon->format('a')[0];
+    /**
+     * Convert a time string from a source timezone to the user's timezone,
+     * returning a compact 12hr format and the day offset (-1, 0, or +1).
+     *
+     * @return array{time: string, dayOffset: int}
+     */
+    public static function convertAirtimeWithDayOffset(string $time, string $sourceTimezone): array
+    {
+        $source = Carbon::createFromTimeString($time, $sourceTimezone);
+        $converted = $source->copy()->setTimezone(self::timezone());
 
-        if ((int) $carbon->format('i') === 0) {
-            return $carbon->format('g').$suffix;
+        $dayOffset = (int) $converted->format('j') - (int) $source->format('j');
+
+        // Clamp to -1/0/+1 to handle month boundaries (e.g., 1st - 31st = -30, means +1)
+        if ($dayOffset > 1) {
+            $dayOffset = -1;
+        } elseif ($dayOffset < -1) {
+            $dayOffset = 1;
         }
 
-        return $carbon->format('g:i').$suffix;
+        $suffix = $converted->format('a')[0];
+        $formatted = ((int) $converted->format('i') === 0)
+            ? $converted->format('g').$suffix
+            : $converted->format('g:i').$suffix;
+
+        return ['time' => $formatted, 'dayOffset' => $dayOffset];
     }
 
     /**
