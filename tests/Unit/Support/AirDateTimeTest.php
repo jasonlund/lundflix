@@ -29,16 +29,24 @@ it('resolves a non-override web channel episode in the channel timezone to UTC',
         ->and($result->format('Y-m-d H:i'))->toBe('2026-04-03 19:00');
 });
 
-it('falls back to UTC when no timezone is available', function () {
+it('falls back to Pacific when no timezone is available', function () {
     $result = AirDateTime::resolve('2026-04-03', '21:00', null);
 
-    expect($result->format('Y-m-d H:i'))->toBe('2026-04-03 21:00');
+    // 2026-04-03 21:00 PDT = 2026-04-04 04:00 UTC
+    $expected = Carbon::parse('2026-04-03 21:00', 'America/Los_Angeles')->utc();
+
+    expect($result->eq($expected))->toBeTrue()
+        ->and($result->format('Y-m-d H:i'))->toBe('2026-04-04 04:00');
 });
 
-it('falls back to UTC with null airtime and no timezone', function () {
+it('falls back to midnight Pacific with null airtime and no timezone', function () {
     $result = AirDateTime::resolve('2026-04-03', null, null);
 
-    expect($result->format('Y-m-d H:i'))->toBe('2026-04-03 00:00');
+    // 2026-04-03 00:00 PDT = 2026-04-03 07:00 UTC
+    $expected = Carbon::parse('2026-04-03 00:00', 'America/Los_Angeles')->utc();
+
+    expect($result->eq($expected))->toBeTrue()
+        ->and($result->format('Y-m-d H:i'))->toBe('2026-04-03 07:00');
 });
 
 it('prefers network timezone over web channel timezone when both exist', function () {
@@ -144,14 +152,16 @@ it('reports broadcast episode as not aired before air time in network timezone',
     expect(AirDateTime::hasAired('2026-04-03', '21:00', null, $network))->toBeFalse();
 });
 
-it('reports non-override episode as aired when past airdate with no timezone', function () {
-    $this->travelTo(Carbon::parse('2026-04-04 00:00'));
+it('reports non-override episode as aired when past midnight Pacific with no timezone', function () {
+    // 2026-04-04 07:01 UTC = 2026-04-04 00:01 PDT (just past midnight Pacific on Apr 4)
+    $this->travelTo(Carbon::parse('2026-04-04 07:01', 'UTC'));
 
     expect(AirDateTime::hasAired('2026-04-03', null, null))->toBeTrue();
 });
 
-it('reports non-override episode as not aired when before airdate with no timezone', function () {
-    $this->travelTo(Carbon::parse('2026-04-02 23:59'));
+it('reports non-override episode as not aired when before midnight Pacific with no timezone', function () {
+    // 2026-04-03 06:59 UTC = 2026-04-02 23:59 PDT (before midnight Pacific on Apr 3)
+    $this->travelTo(Carbon::parse('2026-04-03 06:59', 'UTC'));
 
     expect(AirDateTime::hasAired('2026-04-03', null, null))->toBeFalse();
 });
@@ -218,8 +228,9 @@ it('returns effective cutoff in network timezone for broadcast shows', function 
     expect($cutoff->format('Y-m-d'))->toBe('2026-04-02');
 });
 
-it('returns effective cutoff of today in UTC when no timezone is available', function () {
-    $this->travelTo(Carbon::parse('2026-04-02 23:00'));
+it('returns effective cutoff of today in Pacific when no timezone is available', function () {
+    // 2026-04-03 05:00 UTC = 2026-04-02 22:00 PDT — still April 2 in Pacific
+    $this->travelTo(Carbon::parse('2026-04-03 05:00', 'UTC'));
 
     $cutoff = AirDateTime::effectiveAirDateCutoff(null);
 

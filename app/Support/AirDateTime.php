@@ -6,6 +6,8 @@ use Carbon\Carbon;
 
 class AirDateTime
 {
+    private const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
     /**
      * Streaming service release time overrides, keyed by TVMaze web channel ID.
      *
@@ -34,7 +36,7 @@ class AirDateTime
                 ->utc();
         }
 
-        $sourceTimezone = self::scheduleTimezone($network, $webChannel) ?? 'UTC';
+        $sourceTimezone = self::scheduleTimezone($network, $webChannel) ?? self::DEFAULT_TIMEZONE;
 
         return Carbon::parse($airdate.' '.($airtime ?? '00:00'), $sourceTimezone)->utc();
     }
@@ -81,7 +83,7 @@ class AirDateTime
 
         $sourceTimezone = self::scheduleTimezone($network, $webChannel);
 
-        return $sourceTimezone ? today($sourceTimezone) : today();
+        return today($sourceTimezone ?? self::DEFAULT_TIMEZONE);
     }
 
     /**
