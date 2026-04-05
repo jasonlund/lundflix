@@ -5,7 +5,9 @@ use App\Enums\EpisodeType;
 use App\Models\Show;
 use App\Services\CartService;
 use App\Services\ThirdParty\TVMazeService;
+use App\Support\AirDateTime;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Http\Client\RequestException;
@@ -166,13 +168,15 @@ new class extends Component {
     #[Computed]
     public function expandedSeason(): int|string
     {
-        $today = today();
         $expandedSeason = null;
 
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
-                if (! empty($airdate) && Carbon::parse($airdate)->lte($today)) {
+                if (
+                    ! empty($airdate) &&
+                    AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network)
+                ) {
                     $expandedSeason = $season['number'];
 
                     break;
@@ -283,7 +287,7 @@ new class extends Component {
             return false;
         }
 
-        return Carbon::parse($airdate)->lte(today());
+        return AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network);
     }
 
     public function pad(int $number): string
@@ -410,7 +414,7 @@ new class extends Component {
                                                                 &middot;
                                                             @endif
 
-                                                            {{ Carbon::parse($episode['airdate'])->format('m/d/y') }}
+                                                            {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $this->show->schedule['time'] ?? null, $this->show->web_channel, $this->show->network)) }}
                                                         @endif
                                                     </span>
                                                 </div>

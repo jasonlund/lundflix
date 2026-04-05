@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PlexMediaServer;
+use App\Support\UserTime;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -46,15 +47,27 @@ new class extends Component {
     {
         return $this->serverData['cached_at'];
     }
+
+    public function cachedAtDiff(): string
+    {
+        return UserTime::toUserTz($this->getCachedAt())->shortAbsoluteDiffForHumans();
+    }
+
+    public function lastSeenDiff(PlexMediaServer $server): string
+    {
+        if (! $server->last_seen_at) {
+            return '';
+        }
+
+        return UserTime::toUserTz($server->last_seen_at)->shortAbsoluteDiffForHumans() . ' ago';
+    }
 };
 ?>
 
 <flux:card size="sm">
     <div class="flex items-center justify-between">
         <flux:heading size="lg">Servers</flux:heading>
-        <flux:text size="xs" class="text-zinc-400">
-            {{ $this->getCachedAt()->shortAbsoluteDiffForHumans() }} ago
-        </flux:text>
+        <flux:text size="xs" class="text-zinc-400">{{ $this->cachedAtDiff() }} ago</flux:text>
     </div>
 
     @if ($this->getServers()->isEmpty())
@@ -73,7 +86,7 @@ new class extends Component {
                                 {{ $server->name }}
                                 @unless ($server->is_online)
                                     <flux:text size="xs">
-                                        {{ $server->last_seen_at?->shortAbsoluteDiffForHumans() }} ago
+                                        {{ $this->lastSeenDiff($server) }}
                                     </flux:text>
                                 @endunless
                             </div>

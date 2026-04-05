@@ -5,6 +5,7 @@ use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
 use App\Support\EpisodeCode;
 use App\Support\Formatters;
+use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -59,7 +60,15 @@ new class extends Component {
     public function airedEpisodeCodes(): array
     {
         return $this->show->episodes
-            ->filter(fn ($episode): bool => ! empty($episode->airdate) && Carbon::parse($episode->airdate)->lte(today()))
+            ->filter(
+                fn ($episode): bool => ! empty($episode->airdate) &&
+                    AirDateTime::hasAired(
+                        $episode->airdate,
+                        $episode->airtime,
+                        $this->show->web_channel,
+                        $this->show->network,
+                    ),
+            )
             ->map(fn ($episode): string => strtoupper(EpisodeCode::generate($episode->season, $episode->number)))
             ->unique()
             ->values()

@@ -137,25 +137,26 @@ new class extends Component {
     private function fullTextSearch(string $query, string $type, ?string $language): Collection
     {
         return match ($type) {
-            'shows' => $this->filterByLanguage(Show::search($query)->get(), $language)
-                ->sortByDesc('num_votes')
-                ->values(),
-            'movies' => $this->filterByLanguage(Movie::search($query)->get(), $language)
-                ->sortByDesc('num_votes')
-                ->values(),
+            'shows' => $this->filterByLanguage(Show::search($query)->get(), $language),
+            'movies' => $this->filterByLanguage(Movie::search($query)->get(), $language),
             default => $this->searchBoth($query, $language),
         };
     }
 
     private function searchBoth(string $query, ?string $language): Collection
     {
-        $results = Show::search($query)
-            ->get()
-            ->toBase()
-            ->merge(Movie::search($query)->get()); // @phpstan-ignore argument.type
+        $shows = $this->filterByLanguage(
+            Show::search($query)
+                ->get()
+                ->toBase(),
+            $language,
+        );
+        $movies = $this->filterByLanguage(Movie::search($query)->get(), $language);
 
-        return $this->filterByLanguage($results, $language)
-            ->sortByDesc('num_votes')
+        return $shows
+            ->zip($movies)
+            ->flatten(1)
+            ->filter()
             ->values();
     }
 
@@ -238,6 +239,7 @@ new class extends Component {
             panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
             itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
             :autoHighlightFirst="true"
+            :hasItems="$this->results->isNotEmpty()"
         >
             <x-slot:header>
                 <flux:input.group class="search-bar">

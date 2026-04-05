@@ -22,6 +22,7 @@ class CreateNewUser implements CreatesNewUsers
             'plex_token' => $input['plex_token'],
             'plex_username' => $input['plex_username'],
             'plex_thumb' => $input['plex_thumb'] ?? null,
+            'timezone' => $input['timezone'] ?? 'America/New_York',
         ]);
     }
 }

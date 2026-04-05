@@ -10,6 +10,7 @@ use App\Models\Show;
 use App\Notifications\RequestItemsNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 it('is registered as a listener for RequestSubmitted', function () {
@@ -62,6 +63,7 @@ it('sends notification with episodes', function () {
 
 it('does not send notification when slack is disabled', function () {
     Notification::fake();
+    Log::spy();
     config(['services.slack.enabled' => false]);
 
     $request = Request::factory()->create();
@@ -72,10 +74,15 @@ it('does not send notification when slack is disabled', function () {
     $listener->handle(new RequestSubmitted($request));
 
     Notification::assertNothingSent();
+
+    Log::shouldHaveReceived('error')
+        ->withArgs(fn ($message) => $message === 'Slack notification skipped: Slack is not enabled')
+        ->once();
 });
 
 it('does not send notification when channel is not configured', function () {
     Notification::fake();
+    Log::spy();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => null]);
 
     $request = Request::factory()->create();
@@ -86,10 +93,15 @@ it('does not send notification when channel is not configured', function () {
     $listener->handle(new RequestSubmitted($request));
 
     Notification::assertNothingSent();
+
+    Log::shouldHaveReceived('error')
+        ->withArgs(fn ($message) => $message === 'Slack notification skipped: channel not configured')
+        ->once();
 });
 
 it('does not send notification when request has no items', function () {
     Notification::fake();
+    Log::spy();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
 
     $request = Request::factory()->create();
@@ -98,4 +110,8 @@ it('does not send notification when request has no items', function () {
     $listener->handle(new RequestSubmitted($request));
 
     Notification::assertNothingSent();
+
+    Log::shouldHaveReceived('error')
+        ->withArgs(fn ($message) => $message === 'Slack notification skipped: request has no items')
+        ->once();
 });

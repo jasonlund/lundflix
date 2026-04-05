@@ -6,6 +6,7 @@ use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\CartService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Vite as ViteFacade;
 use Illuminate\Support\HtmlString;
@@ -227,6 +228,78 @@ it('shows schedule for to-be-determined shows', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('We 10p');
+});
+
+it('shifts schedule day forward when timezone conversion crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Thu 21:00 Eastern = Fri 02:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Thursday'], 'time' => '21:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Fr 2a');
+});
+
+it('shifts schedule day backward when timezone conversion crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'America/Los_Angeles']);
+    $this->actingAs($user);
+
+    // Fri 01:00 BST = Thu 17:00 PDT (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Friday'], 'time' => '01:00'],
+        'network' => ['id' => 1, 'name' => 'BBC One', 'country' => ['name' => 'United Kingdom', 'timezone' => 'Europe/London']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Th 5p');
+});
+
+it('wraps Sunday to Monday when timezone shifts day forward', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Sun 22:00 Eastern = Mon 03:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Sunday'], 'time' => '22:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Mo 3a');
+});
+
+it('shifts multiple schedule days when timezone crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Mon/Wed/Fri 21:00 Eastern = Tue/Thu/Sat 02:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Monday', 'Wednesday', 'Friday'], 'time' => '21:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Tu, Th, Sa 2a');
 });
 
 it('displays network logo for a mapped network', function () {
