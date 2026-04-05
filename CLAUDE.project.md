@@ -358,3 +358,19 @@ expect(Feature::active(NewDashboard::class))->toBeTrue();
   - `composer phpstan`
   - `php artisan test --compact`
 - If a rebase or merge has zero conflicts, still confirm with the user before completing the merge commit.
+
+## Timezone Conversion
+
+- All user-facing datetime display and comparison must go through `UserTime` (`app/Support/UserTime.php`) and `AirDateTime` (`app/Support/AirDateTime.php`) — never format or compare raw airdate/airtime strings directly
+- `UserTime` converts UTC datetimes to the authenticated user's timezone for display. User timezone is stored on `users.timezone` and defaults to `America/New_York` for unauthenticated users
+- `AirDateTime` resolves when episodes actually become available by converting airdate/airtime to UTC using the network or web channel's timezone
+- Episode airdates and airtimes in the database are raw TVMaze values — timezone resolution happens at query/display time via these classes
+
+## Streaming Service Airtime Overrides
+
+- `AirDateTime::OVERRIDES` contains hardcoded release times for streaming services whose actual drop times differ from what TVMaze reports (keyed by TVMaze web channel ID):
+  - **Apple TV+ (310):** 6 PM Pacific, day *before* listed airdate (`dayOffset: -1`). `adjustSchedule()` shifts day labels back (e.g., Friday → Thursday)
+  - **Paramount+ (107):** Midnight Pacific, same day (`dayOffset: 0`)
+  - **HBO Max (329):** Midnight Pacific, same day (`dayOffset: 0`)
+- **Unknown shows** (no network or web channel timezone data): Falls back to midnight Pacific (`America/Los_Angeles`), matching the Paramount+/Max behavior. This is the `DEFAULT_TIMEZONE` constant in `AirDateTime`
+- When adding new streaming services with non-standard drop times, add an entry to `OVERRIDES`

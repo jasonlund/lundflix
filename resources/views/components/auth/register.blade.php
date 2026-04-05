@@ -20,6 +20,9 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
 
     public string $password_confirmation = '';
 
+    #[Validate('required|timezone:all')]
+    public string $timezone = 'America/New_York';
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -45,6 +48,20 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
         $this->name = $plexData['plex_username'];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function timezoneOptions(): array
+    {
+        $timezones = [];
+
+        foreach (\DateTimeZone::listIdentifiers() as $tz) {
+            $timezones[$tz] = str_replace(['/', '_'], [' / ', ' '], $tz);
+        }
+
+        return $timezones;
+    }
+
     public function register(CreateNewUser $createUser): void
     {
         $plexData = session()->pull('plex_registration');
@@ -65,6 +82,7 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
             'plex_token' => $plexData['plex_token'],
             'plex_username' => $plexData['plex_username'],
             'plex_thumb' => $plexData['plex_thumb'],
+            'timezone' => $validated['timezone'],
         ]);
 
         Auth::login($user, remember: true);
@@ -100,6 +118,25 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
                 <flux:field>
                     <flux:label>Confirm Password</flux:label>
                     <flux:input wire:model.blur="password_confirmation" type="password" required />
+                </flux:field>
+
+                <flux:field
+                    x-init="
+                        try {
+                            let tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+                            if (tz) {
+                                $wire.timezone = tz
+                            }
+                        } catch (e) {}
+                    "
+                >
+                    <flux:label>Timezone</flux:label>
+                    <flux:select variant="listbox" searchable wire:model="timezone" placeholder="Select timezone...">
+                        @foreach ($this->timezoneOptions() as $value => $label)
+                            <flux:select.option :$value>{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:error name="timezone" />
                 </flux:field>
 
                 <flux:button type="submit" variant="primary" class="w-full">Create Account</flux:button>
