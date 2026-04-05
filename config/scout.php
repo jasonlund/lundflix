@@ -194,6 +194,8 @@ return [
                 'search-parameters' => [
                     'query_by' => 'title',
                     'sort_by' => '_text_match:desc,num_votes:desc',
+                    'prioritize_exact_match' => true,
+                    'prioritize_token_position' => true,
                 ],
             ],
             App\Models\Show::class => [
@@ -210,6 +212,8 @@ return [
                 'search-parameters' => [
                     'query_by' => 'name',
                     'sort_by' => '_text_match:desc,num_votes:desc',
+                    'prioritize_exact_match' => true,
+                    'prioritize_token_position' => true,
                 ],
             ],
         ],
