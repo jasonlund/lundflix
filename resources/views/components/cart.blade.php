@@ -139,8 +139,8 @@ new class extends Component {
         >
             <x-command-panel
                 name="cart"
-                panelClass="h-full"
-                itemsClass="divide-y divide-zinc-700/70 overflow-y-auto bg-zinc-800/95 backdrop-blur-sm"
+                panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
+                itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
                 :hasItems="$itemCount > 0"
             >
                 <x-slot:header>
@@ -164,7 +164,7 @@ new class extends Component {
                             <button
                                 wire:click="submit"
                                 wire:loading.attr="disabled"
-                                class="glass-papaya hover:bg-lundflix/30 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
+                                class="bg-lundflix/70 hover:bg-lundflix/80 border-lundflix flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
                             >
                                 <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
                                 <span wire:loading.remove wire:target="submit">Submit Request</span>
@@ -203,6 +203,13 @@ new class extends Component {
                                 <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
                                     {{ $movie->title }}
                                 </p>
+                                @if ($movie->release_date)
+                                    <div
+                                        class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-[0.6875rem] text-zinc-400 group-data-active/item:text-zinc-300"
+                                    >
+                                        <span class="shrink-0 font-mono">{{ $movie->release_date->format('Y') }}</span>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="flex shrink-0 items-center pe-1">
@@ -241,17 +248,25 @@ new class extends Component {
                                 <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
                                     {{ $showGroup['show']->name }}
                                 </p>
-                                <div class="flex flex-wrap gap-1">
+                                <div
+                                    class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-[0.6875rem] text-zinc-400 group-data-active/item:text-zinc-300"
+                                >
                                     @foreach ($showGroup['seasons'] as $seasonData)
+                                        @if (! $loop->first)
+                                            <flux:icon.dot variant="micro" class="shrink-0" />
+                                        @endif
+
                                         @if ($seasonData['is_full'])
-                                            <flux:badge size="sm" color="zinc">
+                                            <span class="shrink-0 font-mono">
                                                 {{ $this->formatSeason($seasonData['season']) }}
-                                            </flux:badge>
+                                            </span>
                                         @else
                                             @foreach ($seasonData['runs'] as $run)
-                                                <flux:badge size="sm" color="zinc">
-                                                    {{ $this->formatRun($run) }}
-                                                </flux:badge>
+                                                @if (! $loop->first)
+                                                    <flux:icon.dot variant="micro" class="shrink-0" />
+                                                @endif
+
+                                                <span class="shrink-0 font-mono">{{ $this->formatRun($run) }}</span>
                                             @endforeach
                                         @endif
                                     @endforeach
