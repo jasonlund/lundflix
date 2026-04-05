@@ -41,6 +41,8 @@ return [
         'product_name' => env('PLEX_PRODUCT_NAME', 'Lund'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
         'seed_token' => env('SEED_PLEX_TOKEN'),
+        'webhook_secret' => env('PLEX_WEBHOOK_SECRET'),
+        'webhook_debounce_seconds' => (int) env('PLEX_WEBHOOK_DEBOUNCE_SECONDS', 30),
     ],
 
     'tmdb' => [
