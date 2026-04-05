@@ -4,12 +4,12 @@ namespace App\Jobs;
 
 use App\Models\PlexWebhookEvent;
 use App\Notifications\PlexLibraryNotification;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Notification;
 
-class ProcessPlexWebhookBatch implements ShouldBeUnique, ShouldQueue
+class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
@@ -41,27 +41,22 @@ class ProcessPlexWebhookBatch implements ShouldBeUnique, ShouldQueue
         $latestEvent = $events->last();
 
         if ($latestEvent->created_at->diffInSeconds(now()) < $debounceSeconds) {
-            self::dispatch($this->serverUuid)
-                ->delay(now()->addSeconds($debounceSeconds));
+            $this->release($debounceSeconds);
 
             return;
+        }
+
+        if (config('services.slack.enabled')) {
+            $channel = config('services.slack.notifications.channel');
+
+            if ($channel) {
+                Notification::route('slack', $channel)
+                    ->notify(new PlexLibraryNotification($events));
+            }
         }
 
         PlexWebhookEvent::query()
             ->whereIn('id', $events->pluck('id'))
             ->update(['processed_at' => now()]);
-
-        if (! config('services.slack.enabled')) {
-            return;
-        }
-
-        $channel = config('services.slack.notifications.channel');
-
-        if (! $channel) {
-            return;
-        }
-
-        Notification::route('slack', $channel)
-            ->notify(new PlexLibraryNotification($events));
     }
 }

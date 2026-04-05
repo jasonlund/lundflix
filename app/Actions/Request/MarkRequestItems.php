@@ -36,13 +36,15 @@ class MarkRequestItems
             $updates['actioned_at'] = null;
         }
 
+        $wasAlreadyFulfilled = $request->status === RequestStatus::Fulfilled; // @phpstan-ignore property.notFound (computed attribute)
+
         $count = $request->items()
             ->whereIn('id', $itemIds)
             ->update($updates);
 
         $request->refresh();
 
-        if ($status === RequestItemStatus::Fulfilled && $request->status === RequestStatus::Fulfilled) { // @phpstan-ignore property.notFound (computed attribute)
+        if (! $wasAlreadyFulfilled && $status === RequestItemStatus::Fulfilled && $request->status === RequestStatus::Fulfilled) { // @phpstan-ignore property.notFound (computed attribute)
             RequestFulfilled::dispatch($request);
         }
 

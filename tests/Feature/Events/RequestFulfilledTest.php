@@ -33,6 +33,20 @@ it('does not dispatch RequestFulfilled event for partial fulfillment', function 
     Event::assertNotDispatched(RequestFulfilled::class);
 });
 
+it('does not dispatch RequestFulfilled event when request is already fulfilled', function () {
+    Event::fake([RequestFulfilled::class]);
+
+    $request = Request::factory()->create();
+    RequestItem::factory()->for($request)->count(3)->create([
+        'status' => RequestItemStatus::Fulfilled,
+    ]);
+
+    $markItems = app(MarkRequestItems::class);
+    $markItems->markAs($request, $request->items->pluck('id')->toArray(), RequestItemStatus::Fulfilled);
+
+    Event::assertNotDispatched(RequestFulfilled::class);
+});
+
 it('does not dispatch RequestFulfilled event when marking items as rejected', function () {
     Event::fake([RequestFulfilled::class]);
 

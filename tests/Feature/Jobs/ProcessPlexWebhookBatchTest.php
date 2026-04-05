@@ -5,7 +5,6 @@ use App\Models\PlexWebhookEvent;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -36,8 +35,7 @@ it('processes batch and sends notification when debounce window has elapsed', fu
     Notification::assertSentOnDemand(PlexLibraryNotification::class);
 });
 
-it('re-dispatches when events are still within debounce window', function () {
-    Queue::fake();
+it('releases back to queue when events are still within debounce window', function () {
     Notification::fake();
 
     $serverUuid = 'server-123';
@@ -49,10 +47,12 @@ it('re-dispatches when events are still within debounce window', function () {
             'created_at' => now()->subSeconds(5),
         ]);
 
-    (new ProcessPlexWebhookBatch($serverUuid))->handle();
+    $job = (new ProcessPlexWebhookBatch($serverUuid))->withFakeQueueInteractions();
+
+    $job->handle();
 
     expect(PlexWebhookEvent::first()->processed_at)->toBeNull();
-    Queue::assertPushed(ProcessPlexWebhookBatch::class);
+    $job->assertReleased(delay: 30);
     Notification::assertNothingSent();
 });
 

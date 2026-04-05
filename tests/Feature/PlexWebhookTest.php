@@ -115,6 +115,20 @@ it('deduplicates identical events within 60 seconds', function () {
     expect(PlexWebhookEvent::count())->toBe(1);
 });
 
+it('does not deduplicate movies with the same title but different years', function () {
+    Queue::fake();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'movie', ['title' => 'Dune', 'year' => 1984]),
+    ])->assertOk();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'movie', ['title' => 'Dune', 'year' => 2021]),
+    ])->assertOk();
+
+    expect(PlexWebhookEvent::count())->toBe(2);
+});
+
 it('handles malformed payload gracefully', function () {
     Queue::fake();
 

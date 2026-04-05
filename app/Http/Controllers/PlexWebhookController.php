@@ -40,6 +40,9 @@ class PlexWebhookController extends Controller
             ->forServer($serverUuid)
             ->where('media_type', $mediaType)
             ->where('title', $metadata['title'] ?? '')
+            ->when($mediaType === 'movie', function ($query) use ($metadata) {
+                $query->where('year', $metadata['year'] ?? null);
+            })
             ->when($mediaType === 'episode', function ($query) use ($metadata) {
                 $query->where('show_title', $metadata['grandparentTitle'] ?? '')
                     ->where('season', $metadata['parentIndex'] ?? null)
