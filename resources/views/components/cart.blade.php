@@ -139,8 +139,8 @@ new class extends Component {
         >
             <x-command-panel
                 name="cart"
-                panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
-                itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
+                panelClass="h-full"
+                itemsClass="divide-y divide-zinc-700/70 overflow-y-auto bg-zinc-800/95 backdrop-blur-sm"
             >
                 <x-slot:header>
                     <div class="flex min-w-0 flex-1 items-center gap-2">
@@ -163,7 +163,7 @@ new class extends Component {
                             <button
                                 wire:click="submit"
                                 wire:loading.attr="disabled"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-50"
+                                class="glass-papaya hover:bg-lundflix/30 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
                             >
                                 <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
                                 <span wire:loading.remove wire:target="submit">Submit Request</span>

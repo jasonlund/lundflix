@@ -41,6 +41,11 @@
     backdrop-filter: blur(12px);
 }
 
+@utility glass-papaya {
+    background-color: color-mix(in oklab, var(--color-lundflix) 20%, transparent);
+    backdrop-filter: blur(4px);
+}
+
 @layer base {
     *,
     ::after,
@@ -90,6 +95,36 @@ ui-toast-group {
 }
 
 [data-flux-card] {
+    @apply glass-panel;
+}
+
+input[data-flux-control],
+textarea[data-flux-control],
+select[data-flux-control] {
+    @apply glass-panel;
+}
+
+[data-flux-checkbox-indicator] {
+    @apply glass-panel;
+}
+
+ui-checkbox[data-checked] [data-flux-checkbox-indicator],
+ui-checkbox[data-indeterminate] [data-flux-checkbox-indicator] {
+    background-color: var(--color-accent);
+    backdrop-filter: none;
+}
+
+ui-radio[data-checked] [data-flux-radio-indicator] {
+    background-color: var(--color-accent);
+    backdrop-filter: none;
+}
+
+[data-flux-input] > .start-0,
+[data-flux-input] > .end-0 {
+    @apply !text-zinc-400;
+}
+
+button[data-flux-control] {
     @apply glass-panel;
 }
 
@@ -207,6 +242,7 @@ ui-toast-group {
 
 .search-input[data-flux-control] {
     @apply bg-transparent text-base ring-0 ring-offset-0 outline-hidden;
+    backdrop-filter: none;
 }
 
 .search-input[data-flux-control]:focus {

@@ -140,6 +140,15 @@ class Show extends Model
         return null;
     }
 
+    public function contentRating(): ?string
+    {
+        /** @var array{rating: string, iso_3166_1: string}|null $usEntry */
+        $usEntry = collect($this->content_ratings ?? [])
+            ->firstWhere('iso_3166_1', 'US');
+
+        return $usEntry['rating'] ?? null;
+    }
+
     public function networkLogoUrl(): ?string
     {
         /** @var array<string, mixed>|null $network */

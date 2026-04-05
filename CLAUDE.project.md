@@ -92,6 +92,10 @@ When committing changes, use this format:
 
 - **Never use inline `style` attributes.** All styling must use Tailwind CSS classes. If a utility doesn't exist, create one with `@utility` in `resources/css/app.css` or define a theme token in `@theme`.
 
+## Glassy UI — No Solid Colors
+
+- **Nothing in the UI should be solid colored.** All backgrounds — including active/highlighted states — must use transparency and `backdrop-blur-sm` to maintain a glassy, translucent aesthetic. For example, use `bg-lundflix/80 backdrop-blur-sm` instead of `bg-lundflix`. Inactive states use `bg-white/10 backdrop-blur-sm`. This applies to buttons, badges, pills, cards, and any other UI elements.
+
 ## Dark Mode
 
 - Dark mode is permanently forced on — this app has no light mode. Always style for dark mode directly without using `dark:` prefixed Tailwind classes. Use dark colors as the default (e.g., `bg-zinc-900` not `bg-white dark:bg-zinc-900`).

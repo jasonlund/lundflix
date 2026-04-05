@@ -100,10 +100,10 @@ new class extends Component {
     }
 
     #[Computed]
-    public function releaseDate(): ?string
+    public function releaseYear(): ?string
     {
         if ($this->movie->release_date) {
-            return $this->movie->release_date->format('m/d/y');
+            return (string) $this->movie->release_date->year;
         }
 
         if ($this->movie->year) {
@@ -149,165 +149,153 @@ new class extends Component {
 ?>
 
 <div class="flex flex-col">
-    <div class="relative overflow-hidden">
-        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+    <x-media-hero :model="$movie" :title="$movie->title" :logo-url="$this->logoUrl">
+        <x-slot:subtitle>
+            @if ($movie->original_title && $movie->original_title !== $movie->title)
+                <span class="ml-3 text-base">{{ $movie->original_title }}</span>
+            @endif
+        </x-slot>
+
+        <x-slot:actions>
             @if ($this->isSubscribable)
-                <div x-data="{ subscribed: {{ Js::from($isSubscribed) }}, syncing: false }">
-                    <flux:tooltip
-                        :content="$isSubscribed ? __('lundbergh.tooltip.unsubscribe') : __('lundbergh.tooltip.subscribe')"
+                <div x-data="{ syncing: false }" wire:key="subscribe-{{ $isSubscribed ? 'yes' : 'no' }}">
+                    <button
+                        x-on:click="
+                            syncing = true
+                            $wire.toggleSubscription().then(() => {
+                                syncing = false
+                            })
+                        "
+                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
                     >
-                        <button
-                            x-on:click="
-                                subscribed = ! subscribed
-                                syncing = true
-                                $wire.toggleSubscription().then(() => {
-                                    syncing = false
-                                })
-                            "
-                            class="flex cursor-pointer items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                        >
-                            <div class="relative flex min-w-4 items-center justify-center">
-                                <span class="invisible">+</span>
-                                <span x-show="subscribed" x-cloak :class="syncing && 'opacity-0'" class="absolute">
-                                    -
-                                </span>
-                                <span x-show="!subscribed" :class="syncing && 'opacity-0'" class="absolute">+</span>
-                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                            </div>
-                        </button>
-                    </flux:tooltip>
-                </div>
-            @elseif ($movie->status !== null && ! $movie->status->isCartable())
-                <flux:tooltip :content="__('lundbergh.tooltip.subscribe_disabled')">
-                    <div
-                        class="flex items-center rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
-                    >
-                        <div class="relative flex min-w-4 items-center justify-center">
-                            <span>+</span>
+                        <div class="relative flex items-center justify-center">
+                            @if ($isSubscribed)
+                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @else
+                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @endif
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
                         </div>
-                    </div>
-                </flux:tooltip>
+                        <span x-bind:class="syncing && 'opacity-0'">
+                            {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
+                        </span>
+                    </button>
+                </div>
             @endif
 
             <div
-                x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
+                x-data="{ syncing: false }"
                 @cart-syncing.window="syncing = true"
                 @cart-updated.window="syncing = false"
+                wire:key="cart-{{ $inCart ? 'yes' : 'no' }}"
             >
                 @if ($this->isCartDisabled)
                     <flux:tooltip content="Not yet released">
                         <div
-                            class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white/50 backdrop-blur-sm"
+                            class="flex items-center gap-1.5 rounded-full border-1 border-zinc-600 bg-white/10 px-4 py-2 text-xs font-medium text-white/50 backdrop-blur-sm sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
                         >
-                            <div class="relative flex min-w-4 items-center justify-center">
-                                <span>+</span>
-                            </div>
-                            <flux:icon.shopping-cart class="size-4" />
+                            <flux:icon.plus class="size-4 sm:size-5" />
+                            <span>Cart</span>
                         </div>
                     </flux:tooltip>
                 @else
-                    <flux:tooltip :content="$inCart ? 'Remove from Cart' : 'Add to Cart'">
-                        <button
-                            x-on:click="
-                                inCart = ! inCart
-                                syncing = true
-                                window.dispatchEvent(new CustomEvent('cart-syncing'))
-                                $wire.toggleCart()
-                            "
-                            class="flex cursor-pointer items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
-                        >
-                            <div class="relative flex min-w-4 items-center justify-center">
-                                <span class="invisible">+</span>
-                                <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
-                                    <flux:icon.check class="size-4" />
-                                </span>
-                                <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">+</span>
-                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                            </div>
-                            <flux:icon.shopping-cart class="size-4" />
-                        </button>
-                    </flux:tooltip>
+                    <button
+                        x-on:click="
+                            syncing = true
+                            window.dispatchEvent(new CustomEvent('cart-syncing'))
+                            $wire.toggleCart()
+                        "
+                        class="{{ $inCart ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                    >
+                        <div class="relative flex items-center justify-center">
+                            @if ($inCart)
+                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @else
+                                <flux:icon.plus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @endif
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
+                        </div>
+                        <span x-bind:class="syncing && 'opacity-0'">Cart</span>
+                    </button>
                 @endif
             </div>
-        </div>
+        </x-slot>
 
-        <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
-            <div class="max-w-4xl">
-                <x-artwork
-                    :model="$movie"
-                    type="logo"
-                    :alt="$movie->title . ' logo'"
-                    :fallback="false"
-                    class="h-24 drop-shadow sm:h-28 md:h-40"
-                />
-            </div>
+        <x-slot:metadata>
+            @php
+                $hasPrevious = false;
+            @endphp
 
-            <div class="{{ $this->logoUrl ? '' : 'flex h-[128px] items-end sm:h-[144px] md:h-[192px]' }}">
-                <flux:heading
-                    size="xl"
-                    class="{{ $this->logoUrl ? 'truncate' : 'line-clamp-2 text-5xl' }} font-serif tracking-wide"
-                >
-                    {{ $movie->title }}
-                </flux:heading>
-                @if ($movie->original_title && $movie->original_title !== $movie->title)
-                    <span class="ml-3 text-base">{{ $movie->original_title }}</span>
-                @endif
-            </div>
-
-            <div class="truncate text-zinc-200">
-                @if ($this->releaseDate())
-                    <span>{{ $this->releaseDate() }}</span>
-                @endif
-
-                @if ($movie->status)
-                    @if ($this->releaseDate())
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
-
-                    <span class="{{ $movie->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
-                        <x-dynamic-component :component="'flux::icon.' . $movie->status->icon()" variant="mini" />
-                        {{ $movie->status->getLabel() }}
-                    </span>
-                @endif
-            </div>
-
-            @if ($movie->genres && count($movie->genres))
-                <div class="flex gap-4 truncate text-zinc-200">
-                    @foreach ($movie->genres as $genre)
-                        <span class="inline-flex items-center gap-1 align-middle">
-                            <x-dynamic-component
-                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
-                                variant="mini"
-                            />
-                            {{ \App\Enums\Genre::labelFor($genre) }}
-                        </span>
-                    @endforeach
-                </div>
+            @if ($this->releaseYear())
+                <span>{{ $this->releaseYear() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
             @endif
 
-            <div class="truncate text-sm text-zinc-200">
-                @if ($movie->original_language)
-                    <span>{{ $movie->original_language->getLabel() }}</span>
+            @if ($movie->status)
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
                 @endif
 
-                @if ($this->formattedRuntime())
-                    @if ($movie->original_language)
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
+                <x-dynamic-component
+                    :component="'flux::icon.' . $movie->status->icon()"
+                    variant="mini"
+                    class="{{ $movie->status->iconColorClass() }} mb-px inline size-3.5 sm:size-4"
+                />
+                <span class="{{ $movie->status->iconColorClass() }}">
+                    {{ $movie->status->getLabel() }}
+                </span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
 
-                    <span>{{ $this->formattedRuntime() }}</span>
+            @if ($movie->original_language)
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
                 @endif
 
-                @if ($this->contentRating())
-                    @if ($movie->original_language || $this->formattedRuntime())
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
+                <span>{{ $movie->original_language->getLabel() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
 
-                    <span>{{ $this->contentRating() }}</span>
+            @if ($this->formattedRuntime())
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
                 @endif
-            </div>
-        </div>
-    </div>
+
+                <span>{{ $this->formattedRuntime() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
+
+            @if ($this->contentRating())
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                @endif
+
+                <span>{{ $this->contentRating() }}</span>
+            @endif
+        </x-slot>
+
+        @if ($movie->genres && count($movie->genres))
+            <x-slot:genres>
+                @foreach ($movie->genres as $genre)
+                    <span class="inline-flex items-center gap-1 align-middle">
+                        <x-dynamic-component
+                            :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                            variant="mini"
+                        />
+                        {{ \App\Enums\Genre::labelFor($genre) }}
+                    </span>
+                @endforeach
+            </x-slot>
+        @endif
+    </x-media-hero>
 
     <div class="flex flex-col gap-8">
         @if ($movie->imdb_id)

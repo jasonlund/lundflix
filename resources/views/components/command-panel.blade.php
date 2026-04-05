@@ -2,6 +2,7 @@
     'name',
     'panelClass' => '',
     'itemsClass' => '',
+    'footerClass' => '',
     'autoHighlightFirst' => false,
 ])
 
@@ -120,7 +121,7 @@
         </div>
 
         @if (isset($footer) && $footer->isNotEmpty())
-            <div class="border-t border-zinc-700/70">
+            <div @class(['border-t border-zinc-700/70', $footerClass])>
                 {{ $footer }}
             </div>
         @endif
