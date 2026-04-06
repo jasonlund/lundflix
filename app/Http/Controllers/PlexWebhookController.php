@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPlexWebhookBatch;
-use App\Models\PlexWebhookEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class PlexWebhookController extends Controller
 {
@@ -32,42 +34,52 @@ class PlexWebhookController extends Controller
             return response()->json(['status' => 'ok']);
         }
 
-        $serverUuid = $payload['Server']['uuid'] ?? 'unknown';
-        $serverName = $payload['Server']['title'] ?? null;
+        $addedAt = $metadata['addedAt'] ?? null;
+        $maxAgeMinutes = (int) config('services.plex.webhook_added_at_max_age_minutes', 15);
 
-        $isDuplicate = PlexWebhookEvent::query()
-            ->unprocessed()
-            ->forServer($serverUuid)
-            ->where('media_type', $mediaType)
-            ->where('title', $metadata['title'] ?? '')
-            ->when($mediaType === 'movie', function ($query) use ($metadata) {
-                $query->where('year', $metadata['year'] ?? null);
-            })
-            ->when($mediaType === 'episode', function ($query) use ($metadata) {
-                $query->where('show_title', $metadata['grandparentTitle'] ?? '')
-                    ->where('season', $metadata['parentIndex'] ?? null)
-                    ->where('episode_number', $metadata['index'] ?? null);
-            })
-            ->where('created_at', '>=', now()->subSeconds(60))
-            ->exists();
+        if (! is_numeric($addedAt) || $addedAt <= 0) {
+            Log::debug('Plex webhook rejected: missing addedAt', [
+                'title' => $metadata['title'] ?? 'Unknown',
+            ]);
 
-        if ($isDuplicate) {
             return response()->json(['status' => 'ok']);
         }
 
-        PlexWebhookEvent::create([
-            'server_uuid' => $serverUuid,
-            'server_name' => $serverName,
+        $addedAtDate = Carbon::createFromTimestamp((int) $addedAt);
+
+        if ($addedAtDate->isBefore(now()->subMinutes($maxAgeMinutes))) {
+            Log::debug('Plex webhook rejected: addedAt too old', [
+                'title' => $metadata['title'] ?? 'Unknown',
+                'addedAt' => $addedAtDate->toIso8601String(),
+                'maxAgeMinutes' => $maxAgeMinutes,
+            ]);
+
+            return response()->json(['status' => 'ok']);
+        }
+
+        $serverUuid = $payload['Server']['uuid'] ?? 'unknown';
+        $serverName = $payload['Server']['title'] ?? null;
+
+        $item = [
             'media_type' => $mediaType,
             'title' => $metadata['title'] ?? 'Unknown',
             'year' => $mediaType === 'movie' ? ($metadata['year'] ?? null) : null,
             'show_title' => $mediaType === 'episode' ? ($metadata['grandparentTitle'] ?? null) : null,
             'season' => $mediaType === 'episode' ? ($metadata['parentIndex'] ?? null) : null,
             'episode_number' => $mediaType === 'episode' ? ($metadata['index'] ?? null) : null,
-            'payload' => $payload,
-        ]);
+        ];
 
-        $debounceSeconds = config('services.plex.webhook_debounce_seconds');
+        $cacheKey = "plex-webhook:{$serverUuid}";
+
+        Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey, $serverName, $item) {
+            $batch = Cache::get($cacheKey, ['server_name' => null, 'items' => [], 'last_received_at' => null]);
+            $batch['server_name'] = $serverName ?? $batch['server_name'];
+            $batch['items'][] = $item;
+            $batch['last_received_at'] = now()->timestamp;
+            Cache::put($cacheKey, $batch, now()->addHours(1));
+        });
+
+        $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds');
 
         ProcessPlexWebhookBatch::dispatch($serverUuid)
             ->delay(now()->addSeconds($debounceSeconds));

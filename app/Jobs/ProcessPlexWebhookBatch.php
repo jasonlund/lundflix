@@ -2,11 +2,11 @@
 
 namespace App\Jobs;
 
-use App\Models\PlexWebhookEvent;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 
 class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQueue
@@ -27,20 +27,19 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
 
     public function handle(): void
     {
-        $events = PlexWebhookEvent::query()
-            ->unprocessed()
-            ->forServer($this->serverUuid)
-            ->orderBy('created_at')
-            ->get();
+        $cacheKey = "plex-webhook:{$this->serverUuid}";
 
-        if ($events->isEmpty()) {
+        $batch = Cache::pull($cacheKey);
+
+        if (! $batch || empty($batch['items'])) {
             return;
         }
 
         $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds', 30);
-        $latestEvent = $events->last();
+        $lastReceivedAt = $batch['last_received_at'] ?? 0;
 
-        if ($latestEvent->created_at->diffInSeconds(now()) < $debounceSeconds) {
+        if (now()->timestamp - $lastReceivedAt < $debounceSeconds) {
+            Cache::put($cacheKey, $batch, now()->addHours(1));
             $this->release($debounceSeconds);
 
             return;
@@ -51,12 +50,11 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
 
             if ($channel) {
                 Notification::route('slack', $channel)
-                    ->notify(new PlexLibraryNotification($events));
+                    ->notify(new PlexLibraryNotification(
+                        serverName: $batch['server_name'],
+                        items: collect($batch['items']),
+                    ));
             }
         }
-
-        PlexWebhookEvent::query()
-            ->whereIn('id', $events->pluck('id'))
-            ->update(['processed_at' => now()]);
     }
 }
