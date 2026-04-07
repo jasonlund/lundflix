@@ -2,29 +2,26 @@
 
 namespace App\Support;
 
-use App\Models\PlexWebhookEvent;
 use Illuminate\Support\Collection;
 
 class PlexWebhookFormatter
 {
     /**
-     * Format a batch of webhook events into a Slack message.
+     * Format a batch of webhook items into a Slack message.
      *
-     * @param  Collection<int, PlexWebhookEvent>  $events
+     * @param  Collection<int, array<string, mixed>>  $items
      */
-    public function format(Collection $events): string
+    public function format(?string $serverName, Collection $items): string
     {
-        $serverName = $events->first()->server_name ?? 'Plex';
+        $lines = ['*New on '.($serverName ?? 'Plex').':*'];
 
-        $lines = ["*New on {$serverName}:*"];
+        $movies = $items->where('media_type', 'movie');
+        $episodes = $items->where('media_type', 'episode');
 
-        $movies = $events->where('media_type', 'movie');
-        $episodes = $events->where('media_type', 'episode');
-
-        foreach ($movies->sortBy('title') as $event) {
-            $line = $event->title;
-            if ($event->year) {
-                $line .= " ({$event->year})";
+        foreach ($movies->sortBy('title') as $item) {
+            $line = $item['title'];
+            if ($item['year']) {
+                $line .= " ({$item['year']})";
             }
             $lines[] = $line;
         }
@@ -39,7 +36,7 @@ class PlexWebhookFormatter
     /**
      * Group episodes by show and season, detect runs, return formatted lines.
      *
-     * @param  Collection<int, PlexWebhookEvent>  $episodes
+     * @param  Collection<int, array<string, mixed>>  $episodes
      * @return array<int, string>
      */
     private function groupEpisodes(Collection $episodes): array
