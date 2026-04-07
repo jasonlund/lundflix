@@ -152,7 +152,7 @@ new class extends Component {
     <x-media-hero :model="$movie" :title="$movie->title" :logo-url="$this->logoUrl">
         <x-slot:subtitle>
             @if ($movie->original_title && $movie->original_title !== $movie->title)
-                <span class="ml-3 text-base">{{ $movie->original_title }}</span>
+                <span class="block text-center text-sm">{{ $movie->original_title }}</span>
             @endif
         </x-slot>
 

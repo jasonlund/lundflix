@@ -97,20 +97,24 @@
                     class="flex items-center justify-center gap-2 border-t border-zinc-800/70 bg-black p-1 text-xs text-zinc-400 [grid-area:footer] md:border-x"
                 >
                     <span class="font-[Josefin_Slab] font-semibold">Made with 🤠 in Wyoming</span>
-                    <span>·</span>
-                    <flux:modal.trigger name="credits">
+                    {{--
+                        <span>·</span>
+                        <flux:modal.trigger name="credits">
                         <button type="button" class="cursor-pointer transition-colors hover:text-white">Credits</button>
-                    </flux:modal.trigger>
-                    <span>·</span>
-                    <span>Changelog</span>
+                        </flux:modal.trigger>
+                        <span>·</span>
+                        <span>Changelog</span>
+                    --}}
                 </footer>
 
-                <flux:modal name="credits" size="sm">
+                {{--
+                    <flux:modal name="credits" size="sm">
                     <div class="space-y-4">
-                        <flux:heading size="lg">Credits</flux:heading>
-                        <flux:text>Foobar</flux:text>
+                    <flux:heading size="lg">Credits</flux:heading>
+                    <flux:text>Foobar</flux:text>
                     </div>
-                </flux:modal>
+                    </flux:modal>
+                --}}
             </div>
         </div>
 
