@@ -19,7 +19,7 @@ function cacheBatch(string $serverUuid, array $items, ?string $serverName = 'My 
         'server_name' => $serverName,
         'items' => $items,
         'last_received_at' => $lastReceivedAt ?? now()->subSeconds(60)->timestamp,
-    ], now()->addHours(1));
+    ], now()->addHours(4));
 }
 
 it('processes batch and sends notification when debounce window has elapsed', function () {

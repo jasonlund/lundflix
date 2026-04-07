@@ -74,9 +74,26 @@ class PlexWebhookController extends Controller
         Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey, $serverName, $item) {
             $batch = Cache::get($cacheKey, ['server_name' => null, 'items' => [], 'last_received_at' => null]);
             $batch['server_name'] = $serverName ?? $batch['server_name'];
-            $batch['items'][] = $item;
+
+            $isDuplicate = collect($batch['items'])->contains(function (array $existing) use ($item): bool {
+                if ($item['media_type'] === 'movie') {
+                    return $existing['media_type'] === 'movie'
+                        && $existing['title'] === $item['title']
+                        && $existing['year'] === $item['year'];
+                }
+
+                return $existing['media_type'] === 'episode'
+                    && $existing['show_title'] === $item['show_title']
+                    && $existing['season'] === $item['season']
+                    && $existing['episode_number'] === $item['episode_number'];
+            });
+
+            if (! $isDuplicate) {
+                $batch['items'][] = $item;
+            }
+
             $batch['last_received_at'] = now()->timestamp;
-            Cache::put($cacheKey, $batch, now()->addHours(1));
+            Cache::put($cacheKey, $batch, now()->addHours(4));
         });
 
         $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds');

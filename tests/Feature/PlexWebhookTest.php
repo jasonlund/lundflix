@@ -164,6 +164,49 @@ it('accumulates multiple items in the same cache batch', function () {
     expect($batch['items'])->toHaveCount(2);
 });
 
+it('deduplicates identical movie webhooks in the same batch', function () {
+    Queue::fake();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'movie', ['title' => 'Inception', 'year' => 2010]),
+    ])->assertOk();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'movie', ['title' => 'Inception', 'year' => 2010]),
+    ])->assertOk();
+
+    $batch = Cache::get('plex-webhook:server-uuid-123');
+
+    expect($batch['items'])->toHaveCount(1)
+        ->and($batch['items'][0]['title'])->toBe('Inception');
+});
+
+it('deduplicates identical episode webhooks in the same batch', function () {
+    Queue::fake();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'episode', [
+            'title' => 'The Pilot',
+            'grandparentTitle' => 'Lost',
+            'parentIndex' => 1,
+            'index' => 1,
+        ]),
+    ])->assertOk();
+
+    $this->post('/api/webhooks/plex/test-secret', [
+        'payload' => plexPayload('library.new', 'episode', [
+            'title' => 'The Pilot',
+            'grandparentTitle' => 'Lost',
+            'parentIndex' => 1,
+            'index' => 1,
+        ]),
+    ])->assertOk();
+
+    $batch = Cache::get('plex-webhook:server-uuid-123');
+
+    expect($batch['items'])->toHaveCount(1);
+});
+
 it('handles malformed payload gracefully', function () {
     Queue::fake();
 
