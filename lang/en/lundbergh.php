@@ -59,6 +59,12 @@ return [
         'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
         'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
     ],
+    'notification' => [
+        'request_intro' => "Yeah… so, here's what's been requested:",
+        'request_processed' => "Mmkay… the Bobs have processed your request. Here's what came back:",
+        'movie_released' => "Yeah… so, this just released digitally. I'm gonna need someone to go ahead and grab it. That'd be great.",
+        'episodes_premiered' => "{1} Mmkay… a new episode just aired. I'm gonna need someone to go ahead and grab it. That'd be great.|[2,*] Mmkay… new episodes just aired. I'm gonna need someone to go ahead and grab those. That'd be great.",
+    ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
         'please_wait' => "Mmm yeah… I'm gonna need you to wait while we get that ready. So… yeah.",

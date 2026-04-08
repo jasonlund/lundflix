@@ -6,7 +6,7 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
-use App\Events\RequestSubmitted;
+use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
 use App\Models\Subscription;
 use Illuminate\Console\Command;
@@ -52,7 +52,7 @@ class ProcessMovieSubscriptions extends Command
                 ['type' => MediaType::MOVIE, 'id' => $movie->id],
             ]);
 
-            RequestSubmitted::dispatch($request);
+            SubscriptionTriggered::dispatch($request, $movie);
 
             $processed++;
         }

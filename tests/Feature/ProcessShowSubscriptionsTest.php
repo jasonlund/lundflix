@@ -1,6 +1,6 @@
 <?php
 
-use App\Events\RequestSubmitted;
+use App\Events\SubscriptionTriggered;
 use App\Models\Episode;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Event;
 uses(RefreshDatabase::class);
 
 it('creates a request for episodes airing within the 15-minute window', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Stranger Things']);
@@ -37,11 +37,11 @@ it('creates a request for episodes airing within the 15-minute window', function
     expect(Request::first()->user_id)->toBe($user->id);
     expect(RequestItem::count())->toBe(1);
 
-    Event::assertDispatched(RequestSubmitted::class);
+    Event::assertDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for episodes outside the 15-minute window', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Breaking Bad']);
@@ -62,11 +62,11 @@ it('does not create a request for episodes outside the 15-minute window', functi
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('groups multiple episodes into a single request per show', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Lost']);
@@ -93,11 +93,11 @@ it('groups multiple episodes into a single request per show', function () {
     expect(Request::count())->toBe(1);
     expect(RequestItem::count())->toBe(3);
 
-    Event::assertDispatchedTimes(RequestSubmitted::class, 1);
+    Event::assertDispatchedTimes(SubscriptionTriggered::class, 1);
 });
 
 it('treats null airtime as midnight', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $this->travelTo(today('America/New_York')->addMinutes(10));
 
@@ -120,11 +120,11 @@ it('treats null airtime as midnight', function () {
 
     expect(Request::count())->toBe(1);
 
-    Event::assertDispatched(RequestSubmitted::class);
+    Event::assertDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for unsubscribed shows', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $show = Show::factory()->create(['name' => 'Dexter']);
 
@@ -142,11 +142,11 @@ it('does not create a request for unsubscribed shows', function () {
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('creates separate requests for each subscribed user', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $userA = User::factory()->create();
     $userB = User::factory()->create();
@@ -169,11 +169,11 @@ it('creates separate requests for each subscribed user', function () {
 
     expect(Request::count())->toBe(2);
 
-    Event::assertDispatchedTimes(RequestSubmitted::class, 2);
+    Event::assertDispatchedTimes(SubscriptionTriggered::class, 2);
 });
 
 it('does not duplicate requests for episodes on the window boundary', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     // Simulate the 20:15 run — an episode that aired at 20:00 should NOT match
     // because it was already processed by the 20:00 run
@@ -198,11 +198,11 @@ it('does not duplicate requests for episodes on the window boundary', function (
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('processes Apple TV+ episodes that air at 6 PM Pacific the day before the listed date', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     // Travel to 2026-04-02 18:05 PDT (just after the 6 PM Apple TV+ drop)
     $this->travelTo(Carbon::parse('2026-04-02 18:05', 'America/Los_Angeles')->utc());
@@ -226,11 +226,11 @@ it('processes Apple TV+ episodes that air at 6 PM Pacific the day before the lis
 
     expect(Request::count())->toBe(1);
 
-    Event::assertDispatched(RequestSubmitted::class);
+    Event::assertDispatched(SubscriptionTriggered::class);
 });
 
 it('does not process Apple TV+ episodes before 6 PM Pacific the day before', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     // Travel to 2026-04-02 17:50 PDT (before the 6 PM Apple TV+ drop)
     $this->travelTo(Carbon::parse('2026-04-02 17:50', 'America/Los_Angeles')->utc());
@@ -254,5 +254,5 @@ it('does not process Apple TV+ episodes before 6 PM Pacific the day before', fun
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });

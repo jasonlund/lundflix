@@ -5,7 +5,7 @@ namespace App\Console\Commands\Scheduled;
 use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
-use App\Events\RequestSubmitted;
+use App\Events\SubscriptionTriggered;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
@@ -84,7 +84,7 @@ class ProcessShowSubscriptions extends Command
                 $newEpisodes->map(fn (Episode $episode) => ['type' => MediaType::EPISODE, 'id' => $episode->id])->all(),
             );
 
-            RequestSubmitted::dispatch($request);
+            SubscriptionTriggered::dispatch($request, $show, $newEpisodes);
 
             $processed++;
         }

@@ -5,7 +5,7 @@ use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
-use App\Notifications\RequestFulfilledNotification;
+use App\Notifications\RequestProcessedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 
@@ -26,7 +26,7 @@ it('sends a slack notification for a fulfilled request with movies', function ()
         ->assertSuccessful()
         ->expectsOutputToContain("Notification sent for request #{$request->id}");
 
-    Notification::assertSentOnDemand(RequestFulfilledNotification::class);
+    Notification::assertSentOnDemand(RequestProcessedNotification::class);
 });
 
 it('sends a slack notification for a fulfilled request with episodes', function () {
@@ -52,7 +52,7 @@ it('sends a slack notification for a fulfilled request with episodes', function 
     $this->artisan('slack:send-request-fulfilled', ['request' => $request->id])
         ->assertSuccessful();
 
-    Notification::assertSentOnDemand(RequestFulfilledNotification::class);
+    Notification::assertSentOnDemand(RequestProcessedNotification::class);
 });
 
 it('sends a slack notification for mixed movies and episodes', function () {
@@ -75,7 +75,7 @@ it('sends a slack notification for mixed movies and episodes', function () {
     $this->artisan('slack:send-request-fulfilled', ['request' => $request->id])
         ->assertSuccessful();
 
-    Notification::assertSentOnDemand(RequestFulfilledNotification::class);
+    Notification::assertSentOnDemand(RequestProcessedNotification::class);
 });
 
 it('fails when request does not exist', function () {

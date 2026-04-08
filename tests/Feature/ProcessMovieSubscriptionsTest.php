@@ -1,6 +1,6 @@
 <?php
 
-use App\Events\RequestSubmitted;
+use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Event;
 uses(RefreshDatabase::class);
 
 it('creates a request for a user subscribed to a movie with digital release today', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -33,11 +33,11 @@ it('creates a request for a user subscribed to a movie with digital release toda
     expect(RequestItem::count())->toBe(1);
     expect(RequestItem::first()->requestable_id)->toBe($movie->id);
 
-    Event::assertDispatched(RequestSubmitted::class);
+    Event::assertDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for a movie with only theatrical release today', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -56,11 +56,11 @@ it('does not create a request for a movie with only theatrical release today', f
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for movies not releasing today', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -78,11 +78,11 @@ it('does not create a request for movies not releasing today', function () {
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for unreleased movies even if date matches', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -100,11 +100,11 @@ it('does not create a request for unreleased movies even if date matches', funct
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('does not create a request for unsubscribed movies', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     Movie::factory()->create([
         'title' => 'Nobody Cares',
@@ -119,11 +119,11 @@ it('does not create a request for unsubscribed movies', function () {
 
     expect(Request::count())->toBe(0);
 
-    Event::assertNotDispatched(RequestSubmitted::class);
+    Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
 it('creates separate requests for each subscribed user', function () {
-    Event::fake([RequestSubmitted::class]);
+    Event::fake([SubscriptionTriggered::class]);
 
     $userA = User::factory()->create();
     $userB = User::factory()->create();
@@ -141,5 +141,5 @@ it('creates separate requests for each subscribed user', function () {
 
     expect(Request::count())->toBe(2);
 
-    Event::assertDispatchedTimes(RequestSubmitted::class, 2);
+    Event::assertDispatchedTimes(SubscriptionTriggered::class, 2);
 });
