@@ -41,7 +41,7 @@ it('displays movie results in search', function () {
 
     Livewire::test('media-search')
         ->set('query', 'Matrix')
-        ->assertSee('03/31/99')
+        ->assertSee('1999')
         ->assertSee('Released')
         ->assertSee($runtime)
         ->assertSee(route('movies.show', $movie));
@@ -286,7 +286,7 @@ it('displays release date for movies in search', function () {
 
     Livewire::test('media-search')
         ->set('query', 'Dated Test')
-        ->assertSee('07/15/24');
+        ->assertSee('2024');
 });
 
 it('displays origin country for movies in search', function () {

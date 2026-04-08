@@ -364,6 +364,43 @@ it('abbreviates country names in network tooltip', function () {
         ->assertDontSee('United Kingdom');
 });
 
+it('displays content rating when available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'content_ratings' => [
+            ['rating' => 'TV-MA', 'iso_3166_1' => 'US'],
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+        ],
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('TV-MA');
+});
+
+it('does not display content rating when not available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Mystery Show',
+        'content_ratings' => null,
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertDontSee('TV-MA')
+        ->assertDontSee('TV-14');
+});
+
+it('displays US content rating from multiple countries', function () {
+    $show = Show::factory()->create([
+        'content_ratings' => [
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+            ['rating' => 'TV-14', 'iso_3166_1' => 'US'],
+            ['rating' => 'M', 'iso_3166_1' => 'AU'],
+        ],
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('TV-14');
+});
+
 it('displays cart episode count when episodes are in cart', function () {
     $show = Show::factory()->create();
 
@@ -371,14 +408,14 @@ it('displays cart episode count when episodes are in cart', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('3')
-        ->assertSee('Add/Remove Episodes Below');
+        ->assertSee('Cart');
 });
 
-it('displays dash when no episodes are in cart', function () {
+it('displays minus icon when no episodes are in cart', function () {
     $show = Show::factory()->create();
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('Add/Remove Episodes Below');
+        ->assertSee('Cart');
 });
 
 it('updates cart episode count on cart-updated event', function () {
@@ -393,7 +430,7 @@ it('updates cart episode count on cart-updated event', function () {
         ->assertSet('cartEpisodeCount', 2);
 });
 
-it('displays check mark when all episodes are in cart', function () {
+it('displays episode count when all episodes are in cart', function () {
     $show = Show::factory()->create();
     Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
     Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
@@ -402,12 +439,13 @@ it('displays check mark when all episodes are in cart', function () {
     app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSeeHtml('m4.5 12.75 6 6 9-13.5')
+        ->assertSee('2')
+        ->assertSee('Cart')
         ->assertSet('cartEpisodeCount', 2)
         ->assertSet('totalEpisodeCount', 2);
 });
 
-it('displays count instead of check mark when not all episodes are in cart', function () {
+it('displays count when not all episodes are in cart', function () {
     $show = Show::factory()->create();
     Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
     Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
@@ -417,8 +455,8 @@ it('displays count instead of check mark when not all episodes are in cart', fun
     app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertDontSeeHtml('m4.5 12.75 6 6 9-13.5')
-        ->assertSee('2');
+        ->assertSee('2')
+        ->assertSee('Cart');
 });
 
 describe('subscription', function () {

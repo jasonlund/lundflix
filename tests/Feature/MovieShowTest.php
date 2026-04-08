@@ -50,7 +50,7 @@ it('displays movie page when bound by imdb id', function () {
         ->assertSee($movie->title);
 });
 
-it('displays movie title and release date', function () {
+it('displays movie title and release year', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
         'title' => 'Inception',
@@ -60,7 +60,7 @@ it('displays movie title and release date', function () {
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
         ->assertSee('Inception')
-        ->assertSee('07/16/10');
+        ->assertSee('2010');
 });
 
 it('displays formatted runtime', function () {
