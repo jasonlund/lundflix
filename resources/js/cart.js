@@ -11,7 +11,7 @@ document.addEventListener('alpine:init', () => {
             } catch {}
 
             // Listen for cart-submitted event from Livewire submit
-            window.addEventListener('cart-submitted', () => this.clear())
+            Livewire.on('cart-submitted', () => this.clear())
         },
 
         _persist() {

@@ -234,12 +234,21 @@ new class extends Component {
             clearTimeout(this.syncTimeout)
             this.syncTimeout = setTimeout(() => {
                 const codes = this.selected
-                const prevCount = $store.cart.episodes.filter(
-                    (e) => e.show_id === {{ $show->id }},
-                ).length
+                const prevCodes = $store.cart.episodes
+                    .filter((e) => e.show_id === {{ $show->id }})
+                    .map((e) => e.code.toUpperCase())
+                    .sort()
+                const newCodes = [...codes].sort()
+
+                if (
+                    prevCodes.length === newCodes.length &&
+                    prevCodes.every((c, i) => c === newCodes[i])
+                ) {
+                    return
+                }
+
+                const delta = newCodes.length - prevCodes.length
                 $store.cart.syncShowEpisodes({{ $show->id }}, codes)
-                const newCount = codes.length
-                const delta = newCount - prevCount
 
                 let toastKey = 'episodes_swapped'
                 if (delta > 0) toastKey = 'episodes_added'
@@ -247,7 +256,7 @@ new class extends Component {
 
                 $dispatch('cart-episodes-synced', {
                     showId: {{ $show->id }},
-                    showName: @js($show->name),
+                    showName: {{ Js::from($show->name) }},
                     delta: Math.abs(delta),
                     toastKey: toastKey,
                 })

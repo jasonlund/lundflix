@@ -174,8 +174,10 @@ new class extends Component {
                     get inCart() {
                         return $store.cart.hasMovie({{ $movie->id }})
                     },
-                    addedMsg: @js(__('lundbergh.toast.cart_added', ['title' => $movie->title])),
-                    removedMsg: @js(__('lundbergh.toast.cart_removed', ['title' => $movie->title])),
+                    addedMsg:
+                        {{ Js::from(__('lundbergh.toast.cart_added', ['title' => $movie->title])) }},
+                    removedMsg:
+                        {{ Js::from(__('lundbergh.toast.cart_removed', ['title' => $movie->title])) }},
                 }"
             >
                 @if ($this->isCartDisabled)

@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\EpisodeType;
+use App\Enums\MovieStatus;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Support\AirDateTime;
 use App\Support\EpisodeCode;
 use Illuminate\Support\Collection;
 
@@ -166,7 +168,9 @@ class CartService
      */
     public function loadItemsFromIds(array $movieIds, array $episodeEntries): Collection
     {
-        $movies = Movie::whereIn('id', $movieIds)->get();
+        $movies = Movie::whereIn('id', $movieIds)
+            ->where('status', MovieStatus::Released)
+            ->get();
 
         $episodes = collect();
         if (! empty($episodeEntries)) {
@@ -183,7 +187,14 @@ class CartService
                         });
                     }
                 })
-                ->get();
+                ->get()
+                ->filter(fn (Episode $episode): bool => $episode->airdate !== null && AirDateTime::hasAired(
+                    $episode->airdate,
+                    $episode->airtime,
+                    $episode->show->web_channel,
+                    $episode->show->network,
+                ))
+                ->values();
         }
 
         return $movies->concat($episodes);

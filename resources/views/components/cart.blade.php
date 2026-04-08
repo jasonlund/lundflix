@@ -28,6 +28,27 @@ new class extends Component {
         return $cartService->loadGroupedItemsFromIds($this->movies ?? [], $this->episodes ?? []);
     }
 
+    #[Computed]
+    public function itemCount(): int
+    {
+        if ($this->groupedItems === null) {
+            return 0;
+        }
+
+        return count($this->groupedItems['movies']) +
+            collect($this->groupedItems['shows'])->sum(
+                fn (array $showGroup): int => collect($showGroup['seasons'])->sum(
+                    fn (array $seasonData): int => $seasonData['episodes']->count(),
+                ),
+            );
+    }
+
+    #[Computed]
+    public function hasItems(): bool
+    {
+        return $this->itemCount > 0;
+    }
+
     public function formatRun(Collection $episodes): string
     {
         return Formatters::formatRun($episodes);
@@ -76,6 +97,10 @@ new class extends Component {
         $items = $cartService->loadItemsFromIds($this->movies ?? [], $this->episodes ?? []);
         $count = $items->count();
 
+        if ($count === 0) {
+            return;
+        }
+
         $request = DB::transaction(function () use ($items, $createRequest, $createRequestItems) {
             $request = $createRequest->create(Auth::user());
 
@@ -110,10 +135,7 @@ new class extends Component {
 ?>
 
 <div x-data>
-    <flux:button
-        variant="ghost"
-        x-on:click="$dispatch('open-cart', $store.cart.toPayload())"
-    >
+    <flux:button variant="ghost" x-on:click="$dispatch('open-cart', $store.cart.toPayload())">
         <flux:icon name="shopping-cart" x-show="$store.cart.count === 0" x-cloak class="text-lundflix size-4" />
         <span
             x-show="$store.cart.count > 0"
@@ -135,15 +157,12 @@ new class extends Component {
                     name="cart"
                     panelClass="h-full bg-zinc-800/75 backdrop-blur-sm"
                     itemsClass="divide-y divide-zinc-700/70 overflow-y-auto"
-                    :hasItems="true"
+                    :hasItems="$this->hasItems"
                 >
                     <x-slot:header>
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <flux:icon name="shopping-cart" variant="mini" class="shrink-0 text-zinc-400" />
-                            <span class="text-sm font-medium text-white">
-                                Your Cart
-                                ({{ count($this->groupedItems['movies']) + collect($this->groupedItems['shows'])->sum(fn ($g) => count($g['seasons'])) }})
-                            </span>
+                            <span class="text-sm font-medium text-white">Your Cart ({{ $this->itemCount }})</span>
                         </div>
                     </x-slot>
 
@@ -155,19 +174,21 @@ new class extends Component {
                         </div>
                     </x-slot>
 
-                    <x-slot:footer>
-                        <div class="p-3">
-                            <button
-                                wire:click="submit"
-                                wire:loading.attr="disabled"
-                                class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-50"
-                            >
-                                <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
-                                <span wire:loading.remove wire:target="submit">Submit Request</span>
-                                <span wire:loading wire:target="submit">Submitting…</span>
-                            </button>
-                        </div>
-                    </x-slot>
+                    @if ($this->hasItems)
+                        <x-slot:footer>
+                            <div class="p-3">
+                                <button
+                                    wire:click="submit"
+                                    wire:loading.attr="disabled"
+                                    class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-50"
+                                >
+                                    <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
+                                    <span wire:loading.remove wire:target="submit">Submit Request</span>
+                                    <span wire:loading wire:target="submit">Submitting…</span>
+                                </button>
+                            </div>
+                        </x-slot>
+                    @endif
 
                     {{-- Movies --}}
                     @foreach ($this->groupedItems['movies'] as $movie)
@@ -260,11 +281,13 @@ new class extends Component {
                         </a>
                     @endforeach
 
-                    <div class="border-b-0 px-3 py-2">
-                        <x-lundbergh-bubble :with-margin="false" contentTag="div">
-                            {{ __('lundbergh.cart.checkout_hint') }}
-                        </x-lundbergh-bubble>
-                    </div>
+                    @if ($this->hasItems)
+                        <div class="border-b-0 px-3 py-2">
+                            <x-lundbergh-bubble :with-margin="false" contentTag="div">
+                                {{ __('lundbergh.cart.checkout_hint') }}
+                            </x-lundbergh-bubble>
+                        </div>
+                    @endif
                 </x-command-panel>
             @endif
         </flux:modal>
