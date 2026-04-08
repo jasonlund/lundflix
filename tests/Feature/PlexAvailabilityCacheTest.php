@@ -365,9 +365,9 @@ describe('show plex availability caching', function () {
         ]);
 
         Episode::factory()->count(3)->sequence(
-            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
-            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
-            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay()],
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3), 'airtime' => null],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2), 'airtime' => null],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay(), 'airtime' => null],
         )->create(['show_id' => $show->id]);
 
         $cacheKey = "plex:show:{$user->id}:{$show->id}";
@@ -403,9 +403,9 @@ describe('show plex availability caching', function () {
         ]);
 
         Episode::factory()->count(3)->sequence(
-            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
-            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
-            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay()],
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3), 'airtime' => null],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2), 'airtime' => null],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->subDay(), 'airtime' => null],
         )->create(['show_id' => $show->id]);
 
         $cacheKey = "plex:show:{$user->id}:{$show->id}";
@@ -441,10 +441,10 @@ describe('show plex availability caching', function () {
         ]);
 
         Episode::factory()->count(4)->sequence(
-            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
-            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
-            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek()],
-            ['season' => 1, 'number' => 4, 'airdate' => now()->addWeeks(2)],
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3), 'airtime' => null],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2), 'airtime' => null],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek(), 'airtime' => null],
+            ['season' => 1, 'number' => 4, 'airdate' => now()->addWeeks(2), 'airtime' => null],
         )->create(['show_id' => $show->id]);
 
         $cacheKey = "plex:show:{$user->id}:{$show->id}";
@@ -565,10 +565,10 @@ describe('show plex availability caching', function () {
         ]);
 
         Episode::factory()->count(4)->sequence(
-            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3)],
-            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2)],
-            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek()],
-            ['season' => 1, 'number' => 4, 'airdate' => null],
+            ['season' => 1, 'number' => 1, 'airdate' => now()->subDays(3), 'airtime' => null],
+            ['season' => 1, 'number' => 2, 'airdate' => now()->subDays(2), 'airtime' => null],
+            ['season' => 1, 'number' => 3, 'airdate' => now()->addWeek(), 'airtime' => null],
+            ['season' => 1, 'number' => 4, 'airdate' => null, 'airtime' => null],
         )->create(['show_id' => $show->id]);
 
         // Server has both aired episodes — should show as complete

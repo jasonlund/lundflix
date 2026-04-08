@@ -124,8 +124,11 @@
                 }
                 d.showModal = function () {
                     backdrop = document.createElement('div')
-                    backdrop.className = 'fixed inset-0 z-[29]'
+                    backdrop.className = 'fixed inset-0 z-[29] bg-black/60 backdrop-blur-xl'
+                    backdrop.style.opacity = '0'
+                    backdrop.style.transition = 'opacity 0.15s'
                     d.parentElement.appendChild(backdrop)
+                    requestAnimationFrame(() => (backdrop.style.opacity = '1'))
                     HTMLDialogElement.prototype.show.call(d)
                     header = document.querySelector('[data-flux-header]')
                     if (header) {
@@ -138,8 +141,11 @@
                 d.close = function (rv) {
                     document.removeEventListener('click', closeHandler)
                     if (backdrop) {
-                        backdrop.remove()
+                        backdrop.style.transition = 'opacity 0.075s'
+                        backdrop.style.opacity = '0'
+                        let b = backdrop
                         backdrop = null
+                        b.addEventListener('transitionend', () => b.remove(), { once: true })
                     }
                     if (header) {
                         header.parentElement.style.paddingTop = ''

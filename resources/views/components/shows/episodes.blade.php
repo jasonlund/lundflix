@@ -393,7 +393,12 @@ new class extends Component {
                                                     @endif
                                                     <span class="min-w-0 truncate">
                                                         <span class="font-mono">
-                                                            {{ \App\Models\Episode::displayCode($episode) }}
+                                                            <span class="hidden sm:inline">
+                                                                {{ \App\Models\Episode::displayCode($episode) }}
+                                                            </span>
+                                                            <span class="sm:hidden">
+                                                                {{ preg_replace('/^S\d+/', '', \App\Models\Episode::displayCode($episode)) }}
+                                                            </span>
                                                         </span>
                                                         <span class="font-serif tracking-wide">
                                                             {{ $episode['name'] }}

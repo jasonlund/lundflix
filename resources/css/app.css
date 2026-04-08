@@ -32,6 +32,20 @@
     --color-accent-foreground: var(--color-neutral-800);
 }
 
+@utility arrow-clip-left {
+    clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
+}
+
+@utility glass-panel {
+    background-color: color-mix(in oklab, var(--color-zinc-900) 50%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+@utility glass-papaya {
+    background-color: color-mix(in oklab, var(--color-lundflix) 20%, transparent);
+    backdrop-filter: blur(4px);
+}
+
 @layer base {
     *,
     ::after,
@@ -78,6 +92,40 @@ ui-toast-group {
 
 [data-flux-command-item] {
     @apply h-auto rounded-none px-0 py-0;
+}
+
+[data-flux-card] {
+    @apply glass-panel;
+}
+
+input[data-flux-control],
+textarea[data-flux-control],
+select[data-flux-control] {
+    @apply glass-panel;
+}
+
+[data-flux-checkbox-indicator] {
+    @apply glass-panel;
+}
+
+ui-checkbox[data-checked] [data-flux-checkbox-indicator],
+ui-checkbox[data-indeterminate] [data-flux-checkbox-indicator] {
+    background-color: var(--color-accent);
+    backdrop-filter: none;
+}
+
+ui-radio[data-checked] [data-flux-radio-indicator] {
+    background-color: var(--color-accent);
+    backdrop-filter: none;
+}
+
+[data-flux-input] > .start-0,
+[data-flux-input] > .end-0 {
+    @apply !text-zinc-400;
+}
+
+button[data-flux-control] {
+    @apply glass-panel;
 }
 
 [data-flux-callout] {
@@ -127,6 +175,10 @@ ui-toast-group {
 
 @utility drop-shadow-glow {
     filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.7)) drop-shadow(0 2px 6px rgb(0 0 0 / 0.4));
+}
+
+@utility drop-shadow-glow-subtle {
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5)) drop-shadow(0 1px 4px rgb(0 0 0 / 0.3));
 }
 
 @utility scanlines {
@@ -190,6 +242,7 @@ ui-toast-group {
 
 .search-input[data-flux-control] {
     @apply bg-transparent text-base ring-0 ring-offset-0 outline-hidden;
+    backdrop-filter: none;
 }
 
 .search-input[data-flux-control]:focus {
