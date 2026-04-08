@@ -3,7 +3,6 @@
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
 use App\Enums\EpisodeType;
 use App\Models\Show;
-use App\Services\CartService;
 use App\Services\ThirdParty\TVMazeService;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
@@ -187,98 +186,6 @@ new class extends Component {
         return $expandedSeason ?? ($this->seasons->keys()->first() ?? 0);
     }
 
-    /**
-     * Sync selected episodes to cart in display order (by season and episode number).
-     *
-     * @param  array<int, string>  $episodeCodes  Unordered codes from Alpine
-     */
-    public function syncToCart(array $episodeCodes): void
-    {
-        $selected = array_flip(array_map('strtoupper', $episodeCodes));
-
-        $orderedCodes = [];
-        foreach ($this->seasons as $season) {
-            foreach ($season['episodes'] as $episode) {
-                $code = \App\Models\Episode::displayCode($episode);
-                if (isset($selected[strtoupper($code)]) && $this->hasAired($episode)) {
-                    $orderedCodes[] = $code;
-                }
-            }
-        }
-
-        $previousCodes = collect(app(CartService::class)->episodes())
-            ->where('show_id', $this->show->id)
-            ->pluck('code')
-            ->map(fn ($c) => strtolower($c))
-            ->sort()
-            ->values()
-            ->all();
-
-        app(CartService::class)->syncShowEpisodes($this->show->id, $orderedCodes);
-        $this->dispatch('cart-updated');
-
-        $newCodes = collect($orderedCodes)
-            ->map(fn ($c) => strtolower($c))
-            ->sort()
-            ->values()
-            ->all();
-
-        if ($previousCodes === $newCodes) {
-            return;
-        }
-
-        $delta = count($orderedCodes) - count($previousCodes);
-
-        if ($delta > 0) {
-            Flux::toast(
-                text: trans_choice('lundbergh.toast.episodes_added', $delta, [
-                    'title' => $this->show->name,
-                ]),
-            );
-        } elseif ($delta < 0) {
-            Flux::toast(
-                text: trans_choice('lundbergh.toast.episodes_removed', abs($delta), [
-                    'title' => $this->show->name,
-                ]),
-            );
-        } else {
-            Flux::toast(
-                text: __('lundbergh.toast.episodes_swapped', [
-                    'title' => $this->show->name,
-                ]),
-            );
-        }
-    }
-
-    /**
-     * Get initial season selections from cart for this show.
-     *
-     * @return array<string, array<int, string>>
-     */
-    #[Computed]
-    public function initialSeasonSelections(): array
-    {
-        $cartEpisodes = app(CartService::class)->episodes();
-
-        $showEpisodes = collect($cartEpisodes)
-            ->filter(fn ($ep) => $ep['show_id'] === $this->show->id)
-            ->pluck('code')
-            ->map(fn ($code) => strtoupper($code));
-
-        $result = [];
-        foreach ($showEpisodes as $code) {
-            if (preg_match('/^S(\d+)[ES]\d+$/i', $code, $matches)) {
-                $season = (string) (int) $matches[1];
-                if (! isset($result[$season])) {
-                    $result[$season] = [];
-                }
-                $result[$season][] = $code;
-            }
-        }
-
-        return $result;
-    }
-
     public function hasAired(mixed $episode): bool
     {
         $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
@@ -299,8 +206,22 @@ new class extends Component {
 
 <div
     x-data="{
-        seasonSelections: @js($this->initialSeasonSelections),
+        seasonSelections: {},
         syncTimeout: null,
+        init() {
+            // Initialize seasonSelections from Alpine cart store
+            const eps = $store.cart.episodes.filter(
+                (e) => e.show_id === {{ $show->id }},
+            )
+            eps.forEach((e) => {
+                const m = e.code.match(/^s(\d+)/)
+                if (m) {
+                    const s = String(parseInt(m[1]))
+                    if (! this.seasonSelections[s]) this.seasonSelections[s] = []
+                    this.seasonSelections[s].push(e.code.toUpperCase())
+                }
+            })
+        },
         get selected() {
             return Object.values(this.seasonSelections).flat()
         },
@@ -311,10 +232,26 @@ new class extends Component {
         },
         scheduleSync() {
             clearTimeout(this.syncTimeout)
-            window.dispatchEvent(new CustomEvent('cart-syncing'))
             this.syncTimeout = setTimeout(() => {
-                $wire.syncToCart(this.selected)
-            }, 500)
+                const codes = this.selected
+                const prevCount = $store.cart.episodes.filter(
+                    (e) => e.show_id === {{ $show->id }},
+                ).length
+                $store.cart.syncShowEpisodes({{ $show->id }}, codes)
+                const newCount = codes.length
+                const delta = newCount - prevCount
+
+                let toastKey = 'episodes_swapped'
+                if (delta > 0) toastKey = 'episodes_added'
+                else if (delta < 0) toastKey = 'episodes_removed'
+
+                $dispatch('cart-episodes-synced', {
+                    showId: {{ $show->id }},
+                    showName: @js($show->name),
+                    delta: Math.abs(delta),
+                    toastKey: toastKey,
+                })
+            }, 1000)
         },
         seasonCount(num, total) {
             const selected = this.seasonSelections[num]?.length || 0

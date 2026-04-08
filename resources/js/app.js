@@ -1,4 +1,5 @@
 import.meta.glob(['../images/**'])
+import './cart.js'
 
 document.addEventListener('livewire:init', () => {
     Livewire.interceptRequest(({ onError }) => {

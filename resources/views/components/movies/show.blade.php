@@ -2,7 +2,6 @@
 
 use App\Models\Movie;
 use App\Models\Subscription;
-use App\Services\CartService;
 use App\Support\Formatters;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
@@ -11,14 +10,11 @@ use Livewire\Component;
 new class extends Component {
     public Movie $movie;
 
-    public bool $inCart = false;
-
     public bool $isSubscribed = false;
 
-    public function mount(Movie $movie, CartService $cart): void
+    public function mount(Movie $movie): void
     {
         $this->movie = $movie;
-        $this->inCart = $cart->has($this->movie->id);
         $this->isSubscribed =
             auth()->check() &&
             Subscription::query()
@@ -81,22 +77,6 @@ new class extends Component {
         }
 
         return ! $status->isCartable();
-    }
-
-    public function toggleCart(CartService $cart): void
-    {
-        if ($this->isCartDisabled) {
-            return;
-        }
-
-        $this->inCart = $cart->toggleMovie($this->movie->id);
-        $this->dispatch('cart-updated');
-
-        Flux::toast(
-            text: __($this->inCart ? 'lundbergh.toast.cart_added' : 'lundbergh.toast.cart_removed', [
-                'title' => $this->movie->title,
-            ]),
-        );
     }
 
     #[Computed]
@@ -190,9 +170,13 @@ new class extends Component {
             @endif
 
             <div
-                x-data="{ inCart: {{ Js::from($inCart) }}, syncing: false }"
-                @cart-syncing.window="syncing = true"
-                @cart-updated.window="syncing = false"
+                x-data="{
+                    get inCart() {
+                        return $store.cart.hasMovie({{ $movie->id }})
+                    },
+                    addedMsg: @js(__('lundbergh.toast.cart_added', ['title' => $movie->title])),
+                    removedMsg: @js(__('lundbergh.toast.cart_removed', ['title' => $movie->title])),
+                }"
             >
                 @if ($this->isCartDisabled)
                     <flux:tooltip content="Not yet released">
@@ -206,23 +190,22 @@ new class extends Component {
                         </div>
                     </flux:tooltip>
                 @else
-                    <flux:tooltip :content="$inCart ? 'Remove from Cart' : 'Add to Cart'">
+                    <flux:tooltip x-bind:content="inCart ? 'Remove from Cart' : 'Add to Cart'">
                         <button
                             x-on:click="
-                                inCart = ! inCart
-                                syncing = true
-                                window.dispatchEvent(new CustomEvent('cart-syncing'))
-                                $wire.toggleCart()
+                                $store.cart.toggleMovie({{ $movie->id }})
+                                $dispatch('cart-movie-toggled', {
+                                    text: $store.cart.hasMovie({{ $movie->id }}) ? addedMsg : removedMsg,
+                                })
                             "
                             class="flex cursor-pointer items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm transition hover:bg-white/20"
                         >
                             <div class="relative flex min-w-4 items-center justify-center">
                                 <span class="invisible">+</span>
-                                <span x-show="inCart" x-cloak :class="syncing && 'opacity-0'" class="absolute">
+                                <span x-show="inCart" x-cloak class="absolute">
                                     <flux:icon.check class="size-4" />
                                 </span>
-                                <span x-show="!inCart" :class="syncing && 'opacity-0'" class="absolute">+</span>
-                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                                <span x-show="!inCart" class="absolute">+</span>
                             </div>
                             <flux:icon.shopping-cart class="size-4" />
                         </button>

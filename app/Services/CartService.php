@@ -158,6 +158,50 @@ class CartService
     }
 
     /**
+     * Load cart items from arrays without reading from session.
+     *
+     * @param  array<int, int>  $movieIds
+     * @param  array<int, array{show_id: int, code: string}>  $episodeEntries
+     * @return Collection<int, Movie|Episode>
+     */
+    public function loadItemsFromIds(array $movieIds, array $episodeEntries): Collection
+    {
+        $movies = Movie::whereIn('id', $movieIds)->get();
+
+        $episodes = collect();
+        if (! empty($episodeEntries)) {
+            $episodes = Episode::with('show')
+                ->where(function ($query) use ($episodeEntries) {
+                    foreach ($episodeEntries as $ep) {
+                        $parsed = EpisodeCode::parse($ep['code']);
+                        $type = $parsed['is_special'] ? EpisodeType::SignificantSpecial : EpisodeType::Regular;
+                        $query->orWhere(function ($q) use ($ep, $parsed, $type) {
+                            $q->where('show_id', $ep['show_id'])
+                                ->where('season', $parsed['season'])
+                                ->where('number', $parsed['number'])
+                                ->where('type', $type);
+                        });
+                    }
+                })
+                ->get();
+        }
+
+        return $movies->concat($episodes);
+    }
+
+    /**
+     * Load and group cart items from arrays without reading from session.
+     *
+     * @param  array<int, int>  $movieIds
+     * @param  array<int, array{show_id: int, code: string}>  $episodeEntries
+     * @return array{movies: Collection<int, Movie>, shows: array<int, array{show: Show, seasons: array<int, array{season: int, is_full: bool, runs: array<int, Collection<int, Episode>>, episodes: Collection<int, Episode>}>}>}
+     */
+    public function loadGroupedItemsFromIds(array $movieIds, array $episodeEntries): array
+    {
+        return $this->groupItems($this->loadItemsFromIds($movieIds, $episodeEntries));
+    }
+
+    /**
      * Group items for consolidated display.
      *
      * @param  Collection<int, Movie|Episode>  $items

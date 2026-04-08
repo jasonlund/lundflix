@@ -3,7 +3,6 @@
 use App\Enums\ShowStatus;
 use App\Models\Show;
 use App\Models\Subscription;
-use App\Services\CartService;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
 use App\Support\UserTime;
@@ -11,21 +10,17 @@ use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
     public Show $show;
 
-    public int $cartEpisodeCount = 0;
-
     public int $totalEpisodeCount = 0;
 
     public bool $isSubscribed = false;
 
-    public function mount(CartService $cart): void
+    public function mount(): void
     {
-        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
         $this->totalEpisodeCount = $this->show->episodes->count();
         $this->isSubscribed =
             auth()->check() &&
@@ -34,12 +29,6 @@ new class extends Component {
                 ->where('subscribable_type', Show::class)
                 ->where('subscribable_id', $this->show->id)
                 ->exists();
-    }
-
-    #[On('cart-updated')]
-    public function refreshCartCount(CartService $cart): void
-    {
-        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
     }
 
     #[Computed]
@@ -322,26 +311,24 @@ new class extends Component {
                 @endif
 
                 <div
-                    x-data="{ syncing: false }"
-                    @cart-syncing.window="syncing = true"
-                    @cart-updated.window="syncing = false"
+                    x-data="{
+                        get count() {
+                            return $store.cart.countForShow({{ $show->id }})
+                        },
+                        get isFullSeason() {
+                            return this.count > 0 && this.count >= {{ $totalEpisodeCount }}
+                        },
+                    }"
                 >
                     <flux:tooltip content="Add/Remove Episodes Below">
                         <div
                             class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
                         >
                             <div class="relative flex min-w-4 items-center justify-center">
-                                @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
-                                    <span class="invisible">{{ $cartEpisodeCount }}</span>
-                                    <span :class="syncing && 'opacity-0'" class="absolute">
-                                        <flux:icon.check class="size-4" />
-                                    </span>
-                                @else
-                                    <span :class="syncing && 'opacity-0'">
-                                        {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
-                                    </span>
-                                @endif
-                                <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
+                                <span x-show="isFullSeason" x-cloak>
+                                    <flux:icon.check class="size-4" />
+                                </span>
+                                <span x-show="!isFullSeason" x-text="count > 0 ? count : '-'"></span>
                             </div>
                             <flux:icon.shopping-cart class="size-4" />
                         </div>

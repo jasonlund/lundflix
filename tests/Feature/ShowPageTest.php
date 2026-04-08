@@ -381,46 +381,6 @@ it('displays dash when no episodes are in cart', function () {
         ->assertSee('Add/Remove Episodes Below');
 });
 
-it('updates cart episode count on cart-updated event', function () {
-    $show = Show::factory()->create();
-
-    $component = Livewire::test('shows.show', ['show' => $show])
-        ->assertSet('cartEpisodeCount', 0);
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
-
-    $component->dispatch('cart-updated')
-        ->assertSet('cartEpisodeCount', 2);
-});
-
-it('displays check mark when all episodes are in cart', function () {
-    $show = Show::factory()->create();
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
-    $show->load('episodes');
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
-
-    Livewire::test('shows.show', ['show' => $show])
-        ->assertSeeHtml('m4.5 12.75 6 6 9-13.5')
-        ->assertSet('cartEpisodeCount', 2)
-        ->assertSet('totalEpisodeCount', 2);
-});
-
-it('displays count instead of check mark when not all episodes are in cart', function () {
-    $show = Show::factory()->create();
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 3]);
-    $show->load('episodes');
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
-
-    Livewire::test('shows.show', ['show' => $show])
-        ->assertDontSeeHtml('m4.5 12.75 6 6 9-13.5')
-        ->assertSee('2');
-});
-
 describe('subscription', function () {
     it('can subscribe to a running show', function () {
         $user = User::factory()->create();
