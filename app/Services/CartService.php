@@ -191,8 +191,8 @@ class CartService
                 ->filter(fn (Episode $episode): bool => $episode->airdate !== null && AirDateTime::hasAired(
                     $episode->airdate,
                     $episode->airtime,
-                    $episode->show->web_channel,
-                    $episode->show->network,
+                    $episode->show->web_channel, // @phpstan-ignore argument.type (casted to array)
+                    $episode->show->network, // @phpstan-ignore argument.type (casted to array)
                 ))
                 ->values();
         }
