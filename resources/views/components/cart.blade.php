@@ -180,7 +180,7 @@ new class extends Component {
                                 <button
                                     wire:click="submit"
                                     wire:loading.attr="disabled"
-                                    class="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-50"
+                                    class="bg-lundflix/70 hover:bg-lundflix/80 border-lundflix flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
                                 >
                                     <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
                                     <span wire:loading.remove wire:target="submit">Submit Request</span>
@@ -219,6 +219,15 @@ new class extends Component {
                                     <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
                                         {{ $movie->title }}
                                     </p>
+                                    @if ($movie->release_date)
+                                        <div
+                                            class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-[0.6875rem] text-zinc-400 group-data-active/item:text-zinc-300"
+                                        >
+                                            <span class="shrink-0 font-mono">
+                                                {{ $movie->release_date->format('Y') }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="flex shrink-0 items-center pe-1">

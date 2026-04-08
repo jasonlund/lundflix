@@ -1,4 +1,4 @@
-<x-layouts.app :background-image="Vite::image('lundberg-background.jpg')" title="Dashboard">
+<x-layouts.app title="Dashboard">
     <div class="pt-5 sm:pt-6">
         <livewire:dashboard.greeting />
 

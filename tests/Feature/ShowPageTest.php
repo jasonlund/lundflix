@@ -4,7 +4,6 @@ use App\Enums\ShowStatus;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\CartService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Vite as ViteFacade;
@@ -363,21 +362,48 @@ it('abbreviates country names in network tooltip', function () {
         ->assertDontSee('United Kingdom');
 });
 
-it('displays cart episode count when episodes are in cart', function () {
-    $show = Show::factory()->create();
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02', 'S01E03']);
+it('displays content rating when available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'content_ratings' => [
+            ['rating' => 'TV-MA', 'iso_3166_1' => 'US'],
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+        ],
+    ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('3')
-        ->assertSee('Add/Remove Episodes Below');
+        ->assertSee('TV-MA');
 });
 
-it('displays dash when no episodes are in cart', function () {
+it('does not display content rating when not available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Mystery Show',
+        'content_ratings' => null,
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertDontSee('TV-MA')
+        ->assertDontSee('TV-14');
+});
+
+it('displays US content rating from multiple countries', function () {
+    $show = Show::factory()->create([
+        'content_ratings' => [
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+            ['rating' => 'TV-14', 'iso_3166_1' => 'US'],
+            ['rating' => 'M', 'iso_3166_1' => 'AU'],
+        ],
+    ]);
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('TV-14');
+});
+
+it('renders the cart pill', function () {
     $show = Show::factory()->create();
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('Add/Remove Episodes Below');
+        ->assertSee('Cart');
 });
 
 describe('subscription', function () {

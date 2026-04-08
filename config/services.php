@@ -43,6 +43,7 @@ return [
         'seed_token' => env('SEED_PLEX_TOKEN'),
         'webhook_secret' => env('PLEX_WEBHOOK_SECRET'),
         'webhook_debounce_seconds' => (int) env('PLEX_WEBHOOK_DEBOUNCE_SECONDS', 30),
+        'webhook_added_at_max_age_minutes' => (int) env('PLEX_WEBHOOK_ADDED_AT_MAX_AGE_MINUTES', 15),
     ],
 
     'tmdb' => [
