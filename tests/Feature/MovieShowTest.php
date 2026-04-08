@@ -5,7 +5,6 @@ use App\Enums\MovieStatus;
 use App\Models\Movie;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\CartService;
 use App\Support\Sqid;
 use Livewire\Livewire;
 

@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\ShowStatus;
-use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;

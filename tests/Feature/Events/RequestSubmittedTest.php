@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MovieStatus;
 use App\Events\RequestSubmitted;
 use App\Models\Movie;
 use App\Models\User;
@@ -10,7 +11,7 @@ it('dispatches RequestSubmitted event on successful submit', function () {
     Event::fake([RequestSubmitted::class]);
 
     $user = User::factory()->create();
-    $movie = Movie::factory()->create();
+    $movie = Movie::factory()->create(['status' => MovieStatus::Released]);
 
     Livewire::actingAs($user)
         ->test('cart')
