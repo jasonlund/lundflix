@@ -142,7 +142,12 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
                         "
                     >
                         <flux:label>Timezone</flux:label>
-                        <flux:select variant="listbox" searchable wire:model="timezone" placeholder="Select timezone...">
+                        <flux:select
+                            variant="listbox"
+                            searchable
+                            wire:model="timezone"
+                            placeholder="Select timezone..."
+                        >
                             @foreach ($this->timezoneOptions() as $value => $label)
                                 <flux:select.option :$value>{{ $label }}</flux:select.option>
                             @endforeach
