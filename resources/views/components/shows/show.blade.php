@@ -302,7 +302,11 @@ new class extends Component {
                         return $store.cart.countForShow({{ $show->id }})
                     },
                     get isFullSeason() {
-                        return this.count > 0 && this.count >= {{ $totalEpisodeCount }}
+                        return (
+                            {{ $totalEpisodeCount }} > 0 &&
+                            this.count > 0 &&
+                            this.count >= {{ $totalEpisodeCount }}
+                        )
                     },
                 }"
             >
