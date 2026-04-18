@@ -25,8 +25,9 @@ class ProcessShowSubscriptions extends Command
         $nowDate = $now->toDateString();
 
         $subscriptions = Subscription::query()
-            ->where('subscribable_type', Show::class)
-            ->with('user')
+            ->active()
+            ->forShows()
+            ->with(['user', 'processedEpisodes'])
             ->get();
 
         $showIds = $subscriptions->pluck('subscribable_id');
@@ -44,10 +45,17 @@ class ProcessShowSubscriptions extends Command
         $notified = [];
 
         foreach ($subscriptions as $subscription) {
-            /** @var Show $show */
+            /** @var Show|null $show */
             $show = $shows->get($subscription->subscribable_id);
 
+            if (! $show) {
+                continue;
+            }
+
+            $processedEpisodeIds = $subscription->processedEpisodes->pluck('id');
+
             $newEpisodes = $show->episodes
+                ->reject(fn (Episode $episode): bool => $processedEpisodeIds->contains($episode->id))
                 ->filter(function (Episode $episode) use ($windowStart, $now, $show): bool {
                     if (! $episode->airdate) {
                         return false;
@@ -69,14 +77,13 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            if (isset($notified[$show->id])) {
-                continue;
+            if (! isset($notified[$show->id])) {
+                SubscriptionTriggered::dispatch(null, $show, $newEpisodes);
+                $notified[$show->id] = true;
+                $processed++;
             }
 
-            SubscriptionTriggered::dispatch(null, $show, $newEpisodes);
-            $notified[$show->id] = true;
-
-            $processed++;
+            $subscription->processedEpisodes()->syncWithoutDetaching($newEpisodes->pluck('id'));
         }
 
         $this->info("Processed {$processed} show subscription(s).");

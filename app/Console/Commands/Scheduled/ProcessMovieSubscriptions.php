@@ -19,7 +19,8 @@ class ProcessMovieSubscriptions extends Command
         $today = today();
 
         $subscriptions = Subscription::query()
-            ->where('subscribable_type', Movie::class)
+            ->active()
+            ->forMovies()
             ->with(['subscribable', 'user'])
             ->get();
 
@@ -38,14 +39,13 @@ class ProcessMovieSubscriptions extends Command
                 continue;
             }
 
-            if (isset($notified[$movie->id])) {
-                continue;
+            if (! isset($notified[$movie->id])) {
+                SubscriptionTriggered::dispatch(null, $movie);
+                $notified[$movie->id] = true;
+                $processed++;
             }
 
-            SubscriptionTriggered::dispatch(null, $movie);
-            $notified[$movie->id] = true;
-
-            $processed++;
+            $subscription->markFulfilled();
         }
 
         $this->info("Processed {$processed} movie subscription(s).");

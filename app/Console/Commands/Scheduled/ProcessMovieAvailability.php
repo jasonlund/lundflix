@@ -63,6 +63,8 @@ class ProcessMovieAvailability extends Command
 
         /** @var array<int, ReleaseQuality|false> $checked */
         $checked = [];
+        /** @var array<int, array{movie: Movie, quality: ReleaseQuality}> $toDispatch */
+        $toDispatch = [];
         $processed = 0;
 
         foreach ($byMovie as $movieId => $subs) {
@@ -101,7 +103,11 @@ class ProcessMovieAvailability extends Command
                 $processed++;
             }
 
-            MediaAvailable::dispatch(null, $movie, null, $quality);
+            $toDispatch[$movieId] = ['movie' => $movie, 'quality' => $quality];
+        }
+
+        foreach ($toDispatch as $entry) {
+            MediaAvailable::dispatch(null, $entry['movie'], null, $entry['quality']);
         }
 
         $this->info("Processed {$processed} movie availability check(s).");

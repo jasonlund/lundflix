@@ -110,6 +110,43 @@ it('does not dispatch for unsubscribed movies', function () {
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
+it('does not dispatch again on subsequent runs for already-fulfilled subscriptions', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+
+    Subscription::factory()->forSubscribable($movie)->create([
+        'user_id' => $user->id,
+        'fulfilled_at' => now()->subMinutes(10),
+    ]);
+
+    $this->artisan('process:movie-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 0 movie subscription(s)');
+
+    Event::assertNotDispatched(SubscriptionTriggered::class);
+});
+
+it('marks subscriptions as fulfilled after dispatching', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+
+    $subscription = Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-subscriptions')->assertSuccessful();
+
+    expect($subscription->fresh()->fulfilled_at)->not->toBeNull();
+});
+
 it('dispatches only once when multiple users are subscribed to the same movie', function () {
     Event::fake([SubscriptionTriggered::class]);
 

@@ -131,9 +131,84 @@ it('dispatches only once when multiple users are subscribed to the same show', f
     Event::assertDispatchedTimes(SubscriptionTriggered::class, 1);
 });
 
+it('does not dispatch again for episodes already processed in a prior run', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'The Expanse']);
+
+    $subscription = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 6,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    $subscription->processedEpisodes()->attach($episode->id);
+
+    $this->artisan('process:show-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 0 show subscription(s)');
+
+    Event::assertNotDispatched(SubscriptionTriggered::class);
+});
+
+it('records processed episodes in the pivot after dispatching', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Succession']);
+
+    $subscription = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-subscriptions')->assertSuccessful();
+
+    expect($subscription->processedEpisodes()->pluck('episodes.id')->toArray())
+        ->toContain($episode->id);
+});
+
+it('skips fulfilled show subscriptions', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create();
+
+    Subscription::factory()->forSubscribable($show)->create([
+        'user_id' => $user->id,
+        'fulfilled_at' => now()->subDay(),
+    ]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 0 show subscription(s)');
+
+    Event::assertNotDispatched(SubscriptionTriggered::class);
+});
+
 it('does not duplicate dispatches for episodes on the window boundary', function () {
     Event::fake([SubscriptionTriggered::class]);
 
+    // Simulate the 20:15 run — an episode that aired at 20:00 should NOT match
+    // because it was already processed by the 20:00 run
     $this->travelTo(today()->setTime(20, 15));
 
     $user = User::factory()->create();
@@ -159,6 +234,7 @@ it('does not duplicate dispatches for episodes on the window boundary', function
 it('processes Apple TV+ episodes that air at 6 PM Pacific the day before the listed date', function () {
     Event::fake([SubscriptionTriggered::class]);
 
+    // Travel to 2026-04-02 18:05 PDT (just after the 6 PM Apple TV+ drop)
     $this->travelTo(Carbon::parse('2026-04-02 18:05', 'America/Los_Angeles')->utc());
 
     $user = User::factory()->create();
@@ -181,9 +257,27 @@ it('processes Apple TV+ episodes that air at 6 PM Pacific the day before the lis
     Event::assertDispatched(SubscriptionTriggered::class);
 });
 
+it('skips deleted shows without crashing', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create();
+
+    $subscription = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $show->forceDelete();
+
+    $this->artisan('process:show-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 0 show subscription(s)');
+
+    Event::assertNotDispatched(SubscriptionTriggered::class);
+});
+
 it('does not process Apple TV+ episodes before 6 PM Pacific the day before', function () {
     Event::fake([SubscriptionTriggered::class]);
 
+    // Travel to 2026-04-02 17:50 PDT (before the 6 PM Apple TV+ drop)
     $this->travelTo(Carbon::parse('2026-04-02 17:50', 'America/Los_Angeles')->utc());
 
     $user = User::factory()->create();

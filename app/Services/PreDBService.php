@@ -82,8 +82,7 @@ class PreDBService
      * Search PreDB for releases matching a query, excluding low-quality tags.
      *
      * @return array<int, array<string, mixed>>
-     */
-    /**
+     *
      * @throws PreDBRateLimitExceededException
      */
     public function search(string $query, int $limit = 100): array

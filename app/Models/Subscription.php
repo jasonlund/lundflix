@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,17 +46,17 @@ class Subscription extends Model
             ->withTimestamps();
     }
 
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('fulfilled_at');
     }
 
-    public function scopeForMovies($query)
+    public function scopeForMovies(Builder $query): Builder
     {
         return $query->where('subscribable_type', Movie::class);
     }
 
-    public function scopeForShows($query)
+    public function scopeForShows(Builder $query): Builder
     {
         return $query->where('subscribable_type', Show::class);
     }

@@ -109,6 +109,8 @@ class ProcessShowAvailability extends Command
             ];
         }
 
+        $byShow = collect($bySub)->groupBy(fn ($e) => $e['show']->id);
+
         /** @var array<int, Collection<int, Episode>|null> $showAvailable keyed by show id */
         $showAvailable = [];
         /** @var array<int, array<int, Episode>> $newlyRequested keyed by show id, episode id */
@@ -124,9 +126,7 @@ class ProcessShowAvailability extends Command
             $candidates = $entry['candidates'];
 
             if (! array_key_exists($show->id, $showAvailable)) {
-                // Query once per show using the union of all subs' candidate episodes.
-                $allCandidates = collect($bySub)
-                    ->filter(fn ($e) => $e['show']->id === $show->id)
+                $allCandidates = $byShow[$show->id]
                     ->flatMap(fn ($e) => $e['candidates'])
                     ->unique('id')
                     ->values();
