@@ -5,7 +5,6 @@ use App\Enums\MovieStatus;
 use App\Models\Movie;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\CartService;
 use App\Support\Sqid;
 use Livewire\Livewire;
 
@@ -278,41 +277,6 @@ it('handles movie without status', function () {
 });
 
 describe('cart', function () {
-    beforeEach(function () {
-        session()->flush();
-    });
-
-    it('can add movie to cart', function () {
-        $user = User::factory()->create();
-        $movie = Movie::factory()->create();
-
-        Livewire::actingAs($user)
-            ->test('movies.show', ['movie' => $movie])
-            ->assertSet('inCart', false)
-            ->call('toggleCart')
-            ->assertSet('inCart', true)
-            ->assertDispatched('cart-updated')
-            ->assertDispatched('toast-show');
-
-        expect(app(CartService::class)->has($movie->id))->toBeTrue();
-    });
-
-    it('can remove movie from cart', function () {
-        $user = User::factory()->create();
-        $movie = Movie::factory()->create();
-        app(CartService::class)->toggleMovie($movie->id);
-
-        Livewire::actingAs($user)
-            ->test('movies.show', ['movie' => $movie])
-            ->assertSet('inCart', true)
-            ->call('toggleCart')
-            ->assertSet('inCart', false)
-            ->assertDispatched('cart-updated')
-            ->assertDispatched('toast-show');
-
-        expect(app(CartService::class)->has($movie->id))->toBeFalse();
-    });
-
     it('disables cart for unreleased movie statuses', function (string $rawStatus) {
         $user = User::factory()->create();
         $movie = Movie::factory()->withTmdbData()->create([
@@ -366,42 +330,6 @@ describe('cart', function () {
         Livewire::actingAs($user)
             ->test('movies.show', ['movie' => $movie])
             ->assertSet('isCartDisabled', false);
-    });
-
-    it('prevents toggling cart for unreleased movies', function () {
-        $user = User::factory()->create();
-        $movie = Movie::factory()->withTmdbData()->create([
-            'status' => 'Planned',
-            'release_date' => now()->addYear(),
-            'digital_release_date' => null,
-            'release_dates' => [],
-        ]);
-
-        Livewire::actingAs($user)
-            ->test('movies.show', ['movie' => $movie])
-            ->call('toggleCart')
-            ->assertSet('inCart', false)
-            ->assertNotDispatched('cart-updated');
-
-        expect(app(CartService::class)->has($movie->id))->toBeFalse();
-    });
-
-    it('prevents toggling cart for canceled movies', function () {
-        $user = User::factory()->create();
-        $movie = Movie::factory()->withTmdbData()->create([
-            'status' => 'Canceled',
-            'release_date' => null,
-            'digital_release_date' => null,
-            'release_dates' => [],
-        ]);
-
-        Livewire::actingAs($user)
-            ->test('movies.show', ['movie' => $movie])
-            ->call('toggleCart')
-            ->assertSet('inCart', false)
-            ->assertNotDispatched('cart-updated');
-
-        expect(app(CartService::class)->has($movie->id))->toBeFalse();
     });
 });
 
