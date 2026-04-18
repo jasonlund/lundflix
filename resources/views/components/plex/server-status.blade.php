@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PlexMediaServer;
+use App\Support\UserTime;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -11,7 +12,7 @@ new class extends Component {
     public function placeholder(): string
     {
         return <<<'HTML'
-        <flux:card>
+        <flux:card size="sm">
             <flux:heading size="lg">Plex Servers</flux:heading>
             <flux:text class="mt-2 text-zinc-500">Checking server status...</flux:text>
         </flux:card>
@@ -46,31 +47,63 @@ new class extends Component {
     {
         return $this->serverData['cached_at'];
     }
+
+    public function cachedAtDiff(): string
+    {
+        return UserTime::toUserTz($this->getCachedAt())->shortAbsoluteDiffForHumans();
+    }
+
+    public function lastSeenDiff(PlexMediaServer $server): string
+    {
+        if (! $server->last_seen_at) {
+            return '';
+        }
+
+        return UserTime::toUserTz($server->last_seen_at)->shortAbsoluteDiffForHumans() . ' ago';
+    }
 };
 ?>
 
-<flux:card>
-    <flux:heading size="lg">Plex Servers</flux:heading>
+<flux:card size="sm">
+    <div class="flex items-center justify-between">
+        <flux:heading size="lg">Servers</flux:heading>
+        <flux:text size="xs" class="text-zinc-400">{{ $this->cachedAtDiff() }} ago</flux:text>
+    </div>
 
     @if ($this->getServers()->isEmpty())
         <flux:text class="mt-2 text-zinc-500">No servers available.</flux:text>
     @else
-        <div class="mt-3 space-y-2">
-            @foreach ($this->getServers() as $server)
-                <div wire:key="server-{{ $server->client_identifier }}" class="flex items-center gap-2">
-                    @if ($server->is_online)
-                        <flux:icon.check-circle variant="mini" class="text-green-500" />
-                    @else
-                        <flux:icon.x-circle variant="mini" class="text-red-500" />
-                    @endif
-                    <flux:text>{{ $server->name }}</flux:text>
-                    @if ($server->owned)
-                        <flux:badge size="sm" color="zinc">Owned</flux:badge>
-                    @endif
-                </div>
-            @endforeach
-        </div>
+        <flux:table class="mt-3">
+            <flux:table.rows>
+                @foreach ($this->getServers() as $server)
+                    <flux:table.row :key="$server->client_identifier">
+                        <flux:table.cell variant="strong">
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="{{ $server->is_online ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
+                                ></div>
+                                <flux:avatar size="xs" circle :src="$server->owner_thumb" :name="$server->name" />
+                                {{ $server->name }}
+                                @unless ($server->is_online)
+                                    <flux:text size="xs">
+                                        {{ $this->lastSeenDiff($server) }}
+                                    </flux:text>
+                                @endunless
+                            </div>
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <flux:button
+                                variant="ghost"
+                                size="sm"
+                                icon="arrow-top-right-on-square"
+                                href="{{ $server->webUrl() }}"
+                                target="_blank"
+                                inset="top bottom"
+                            />
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
     @endif
-
-    <flux:text size="xs" class="mt-3 text-zinc-400">Updated {{ $this->getCachedAt()->diffForHumans() }}</flux:text>
 </flux:card>

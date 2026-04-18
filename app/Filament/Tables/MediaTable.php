@@ -72,7 +72,7 @@ class MediaTable
             ->recordActions([
                 Action::make('setActive')
                     ->label(fn (Media $record): string => $record->is_active ? 'Active' : 'Set Active')
-                    ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-check')
+                    ->icon(fn (Media $record) => $record->is_active ? 'lucide-circle-check' : 'lucide-circle-minus')
                     ->color(fn (Media $record): string => $record->is_active ? 'success' : 'gray')
                     ->action(fn (Media $record) => app(ActivateMedia::class)->activate($record))
                     ->disabled(fn (Media $record): bool => $record->is_active),

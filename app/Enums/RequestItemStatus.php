@@ -31,4 +31,14 @@ enum RequestItemStatus: string implements HasColor, HasLabel
             self::NotFound => 'warning',
         };
     }
+
+    public function getFluxColor(): string
+    {
+        return match ($this) {
+            self::Pending => 'zinc',
+            self::Fulfilled => 'green',
+            self::Rejected => 'red',
+            self::NotFound => 'amber',
+        };
+    }
 }

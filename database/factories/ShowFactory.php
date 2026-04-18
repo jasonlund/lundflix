@@ -33,9 +33,33 @@ class ShowFactory extends Factory
             'premiered' => fake()->date(),
             'ended' => null,
             'schedule' => ['time' => '21:00', 'days' => ['Monday']],
-            'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States']],
+            'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
             'web_channel' => null,
         ];
+    }
+
+    public function appleTvPlus(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 310, 'name' => 'Apple TV+'],
+        ]);
+    }
+
+    public function paramountPlus(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 107, 'name' => 'Paramount+'],
+        ]);
+    }
+
+    public function hboMax(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'network' => null,
+            'web_channel' => ['id' => 329, 'name' => 'Max'],
+        ]);
     }
 
     public function withTmdbData(): static
@@ -43,7 +67,6 @@ class ShowFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'tmdb_synced_at' => now(),
-            'overview' => fake()->paragraph(),
         ]);
     }
 }

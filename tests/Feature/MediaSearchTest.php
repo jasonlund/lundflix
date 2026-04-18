@@ -36,15 +36,12 @@ it('displays movie results in search', function () {
         'original_language' => 'en',
         'release_date' => '1999-03-31',
         'status' => 'Released',
-        'production_companies' => [
-            ['id' => 79, 'name' => 'Warner Bros.', 'logo_path' => null, 'origin_country' => 'US'],
-        ],
     ]);
     $runtime = Formatters::runtime($movie->runtime);
 
     Livewire::test('media-search')
         ->set('query', 'Matrix')
-        ->assertSee('03/31/99')
+        ->assertSee('1999')
         ->assertSee('Released')
         ->assertSee($runtime)
         ->assertSee(route('movies.show', $movie));
@@ -289,7 +286,7 @@ it('displays release date for movies in search', function () {
 
     Livewire::test('media-search')
         ->set('query', 'Dated Test')
-        ->assertSee('07/15/24');
+        ->assertSee('2024');
 });
 
 it('displays origin country for movies in search', function () {

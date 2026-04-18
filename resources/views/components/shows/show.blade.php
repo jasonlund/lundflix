@@ -2,31 +2,76 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
-use App\Services\CartService;
+use App\Models\Subscription;
+use App\Support\AirDateTime;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Carbon\Carbon;
+use Flux\Flux;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
     public Show $show;
 
-    public int $cartEpisodeCount = 0;
-
     public int $totalEpisodeCount = 0;
 
-    public function mount(CartService $cart): void
+    public bool $isSubscribed = false;
+
+    public function mount(): void
     {
-        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
         $this->totalEpisodeCount = $this->show->episodes->count();
+        $this->isSubscribed =
+            auth()->check() &&
+            Subscription::query()
+                ->where('user_id', auth()->id())
+                ->where('subscribable_type', Show::class)
+                ->where('subscribable_id', $this->show->id)
+                ->exists();
     }
 
-    #[On('cart-updated')]
-    public function refreshCartCount(CartService $cart): void
+    #[Computed]
+    public function isSubscribable(): bool
     {
-        $this->cartEpisodeCount = $cart->countEpisodesForShow($this->show->id);
+        $status = $this->show->status;
+
+        if ($status === null) {
+            return false;
+        }
+
+        return $status->isSubscribable();
+    }
+
+    public function toggleSubscription(): void
+    {
+        if (! $this->isSubscribable) {
+            return;
+        }
+
+        $userId = auth()->id();
+
+        if ($this->isSubscribed) {
+            Subscription::query()
+                ->where('user_id', $userId)
+                ->where('subscribable_type', Show::class)
+                ->where('subscribable_id', $this->show->id)
+                ->delete();
+            $this->isSubscribed = false;
+        } else {
+            Subscription::create([
+                'user_id' => $userId,
+                'subscribable_type' => Show::class,
+                'subscribable_id' => $this->show->id,
+            ]);
+            $this->isSubscribed = true;
+        }
+
+        Flux::toast(
+            text: __($this->isSubscribed ? 'lundbergh.toast.subscribed' : 'lundbergh.toast.unsubscribed', [
+                'title' => $this->show->name,
+            ]),
+        );
     }
 
     #[Computed]
@@ -57,6 +102,12 @@ new class extends Component {
     public function runtime(): ?string
     {
         return Formatters::runtimeFor($this->show);
+    }
+
+    #[Computed]
+    public function contentRating(): ?string
+    {
+        return $this->show->contentRating();
     }
 
     #[Computed]
@@ -108,7 +159,33 @@ new class extends Component {
             return null;
         }
 
-        $days = $this->show->schedule['days'];
+        $schedule = AirDateTime::adjustSchedule($this->show->schedule, $this->show->web_channel);
+
+        $days = $schedule['days'];
+        $time = $schedule['time'] ?? '';
+        $sourceTz = $this->scheduleTimezone();
+
+        $dayOffset = 0;
+        $timeLabel = null;
+
+        if ($time !== '') {
+            if ($sourceTz) {
+                $result = UserTime::convertAirtimeWithDayOffset($time, $sourceTz);
+                $timeLabel = $result['time'];
+                $dayOffset = $result['dayOffset'];
+            } else {
+                $timeLabel = $this->formatCompactTime($time);
+            }
+        }
+
+        if ($dayOffset !== 0) {
+            $days = array_map(
+                fn (string $day) => Carbon::parse($day)
+                    ->addDays($dayOffset)
+                    ->format('l'),
+                $days,
+            );
+        }
 
         usort($days, fn ($a, $b) => Carbon::parse($a)->dayOfWeekIso - Carbon::parse($b)->dayOfWeekIso);
 
@@ -116,10 +193,12 @@ new class extends Component {
 
         $dayLabel = $this->collapseDayRanges($abbrevs);
 
-        $time = $this->show->schedule['time'] ?? '';
-        $timeLabel = $time !== '' ? $this->formatCompactTime($time) : null;
-
         return $timeLabel ? "{$dayLabel} {$timeLabel}" : $dayLabel;
+    }
+
+    private function scheduleTimezone(): ?string
+    {
+        return AirDateTime::scheduleTimezone($this->show->network, $this->show->web_channel);
     }
 
     /**
@@ -179,124 +258,181 @@ new class extends Component {
 
     public function render(): mixed
     {
-        return $this->view()->layout('components.layouts.app', [
-            'backgroundImage' => $this->backgroundUrl(),
-        ]);
+        return $this->view()
+            ->layout('components.layouts.app', [
+                'backgroundImage' => $this->backgroundUrl(),
+            ])
+            ->title($this->show->name);
     }
 };
 ?>
 
 <div class="flex flex-col">
-    <div class="relative overflow-hidden">
-        <div
-            x-data="{ syncing: false }"
-            @cart-syncing.window="syncing = true"
-            @cart-updated.window="syncing = false"
-            class="absolute top-4 right-4 z-10"
-        >
-            <flux:tooltip content="Add/Remove Episodes Below">
-                <div
-                    class="flex items-center gap-1.5 rounded-lg border-1 border-zinc-600 bg-white/10 px-3 py-2 text-white backdrop-blur-sm"
-                >
-                    <div class="relative flex min-w-4 items-center justify-center">
-                        @if ($totalEpisodeCount > 0 && $cartEpisodeCount >= $totalEpisodeCount)
-                            <span class="invisible">{{ $cartEpisodeCount }}</span>
-                            <span :class="syncing && 'opacity-0'" class="absolute">
-                                <flux:icon.check class="size-4" />
-                            </span>
-                        @else
-                            <span :class="syncing && 'opacity-0'">
-                                {{ $cartEpisodeCount > 0 ? $cartEpisodeCount : '-' }}
-                            </span>
-                        @endif
-                        <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4" />
-                    </div>
-                    <flux:icon.shopping-cart class="size-4" />
-                </div>
-            </flux:tooltip>
-        </div>
-
-        <div class="relative flex flex-col gap-3 py-5 text-white sm:py-6">
-            <div class="max-w-4xl">
-                <x-artwork
-                    :model="$show"
-                    type="logo"
-                    :alt="$show->name . ' logo'"
-                    :fallback="false"
-                    class="h-24 drop-shadow sm:h-28 md:h-40"
-                />
-            </div>
-
-            <div class="{{ $this->logoUrl ? '' : 'flex h-[128px] items-end sm:h-[144px] md:h-[192px]' }}">
-                <flux:heading
-                    size="xl"
-                    class="{{ $this->logoUrl ? 'truncate' : 'line-clamp-2 text-5xl' }} font-serif tracking-wide"
-                >
-                    {{ $show->name }}
-                </flux:heading>
-            </div>
-
-            <div class="truncate text-zinc-200">
-                @if ($this->yearLabel())
-                    <span>{{ $this->yearLabel() }}</span>
-                @endif
-
-                @if ($show->status)
-                    @if ($this->yearLabel())
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
-
-                    <span class="{{ $show->status->iconColorClass() }} inline-flex items-center gap-1 align-middle">
-                        <x-dynamic-component :component="'flux::icon.' . $show->status->icon()" variant="mini" />
-                        {{ $show->status->getLabel() }}
-                    </span>
-                @endif
-
-                @if ($this->isScheduleVisible())
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    <span>{{ $this->scheduleLabel() }}</span>
-                @endif
-            </div>
-
-            @if ($show->genres && count($show->genres))
-                <div class="flex gap-4 truncate text-zinc-200">
-                    @foreach ($show->genres as $genre)
-                        <span class="inline-flex items-center gap-1 align-middle">
-                            <x-dynamic-component
-                                :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
-                                variant="mini"
-                            />
-                            {{ \App\Enums\Genre::labelFor($genre) }}
+    <x-media-hero :model="$show" :title="$show->name" :logo-url="$this->logoUrl">
+        <x-slot:actions>
+            @if ($this->isSubscribable)
+                <div x-data="{ syncing: false }" wire:key="subscribe-{{ $isSubscribed ? 'yes' : 'no' }}">
+                    <button
+                        x-on:click="
+                            syncing = true
+                            $wire.toggleSubscription().then(() => {
+                                syncing = false
+                            })
+                        "
+                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                    >
+                        <div class="relative flex items-center justify-center">
+                            @if ($isSubscribed)
+                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @else
+                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                            @endif
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
+                        </div>
+                        <span x-bind:class="syncing && 'opacity-0'">
+                            {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
                         </span>
-                    @endforeach
+                    </button>
                 </div>
             @endif
 
-            <div class="truncate text-sm text-zinc-200">
-                @if ($this->runtime())
-                    <span>{{ $this->runtime() }}</span>
+            <div
+                x-data="{
+                    get count() {
+                        return $store.cart.countForShow({{ $show->id }})
+                    },
+                    get isFullSeason() {
+                        return (
+                            {{ $totalEpisodeCount }} > 0 &&
+                            this.count > 0 &&
+                            this.count >= {{ $totalEpisodeCount }}
+                        )
+                    },
+                }"
+            >
+                <div
+                    x-bind:class="
+                        count > 0
+                            ? 'bg-lundflix/20 border-lundflix text-white'
+                            : 'border-zinc-600 bg-white/10 text-white'
+                    "
+                    class="flex items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                >
+                    <div class="relative flex items-center justify-center">
+                        <span x-show="isFullSeason" x-cloak>
+                            <flux:icon.check class="size-4 sm:size-5" />
+                        </span>
+                        <span
+                            x-show="count > 0 && ! isFullSeason"
+                            x-cloak
+                            x-text="count"
+                            class="text-sm font-bold tabular-nums sm:text-base"
+                        ></span>
+                        <span x-show="count === 0">
+                            <flux:icon.minus class="size-4 sm:size-5" />
+                        </span>
+                    </div>
+                    <span>Cart</span>
+                </div>
+            </div>
+        </x-slot>
+
+        <x-slot:metadata>
+            @php
+                $hasPrevious = false;
+            @endphp
+
+            @if ($this->yearLabel())
+                <span>{{ $this->yearLabel() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
+
+            @if ($show->status)
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
                 @endif
 
-                @foreach ($this->networkInfoItems() as $info)
-                    @if ($this->runtime() || ! $loop->first)
-                        <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                    @endif
+                <x-dynamic-component
+                    :component="'flux::icon.' . $show->status->icon()"
+                    variant="mini"
+                    class="{{ $show->status->iconColorClass() }} mb-px inline size-3.5 sm:size-4"
+                />
+                <span class="{{ $show->status->iconColorClass() }}">
+                    {{ $show->status->getLabel() }}
+                </span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
 
-                    @if ($info['logoUrl'])
-                        <flux:tooltip :content="$info['tooltip']">
-                            <img
-                                src="{{ $info['logoUrl'] }}"
-                                alt="{{ $info['tooltip'] }}"
-                                class="inline-block h-5 w-auto object-contain align-middle"
-                            />
-                        </flux:tooltip>
-                    @else
-                        <span>{{ $info['tooltip'] }}</span>
-                    @endif
+            @if ($this->isScheduleVisible())
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                @endif
+
+                <span>{{ $this->scheduleLabel() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
+
+            @foreach ($this->networkInfoItems() as $info)
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                @endif
+
+                @if ($info['logoUrl'])
+                    <flux:tooltip :content="$info['tooltip']">
+                        <img
+                            src="{{ $info['logoUrl'] }}"
+                            alt="{{ $info['tooltip'] }}"
+                            class="inline-block h-5 w-auto object-contain align-middle"
+                        />
+                    </flux:tooltip>
+                @else
+                    <span>{{ $info['tooltip'] }}</span>
+                @endif
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endforeach
+
+            @if ($this->runtime())
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                @endif
+
+                <span>{{ $this->runtime() }}</span>
+                @php
+                    $hasPrevious = true;
+                @endphp
+            @endif
+
+            @if ($this->contentRating())
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                @endif
+
+                <span>{{ $this->contentRating() }}</span>
+            @endif
+        </x-slot>
+
+        @if ($show->genres && count($show->genres))
+            <x-slot:genres>
+                @foreach ($show->genres as $genre)
+                    <span class="inline-flex items-center gap-1 align-middle">
+                        <x-dynamic-component
+                            :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
+                            variant="mini"
+                        />
+                        {{ \App\Enums\Genre::labelFor($genre) }}
+                    </span>
                 @endforeach
-            </div>
-        </div>
-    </div>
+            </x-slot>
+        @endif
+    </x-media-hero>
 
     <div class="flex flex-col gap-8">
         @if ($show->imdb_id)

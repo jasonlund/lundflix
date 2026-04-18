@@ -11,14 +11,11 @@ Artisan::command('inspire', function () {
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('plex:sync-servers')->everyFifteenMinutes();
 
-// Sync TV shows and movies daily at 2:00 AM Pacific, then ratings (which depend on both existing)
-Schedule::command('tvmaze:sync-shows')
+Schedule::command('process:show-subscriptions')->everyFifteenMinutes();
+Schedule::command('process:movie-subscriptions')->dailyAt('08:00')->timezone('America/New_York');
+
+Schedule::command('sync:nightly')
     ->daily()
     ->at('02:00')
     ->timezone('America/Los_Angeles')
-    ->then(fn () => Artisan::call('tvmaze:sync-updates'))
-    ->then(fn () => Artisan::call('imdb:sync-movies'))
-    ->then(fn () => Artisan::call('imdb:sync-ratings'))
-    ->then(fn () => Artisan::call('tmdb:sync-movies'))
-    ->then(fn () => Artisan::call('tmdb:sync-shows'))
-    ->then(fn () => Artisan::call('tvmaze:sync-schedule'));
+    ->withoutOverlapping();

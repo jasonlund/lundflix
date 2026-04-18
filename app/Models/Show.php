@@ -9,6 +9,7 @@ use App\Enums\ShowStatus;
 use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
+use App\Support\AirDateTime;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,9 @@ use Laravel\Scout\Searchable;
 class Show extends Model
 {
     /** @use HasFactory<\Database\Factories\ShowFactory> */
-    use HasArtwork, HasFactory, HasObfuscatedId, Searchable;
+    use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
+        HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
+    }
 
     protected function casts(): array
     {
@@ -36,12 +39,7 @@ class Show extends Model
             'tmdb_id' => 'integer',
             'tmdb_synced_at' => 'datetime',
             'original_language' => LanguageFromCode::class,
-            'spoken_languages' => 'array',
-            'production_companies' => 'array',
-            'origin_country' => 'array',
             'content_ratings' => 'array',
-            'alternative_titles' => 'array',
-            'in_production' => 'boolean',
         ];
     }
 
@@ -68,6 +66,19 @@ class Show extends Model
     }
 
     /**
+     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        if ($field === null && is_string($value) && str_starts_with($value, 'tt')) {
+            return $query->where('imdb_id', $value);
+        }
+
+        return $this->resolveSqidRouteBindingQuery($query, $value, $field);
+    }
+
+    /**
      * Retrieve the model for a bound value with eager-loaded episodes.
      *
      * @param  mixed  $value
@@ -86,7 +97,7 @@ class Show extends Model
     protected function mostRecentSeason(): Attribute
     {
         return Attribute::get(function (): ?int {
-            $today = now()->startOfDay();
+            $cutoff = AirDateTime::effectiveAirDateCutoff($this->web_channel, $this->network)->format('Y-m-d'); // @phpstan-ignore argument.type, argument.type (casted to array)
 
             // Priority: 1) Currently airing (has past AND future episodes)
             //           2) Completed (has only past episodes)
@@ -94,11 +105,11 @@ class Show extends Model
             // Within each tier, prefer the highest season number.
             $result = $this->episodes()
                 ->selectRaw('season')
-                ->selectRaw('SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) as past_count', [$today])
-                ->selectRaw('SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) as future_count', [$today])
+                ->selectRaw('SUM(CASE WHEN DATE(airdate) <= ? THEN 1 ELSE 0 END) as past_count', [$cutoff])
+                ->selectRaw('SUM(CASE WHEN DATE(airdate) > ? THEN 1 ELSE 0 END) as future_count', [$cutoff])
                 ->groupBy('season')
-                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN airdate > ? THEN 1 ELSE 0 END) > 0) DESC', [$today, $today])
-                ->orderByRaw('(SUM(CASE WHEN airdate <= ? THEN 1 ELSE 0 END) > 0) DESC', [$today])
+                ->orderByRaw('(SUM(CASE WHEN DATE(airdate) <= ? THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN DATE(airdate) > ? THEN 1 ELSE 0 END) > 0) DESC', [$cutoff, $cutoff])
+                ->orderByRaw('(SUM(CASE WHEN DATE(airdate) <= ? THEN 1 ELSE 0 END) > 0) DESC', [$cutoff])
                 ->orderByDesc('season')
                 ->first();
 
@@ -130,6 +141,15 @@ class Show extends Model
         return null;
     }
 
+    public function contentRating(): ?string
+    {
+        /** @var array{rating: string, iso_3166_1: string}|null $usEntry */
+        $usEntry = collect($this->content_ratings ?? [])
+            ->firstWhere('iso_3166_1', 'US');
+
+        return $usEntry['rating'] ?? null;
+    }
+
     public function networkLogoUrl(): ?string
     {
         /** @var array<string, mixed>|null $network */
@@ -152,6 +172,14 @@ class Show extends Model
         }
 
         return null;
+    }
+
+    /**
+     * @return MorphMany<Subscription, $this>
+     */
+    public function subscriptions(): MorphMany
+    {
+        return $this->morphMany(Subscription::class, 'subscribable');
     }
 
     protected function artworkExternalIdValue(): string|int|null

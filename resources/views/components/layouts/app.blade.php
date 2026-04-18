@@ -1,8 +1,3 @@
-@php
-    $defaultBackground = Vite::image('default-background.svg');
-    $backgroundImage ??= $defaultBackground;
-@endphp
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
@@ -10,7 +5,7 @@
     </head>
     <body class="min-h-screen overflow-x-hidden bg-zinc-950">
         <div
-            class="relative min-h-screen overflow-x-clip bg-zinc-900 md:mx-auto md:max-w-screen-md md:overflow-x-visible md:border-y md:border-zinc-800/70"
+            class="relative min-h-screen overflow-x-clip bg-zinc-900 md:mx-auto md:max-w-screen-md md:overflow-x-visible md:border-t md:border-zinc-800/70"
         >
             <div
                 class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
@@ -28,11 +23,7 @@
                 <div
                     class="absolute inset-0 bg-gradient-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
                 ></div>
-                <div class="flicker absolute inset-0 bg-zinc-900/5"></div>
-                <div class="scanlines absolute inset-0"></div>
-                <div class="scanline absolute inset-0">
-                    <div class="block h-px w-full bg-white/15 opacity-50"></div>
-                </div>
+                <x-crt-effects />
             </div>
 
             <div
@@ -47,23 +38,20 @@
                 class="pointer-events-none absolute inset-y-0 right-0 z-[15] hidden w-px bg-zinc-800/70 md:block"
             ></div>
 
-            <div class="relative z-20">
+            <div class="relative z-20 min-h-screen">
                 <flux:header
                     x-data="{ scrolled: false }"
                     x-init="scrolled = window.scrollY > $el.offsetHeight / 2"
                     x-on:scroll.window.passive="scrolled = window.scrollY > $el.offsetHeight / 2"
-                    x-bind:class="
-                        scrolled
-                            ? 'bg-zinc-900/75 backdrop-blur-sm border-zinc-700'
-                            : 'border-transparent'
-                    "
+                    x-bind:class="scrolled ? 'glass-panel border-zinc-700' : 'border-transparent'"
                     class="sticky top-0 z-20 -mt-px border-b border-transparent transition-[background-color,backdrop-filter,border-color] duration-300 ease-out"
                 >
                     <flux:brand
                         href="{{ route('home') }}"
                         wire:navigate
                         :logo="Vite::image('logo.png')"
-                        class="me-4"
+                        class="drop-shadow-glow-subtle me-4 transition-[filter] duration-300 ease-out"
+                        x-bind:class="{ 'drop-shadow-none': scrolled }"
                     />
 
                     <flux:spacer />
@@ -99,11 +87,34 @@
                     </div>
                 </flux:header>
 
-                <flux:main :padding="false">
+                <flux:main>
                     <div class="px-4 pb-6 sm:px-6">
                         {{ $slot }}
                     </div>
                 </flux:main>
+
+                <footer
+                    class="flex items-center justify-center gap-2 border-t border-zinc-800/70 bg-black p-1 text-xs text-zinc-400 [grid-area:footer] md:border-x"
+                >
+                    <span class="font-[Josefin_Slab] font-semibold">Made with 🤠 in Wyoming</span>
+                    {{--
+                        <span>·</span>
+                        <flux:modal.trigger name="credits">
+                        <button type="button" class="cursor-pointer transition-colors hover:text-white">Credits</button>
+                        </flux:modal.trigger>
+                        <span>·</span>
+                        <span>Changelog</span>
+                    --}}
+                </footer>
+
+                {{--
+                    <flux:modal name="credits" size="sm">
+                    <div class="space-y-4">
+                    <flux:heading size="lg">Credits</flux:heading>
+                    <flux:text>Foobar</flux:text>
+                    </div>
+                    </flux:modal>
+                --}}
             </div>
         </div>
 
@@ -116,6 +127,12 @@
         </div>
 
         <livewire:media-search />
+
+        <x-error-overlay />
+
+        <script>
+            window.lundflixErrors = {{ Js::from($errorPages) }}
+        </script>
 
         @fluxScripts
     </body>

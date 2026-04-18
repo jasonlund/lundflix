@@ -4,10 +4,11 @@ use App\Actions\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-new #[Layout('components.layouts.guest')] class extends Component {
+new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Component {
     public string $plexUsername = '';
 
     public string $plexEmail = '';
@@ -18,6 +19,9 @@ new #[Layout('components.layouts.guest')] class extends Component {
     public string $password = '';
 
     public string $password_confirmation = '';
+
+    #[Validate('required|timezone:all')]
+    public string $timezone = 'America/New_York';
 
     /**
      * @return array<string, array<int, mixed>>
@@ -44,6 +48,20 @@ new #[Layout('components.layouts.guest')] class extends Component {
         $this->name = $plexData['plex_username'];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function timezoneOptions(): array
+    {
+        $timezones = [];
+
+        foreach (\DateTimeZone::listIdentifiers() as $tz) {
+            $timezones[$tz] = str_replace(['/', '_'], [' / ', ' '], $tz);
+        }
+
+        return $timezones;
+    }
+
     public function register(CreateNewUser $createUser): void
     {
         $plexData = session()->pull('plex_registration');
@@ -64,6 +82,7 @@ new #[Layout('components.layouts.guest')] class extends Component {
             'plex_token' => $plexData['plex_token'],
             'plex_username' => $plexData['plex_username'],
             'plex_thumb' => $plexData['plex_thumb'],
+            'timezone' => $validated['timezone'],
         ]);
 
         Auth::login($user, remember: true);
@@ -75,34 +94,70 @@ new #[Layout('components.layouts.guest')] class extends Component {
 
 <div class="flex min-h-screen items-center justify-center">
     <div class="w-full max-w-md">
-        <flux:card>
-            <flux:heading size="lg">Complete Registration</flux:heading>
-            <flux:text class="mt-2">Your Plex account has been verified. Complete your registration below.</flux:text>
+        <flux:card class="relative overflow-hidden">
+            <div class="pointer-events-none absolute inset-0 overflow-hidden">
+                <img src="{{ Vite::image('default-background.svg') }}" class="h-full w-full object-cover" />
+                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent to-black/70"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
+                <div class="absolute inset-0 bg-black/25"></div>
+                <x-crt-effects />
+            </div>
 
-            <form wire:submit="register" class="mt-6 space-y-6">
-                <flux:input label="Plex Username" :value="$plexUsername" disabled />
+            <div class="relative">
+                <flux:heading size="lg">Complete Registration</flux:heading>
+                <flux:text class="mt-2">
+                    Your Plex account has been verified. Complete your registration below.
+                </flux:text>
 
-                <flux:input label="Email" type="email" :value="$plexEmail" disabled />
+                <form wire:submit="register" class="mt-6 space-y-6">
+                    <flux:input label="Plex Username" :value="$plexUsername" disabled />
 
-                <flux:field>
-                    <flux:label>Display Name</flux:label>
-                    <flux:input wire:model.blur="name" placeholder="Your display name" required />
-                    <flux:error name="name" />
-                </flux:field>
+                    <flux:input label="Email" type="email" :value="$plexEmail" disabled />
 
-                <flux:field>
-                    <flux:label>Password</flux:label>
-                    <flux:input wire:model.blur="password" type="password" required />
-                    <flux:error name="password" />
-                </flux:field>
+                    <flux:field>
+                        <flux:label>Display Name</flux:label>
+                        <flux:input wire:model.blur="name" placeholder="Your display name" required />
+                        <flux:error name="name" />
+                    </flux:field>
 
-                <flux:field>
-                    <flux:label>Confirm Password</flux:label>
-                    <flux:input wire:model.blur="password_confirmation" type="password" required />
-                </flux:field>
+                    <flux:field>
+                        <flux:label>Password</flux:label>
+                        <flux:input wire:model.blur="password" type="password" required />
+                        <flux:error name="password" />
+                    </flux:field>
 
-                <flux:button type="submit" variant="primary" class="w-full">Create Account</flux:button>
-            </form>
+                    <flux:field>
+                        <flux:label>Confirm Password</flux:label>
+                        <flux:input wire:model.blur="password_confirmation" type="password" required />
+                    </flux:field>
+
+                    <flux:field
+                        x-init="
+                            try {
+                                let tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+                                if (tz) {
+                                    $wire.timezone = tz
+                                }
+                            } catch (e) {}
+                        "
+                    >
+                        <flux:label>Timezone</flux:label>
+                        <flux:select
+                            variant="listbox"
+                            searchable
+                            wire:model="timezone"
+                            placeholder="Select timezone..."
+                        >
+                            @foreach ($this->timezoneOptions() as $value => $label)
+                                <flux:select.option :$value>{{ $label }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="timezone" />
+                    </flux:field>
+
+                    <flux:button type="submit" variant="primary" class="w-full">Create Account</flux:button>
+                </form>
+            </div>
         </flux:card>
     </div>
 </div>

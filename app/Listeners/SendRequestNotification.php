@@ -7,6 +7,7 @@ use App\Models\Episode;
 use App\Notifications\RequestItemsNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class SendRequestNotification implements ShouldQueue
@@ -16,12 +17,20 @@ class SendRequestNotification implements ShouldQueue
     public function handle(RequestSubmitted $event): void
     {
         if (! config('services.slack.enabled')) {
+            Log::error('Slack notification skipped: Slack is not enabled', [
+                'request_id' => $event->request->id,
+            ]);
+
             return;
         }
 
         $channel = config('services.slack.notifications.channel');
 
         if (! $channel) {
+            Log::error('Slack notification skipped: channel not configured', [
+                'request_id' => $event->request->id,
+            ]);
+
             return;
         }
 
@@ -32,10 +41,16 @@ class SendRequestNotification implements ShouldQueue
         }]);
 
         if ($request->items->isEmpty()) {
+            Log::error('Slack notification skipped: request has no items', [
+                'request_id' => $request->id,
+            ]);
+
             return;
         }
 
+        $notification = new RequestItemsNotification($request);
+
         Notification::route('slack', $channel)
-            ->notify(new RequestItemsNotification($request));
+            ->notify($notification);
     }
 }

@@ -65,6 +65,11 @@ enum MovieStatus: string implements HasColor, HasIcon, HasLabel
         return $this === self::Released;
     }
 
+    public function isSubscribable(): bool
+    {
+        return ! in_array($this, [self::Released, self::Canceled]);
+    }
+
     public function iconColorClass(): string
     {
         return match ($this) {

@@ -1,25 +1,21 @@
 <?php
 
+use App\Enums\MovieStatus;
 use App\Events\RequestSubmitted;
 use App\Models\Movie;
 use App\Models\User;
-use App\Services\CartService;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
-
-beforeEach(function () {
-    session()->flush();
-});
 
 it('dispatches RequestSubmitted event on successful submit', function () {
     Event::fake([RequestSubmitted::class]);
 
     $user = User::factory()->create();
-    $movie = Movie::factory()->create();
-    app(CartService::class)->toggleMovie($movie->id);
+    $movie = Movie::factory()->create(['status' => MovieStatus::Released]);
 
     Livewire::actingAs($user)
         ->test('cart')
+        ->dispatch('open-cart', movies: [$movie->id], episodes: [])
         ->call('submit');
 
     Event::assertDispatched(RequestSubmitted::class, function ($event) {
@@ -34,6 +30,7 @@ it('does not dispatch RequestSubmitted event when cart is empty', function () {
 
     Livewire::actingAs($user)
         ->test('cart')
+        ->dispatch('open-cart', movies: [], episodes: [])
         ->call('submit');
 
     Event::assertNotDispatched(RequestSubmitted::class);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ArtController;
 use App\Http\Controllers\Auth\PlexCallbackController;
+use App\Http\Controllers\ErrorPreviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -29,3 +30,7 @@ Route::middleware('guest')->group(function () {
     Route::livewire('/login', 'auth.login')->name('login');
     Route::livewire('/register', 'auth.register')->name('register');
 });
+
+Route::get('/{status}', ErrorPreviewController::class)
+    ->where('status', '[0-9]{3}')
+    ->name('error-preview');

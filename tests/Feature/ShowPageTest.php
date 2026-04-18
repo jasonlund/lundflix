@@ -1,9 +1,10 @@
 <?php
 
 use App\Enums\ShowStatus;
-use App\Models\Episode;
 use App\Models\Show;
-use App\Services\CartService;
+use App\Models\Subscription;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Vite;
 use Illuminate\Support\Facades\Vite as ViteFacade;
 use Illuminate\Support\HtmlString;
@@ -31,6 +32,33 @@ it('requires authentication to view show page', function () {
 
     $this->get(route('shows.show', $show))
         ->assertRedirect(route('login'));
+});
+
+it('displays show page for authenticated users', function () {
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('shows.show', $show))
+        ->assertSuccessful()
+        ->assertSeeLivewire('shows.show')
+        ->assertSee($show->name);
+});
+
+it('displays show page when bound by imdb id', function () {
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'imdb_id' => 'tt0903747',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('shows.show', ['show' => $show->imdb_id]))
+        ->assertSuccessful()
+        ->assertSeeLivewire('shows.show')
+        ->assertSee($show->name);
 });
 
 it('displays show details', function () {
@@ -200,6 +228,78 @@ it('shows schedule for to-be-determined shows', function () {
         ->assertSee('We 10p');
 });
 
+it('shifts schedule day forward when timezone conversion crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Thu 21:00 Eastern = Fri 02:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Thursday'], 'time' => '21:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Fr 2a');
+});
+
+it('shifts schedule day backward when timezone conversion crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'America/Los_Angeles']);
+    $this->actingAs($user);
+
+    // Fri 01:00 BST = Thu 17:00 PDT (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Friday'], 'time' => '01:00'],
+        'network' => ['id' => 1, 'name' => 'BBC One', 'country' => ['name' => 'United Kingdom', 'timezone' => 'Europe/London']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Th 5p');
+});
+
+it('wraps Sunday to Monday when timezone shifts day forward', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Sun 22:00 Eastern = Mon 03:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Sunday'], 'time' => '22:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Mo 3a');
+});
+
+it('shifts multiple schedule days when timezone crosses midnight', function () {
+    $this->travelTo(Carbon::parse('2026-07-01'));
+
+    $user = User::factory()->create(['timezone' => 'Europe/London']);
+    $this->actingAs($user);
+
+    // Mon/Wed/Fri 21:00 Eastern = Tue/Thu/Sat 02:00 BST (summer)
+    $show = Show::factory()->create([
+        'status' => ShowStatus::Running->value,
+        'schedule' => ['days' => ['Monday', 'Wednesday', 'Friday'], 'time' => '21:00'],
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+    ]);
+
+    $component = Livewire::test('shows.show', ['show' => $show]);
+
+    expect($component->instance()->scheduleLabel())->toBe('Tu, Th, Sa 2a');
+});
+
 it('displays network logo for a mapped network', function () {
     $show = Show::factory()->create([
         'network' => ['id' => 8, 'name' => 'HBO', 'country' => ['name' => 'United States']],
@@ -262,59 +362,136 @@ it('abbreviates country names in network tooltip', function () {
         ->assertDontSee('United Kingdom');
 });
 
-it('displays cart episode count when episodes are in cart', function () {
-    $show = Show::factory()->create();
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02', 'S01E03']);
-
-    Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('3')
-        ->assertSee('Add/Remove Episodes Below');
-});
-
-it('displays dash when no episodes are in cart', function () {
-    $show = Show::factory()->create();
+it('displays content rating when available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Breaking Bad',
+        'content_ratings' => [
+            ['rating' => 'TV-MA', 'iso_3166_1' => 'US'],
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+        ],
+    ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('Add/Remove Episodes Below');
+        ->assertSee('TV-MA');
 });
 
-it('updates cart episode count on cart-updated event', function () {
-    $show = Show::factory()->create();
-
-    $component = Livewire::test('shows.show', ['show' => $show])
-        ->assertSet('cartEpisodeCount', 0);
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
-
-    $component->dispatch('cart-updated')
-        ->assertSet('cartEpisodeCount', 2);
-});
-
-it('displays check mark when all episodes are in cart', function () {
-    $show = Show::factory()->create();
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
-    $show->load('episodes');
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
+it('does not display content rating when not available', function () {
+    $show = Show::factory()->create([
+        'name' => 'Mystery Show',
+        'content_ratings' => null,
+    ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSeeHtml('m4.5 12.75 6 6 9-13.5')
-        ->assertSet('cartEpisodeCount', 2)
-        ->assertSet('totalEpisodeCount', 2);
+        ->assertDontSee('TV-MA')
+        ->assertDontSee('TV-14');
 });
 
-it('displays count instead of check mark when not all episodes are in cart', function () {
-    $show = Show::factory()->create();
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
-    Episode::factory()->for($show)->create(['season' => 1, 'number' => 3]);
-    $show->load('episodes');
-
-    app(CartService::class)->syncShowEpisodes($show->id, ['S01E01', 'S01E02']);
+it('displays US content rating from multiple countries', function () {
+    $show = Show::factory()->create([
+        'content_ratings' => [
+            ['rating' => '15', 'iso_3166_1' => 'GB'],
+            ['rating' => 'TV-14', 'iso_3166_1' => 'US'],
+            ['rating' => 'M', 'iso_3166_1' => 'AU'],
+        ],
+    ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertDontSeeHtml('m4.5 12.75 6 6 9-13.5')
-        ->assertSee('2');
+        ->assertSee('TV-14');
+});
+
+it('renders the cart pill', function () {
+    $show = Show::factory()->create();
+
+    Livewire::test('shows.show', ['show' => $show])
+        ->assertSee('Cart');
+});
+
+describe('subscription', function () {
+    it('can subscribe to a running show', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', false)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', true);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Show::class)
+            ->where('subscribable_id', $show->id)
+            ->exists())->toBeTrue();
+    });
+
+    it('can unsubscribe from a show', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', true)
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_type', Show::class)
+            ->where('subscribable_id', $show->id)
+            ->exists())->toBeFalse();
+    });
+
+    it('allows subscription for subscribable statuses', function (ShowStatus $status) {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => $status->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', true);
+    })->with([
+        'Running' => ShowStatus::Running,
+        'ToBeDetermined' => ShowStatus::ToBeDetermined,
+        'InDevelopment' => ShowStatus::InDevelopment,
+    ]);
+
+    it('disables subscription for ended shows', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Ended->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('disables subscription for shows with null status', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => null]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribable', false);
+    });
+
+    it('prevents toggling subscription for ended shows', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Ended->value]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->call('toggleSubscription')
+            ->assertSet('isSubscribed', false);
+
+        expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
+    });
+
+    it('initializes subscription state from database on mount', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('isSubscribed', true);
+    });
 });

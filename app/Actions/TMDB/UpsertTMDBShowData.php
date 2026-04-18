@@ -3,16 +3,17 @@
 namespace App\Actions\TMDB;
 
 use App\Models\Show;
+use App\Support\DatabaseRetry;
 
 class UpsertTMDBShowData
 {
     /**
-     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool}>  $shows
+     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, content_ratings: ?array, original_name: ?string, original_language: ?string}>  $shows
      */
     public function upsert(array $shows): int
     {
         $shows = array_map(function (array $show) {
-            foreach (['spoken_languages', 'production_companies', 'origin_country', 'content_ratings', 'alternative_titles'] as $field) {
+            foreach (['content_ratings'] as $field) {
                 if (isset($show[$field])) {
                     $show[$field] = json_encode($show[$field]);
                 }
@@ -21,18 +22,18 @@ class UpsertTMDBShowData
             return $show;
         }, $shows);
 
-        return Show::upsert(
+        return DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
-            ['tmdb_id', 'tmdb_synced_at', 'overview', 'tagline', 'original_name', 'original_language', 'spoken_languages', 'production_companies', 'origin_country', 'content_ratings', 'alternative_titles', 'homepage', 'in_production', 'thetvdb_id']
-        );
+            ['tmdb_id', 'tmdb_synced_at', 'content_ratings', 'original_name', 'original_language', 'thetvdb_id']
+        ));
     }
 
     /**
      * Map TMDB API response data to database columns.
      *
      * @param  array<string, mixed>  $details
-     * @return array{tmdb_id: int, overview: ?string, tagline: ?string, original_name: ?string, original_language: ?string, spoken_languages: ?array, production_companies: ?array, origin_country: ?array, content_ratings: ?array, alternative_titles: ?array, homepage: ?string, in_production: ?bool}
+     * @return array{tmdb_id: int, content_ratings: ?array, original_name: ?string, original_language: ?string}
      */
     public static function mapFromApi(array $details): array
     {
@@ -45,17 +46,9 @@ class UpsertTMDBShowData
 
         return [
             'tmdb_id' => $details['id'],
-            'overview' => $details['overview'] ?: null,
-            'tagline' => $details['tagline'] ?: null,
+            'content_ratings' => $contentRatings ?: null,
             'original_name' => $details['original_name'] ?? null,
             'original_language' => $details['original_language'] ?? null,
-            'spoken_languages' => $details['spoken_languages'] ?? null,
-            'production_companies' => $details['production_companies'] ?? null,
-            'origin_country' => $details['origin_country'] ?? null,
-            'content_ratings' => $contentRatings ?: null,
-            'alternative_titles' => $details['alternative_titles']['results'] ?? null,
-            'homepage' => ($details['homepage'] ?? null) ?: null,
-            'in_production' => $details['in_production'] ?? null,
         ];
     }
 }

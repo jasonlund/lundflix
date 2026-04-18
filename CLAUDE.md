@@ -1,6 +1,23 @@
 @CLAUDE.project.md
 
----
+## Claude Code Overrides
+
+- These overrides are intentionally narrow. Laravel, Livewire, Filament, Tailwind, Pest, and other ecosystem guidance should come from Laravel Boost unless this file explicitly says otherwise.
+
+- Inspect the relevant files before editing. Do not patch blind.
+- If the request is based on a wrong premise, say so before changing code.
+- For clear, safe instructions, act without redundant "should I proceed?" loops.
+- User tone is not a reason to lower rigor, compliance, or verification.
+- Do not create todo lists or progress theater for trivial work.
+- Never read `.env`, `auth.json`, or other secret material unless the user explicitly asks and permissions allow it.
+- Do not claim success without evidence.
+- After repo changes, run the smallest relevant verification before stopping.
+- If verification cannot run, say `VERIFICATION_SKIPPED: <reason>` and state the remaining risk.
+- For non-trivial changes, run the `verification-reviewer` subagent before reporting completion.
+- Treat user corrections as persistent. Use Claude memory or local rules instead of repeating the same mistake.
+- Keep the Laravel Boost block below intact. `php artisan boost:update` manages that section.
+
+===
 
 <laravel-boost-guidelines>
 === foundation rules ===
@@ -17,6 +34,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
 - laravel/horizon (HORIZON) - v5
+- laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/pennant (PENNANT) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/scout (SCOUT) - v10
@@ -442,9 +460,3 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>
-
----
-
-## Conductor
-
-@.conductor/instructions.md

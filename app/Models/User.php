@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -66,6 +67,12 @@ class User extends Authenticatable implements FilamentUser
             ->implode('');
     }
 
+    /** @return HasMany<Request, $this> */
+    public function requests(): HasMany
+    {
+        return $this->hasMany(Request::class);
+    }
+
     /**
      * Determine if the user is an admin.
      */
@@ -84,5 +91,13 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return true;
+    }
+
+    /**
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 }

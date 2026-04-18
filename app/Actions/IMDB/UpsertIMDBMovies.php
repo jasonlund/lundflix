@@ -3,6 +3,7 @@
 namespace App\Actions\IMDB;
 
 use App\Models\Movie;
+use App\Support\DatabaseRetry;
 
 class UpsertIMDBMovies
 {
@@ -20,10 +21,10 @@ class UpsertIMDBMovies
             return $movie;
         }, $movies);
 
-        return Movie::upsert(
+        return DatabaseRetry::run(fn (): int => Movie::upsert(
             $movies,
             ['imdb_id'],
             ['title', 'year', 'runtime', 'genres']
-        );
+        ));
     }
 }

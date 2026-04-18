@@ -17,9 +17,10 @@ class MovieShowSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::table('movies')->truncate();
         DB::table('shows')->truncate();
+        DB::table('media')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        $this->command->info('Truncated movies and shows tables.');
+        $this->command->info('Truncated movies, shows, and media tables.');
 
         $gzPath = $this->findLatestSeedFile();
         $tempSql = sys_get_temp_dir().'/seed_'.uniqid().'.sql';
@@ -48,13 +49,13 @@ class MovieShowSeeder extends Seeder
                 escapeshellarg($tempSql)
             );
 
-            $result = Process::env($password ? ['MYSQL_PWD' => $password] : [])->run($cmd);
+            $result = Process::timeout(600)->env($password ? ['MYSQL_PWD' => $password] : [])->run($cmd);
 
             if (! $result->successful()) {
                 throw new \RuntimeException('Failed to import seed data: '.$result->errorOutput());
             }
 
-            $this->command->info('Seeded movies and shows from: '.basename($gzPath));
+            $this->command->info('Seeded movies, shows, and media from: '.basename($gzPath));
 
             $this->repairDoubleEncodedUtf8();
         } finally {

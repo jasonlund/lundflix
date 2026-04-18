@@ -6,6 +6,7 @@ use App\Enums\ShowStatus;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class Formatters
@@ -107,6 +108,85 @@ class Formatters
     public static function formatSeason(int $season): string
     {
         return sprintf('S%02d', $season);
+    }
+
+    public static function formatResolution(?string $resolution): ?string
+    {
+        if ($resolution === null) {
+            return null;
+        }
+
+        return match (strtolower($resolution)) {
+            '4k' => '4K',
+            'sd' => 'SD',
+            default => $resolution.'p',
+        };
+    }
+
+    /**
+     * Format a past date as a compact relative time-since string.
+     *
+     * Returns the highest-order unit only, with hours as the smallest granularity.
+     * Examples: "4h", "3d", "3w", "3m"
+     */
+    public static function timeSince(Carbon $date, ?string $airtime = null): string
+    {
+        $target = $airtime
+            ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
+            : $date->copy()->startOfDay();
+
+        $now = now(UserTime::timezone());
+
+        $hours = (int) $now->diffInHours($target, absolute: true);
+
+        if ($hours < 24) {
+            return max(1, $hours).'h';
+        }
+
+        $days = (int) $now->diffInDays($target, absolute: true);
+
+        if ($days < 7) {
+            return $days.'d';
+        }
+
+        if ($days < 30) {
+            return ((int) floor($days / 7)).'w';
+        }
+
+        return ((int) floor($days / 30)).'m';
+    }
+
+    /**
+     * Format a future date as a compact relative time-until string.
+     *
+     * Returns the highest-order unit only, with hours as the smallest granularity.
+     * Examples: "4h", "3d", "3w", "3m"
+     */
+    public static function timeUntil(Carbon $date, ?string $airtime = null): string
+    {
+        $target = $airtime
+            ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
+            : $date->copy()->startOfDay();
+
+        $now = now(UserTime::timezone());
+
+        $hours = (int) $now->diffInHours($target, absolute: true);
+
+        if ($hours < 24) {
+            return max(1, $hours).'h';
+        }
+
+        $days = (int) $now->diffInDays($target, absolute: true);
+
+        if ($days < 7) {
+            return $days.'d';
+        }
+
+        if ($days < 30) {
+            return ((int) floor($days / 7)).'w';
+        }
+
+        return ((int) floor($days / 30)).'m';
     }
 
     public static function yearLabel(Show|Movie $item): ?string

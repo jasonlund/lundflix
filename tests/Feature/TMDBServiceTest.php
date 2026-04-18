@@ -46,30 +46,19 @@ it('returns null when movie is not found on tmdb', function () {
     expect($result)->toBeNull();
 });
 
-it('fetches movie details with appended release dates and alternative titles', function () {
+it('fetches movie details with appended release dates', function () {
     Http::fake([
         'api.themoviedb.org/3/movie/278*' => Http::response([
             'id' => 278,
             'title' => 'The Shawshank Redemption',
             'release_date' => '1994-09-23',
             'original_language' => 'en',
-            'production_companies' => [
-                ['id' => 97, 'name' => 'Castle Rock Entertainment', 'logo_path' => '/logo.png', 'origin_country' => 'US'],
-            ],
-            'spoken_languages' => [
-                ['iso_639_1' => 'en', 'english_name' => 'English', 'name' => 'English'],
-            ],
             'release_dates' => [
                 'results' => [
                     ['iso_3166_1' => 'US', 'release_dates' => [
                         ['type' => 3, 'release_date' => '1994-10-14T00:00:00.000Z'],
                         ['type' => 4, 'release_date' => '1999-09-21T00:00:00.000Z'],
                     ]],
-                ],
-            ],
-            'alternative_titles' => [
-                'titles' => [
-                    ['iso_3166_1' => 'FR', 'title' => 'Les Évadés', 'type' => ''],
                 ],
             ],
         ]),
@@ -81,12 +70,10 @@ it('fetches movie details with appended release dates and alternative titles', f
     expect($details)
         ->not->toBeNull()
         ->and($details['id'])->toBe(278)
-        ->and($details['production_companies'])->toHaveCount(1)
-        ->and($details['release_dates']['results'])->toHaveCount(1)
-        ->and($details['alternative_titles']['titles'])->toHaveCount(1);
+        ->and($details['release_dates']['results'])->toHaveCount(1);
 
-    Http::assertSent(fn ($request) => str_contains($request->url(), 'append_to_response=release_dates%2Calternative_titles')
-        || str_contains($request->url(), 'append_to_response=release_dates,alternative_titles'));
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'append_to_response=release_dates')
+        && ! str_contains($request->url(), 'alternative_titles'));
 });
 
 it('returns null when movie details return 404', function () {

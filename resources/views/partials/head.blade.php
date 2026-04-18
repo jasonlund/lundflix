@@ -2,21 +2,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 @php
-    $appTitle = $title ?? config('app.name');
+    $suffix = config('app.name') . ', home of lundbergh';
+    $pageTitle = isset($title) ? $title . ' · ' . $suffix : $suffix;
     $displayTitle = app()->environment('local')
-        ? Str::before(request()->getHost(), '.') . ' - ' . $appTitle
-        : $appTitle;
+        ? Str::before(request()->getHost(), '.') . ' · ' . $pageTitle
+        : $pageTitle;
 @endphp
 
 <title>{{ $displayTitle }}</title>
 
-<link rel="icon" href="/favicon.ico" sizes="any" />
-<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.png" type="image/png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 <link rel="preconnect" href="https://fonts.bunny.net" />
 <link href="https://fonts.bunny.net/css?family=ibm-plex-sans:400,500,600&display=swap" rel="stylesheet" />
 <link href="https://fonts.bunny.net/css?family=ibm-plex-mono:400&display=swap" rel="stylesheet" />
 <link href="https://fonts.bunny.net/css?family=instrument-serif:400&display=swap" rel="stylesheet" />
+<link href="https://fonts.bunny.net/css?family=josefin-slab:600&display=swap" rel="stylesheet" />
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])

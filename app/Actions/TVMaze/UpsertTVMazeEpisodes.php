@@ -5,6 +5,7 @@ namespace App\Actions\TVMaze;
 use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Show;
+use App\Support\DatabaseRetry;
 use App\Support\EpisodeCode;
 
 class UpsertTVMazeEpisodes
@@ -53,11 +54,11 @@ class UpsertTVMazeEpisodes
             return 0;
         }
 
-        return Episode::upsert(
+        return DatabaseRetry::run(fn (): int => Episode::upsert(
             $data,
             ['tvmaze_id'],
             ['show_id', 'season', 'number', 'name', 'type', 'airdate', 'airtime', 'runtime', 'rating', 'image', 'summary']
-        );
+        ));
     }
 
     /**

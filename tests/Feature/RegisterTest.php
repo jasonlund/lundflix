@@ -52,10 +52,75 @@ it('creates a user on successful registration', function () {
         ->and($user->email)->toBe('plexuser@example.com')
         ->and($user->plex_username)->toBe('plexuser')
         ->and($user->plex_token)->toBe('test-token')
-        ->and($user->plex_thumb)->toBe('https://plex.tv/avatar.jpg');
+        ->and($user->plex_thumb)->toBe('https://plex.tv/avatar.jpg')
+        ->and($user->timezone)->toBe('America/New_York');
 
     $this->assertAuthenticatedAs($user);
     expect(session('plex_registration'))->toBeNull();
+});
+
+it('stores the selected timezone on registration', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', 'My Display Name')
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->set('timezone', 'America/Los_Angeles')
+        ->call('register')
+        ->assertRedirect('/');
+
+    $user = User::where('plex_id', '999')->first();
+
+    expect($user->timezone)->toBe('America/Los_Angeles');
+});
+
+it('validates timezone is a valid IANA timezone', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', 'Test User')
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->set('timezone', 'Not/A/Timezone')
+        ->call('register')
+        ->assertHasErrors(['timezone']);
+});
+
+it('validates timezone is required', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ]);
+
+    Livewire::test('auth.register')
+        ->set('name', 'Test User')
+        ->set('password', 'password123')
+        ->set('password_confirmation', 'password123')
+        ->set('timezone', '')
+        ->call('register')
+        ->assertHasErrors(['timezone']);
 });
 
 it('validates name is required', function () {
