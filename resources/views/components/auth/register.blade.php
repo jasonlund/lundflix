@@ -122,13 +122,13 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
 
                     <flux:field>
                         <flux:label>Password</flux:label>
-                        <flux:input wire:model.blur="password" type="password" required />
+                        <flux:input wire:model.blur="password" type="password" required viewable />
                         <flux:error name="password" />
                     </flux:field>
 
                     <flux:field>
                         <flux:label>Confirm Password</flux:label>
-                        <flux:input wire:model.blur="password_confirmation" type="password" required />
+                        <flux:input wire:model.blur="password_confirmation" type="password" required viewable />
                     </flux:field>
 
                     <flux:field

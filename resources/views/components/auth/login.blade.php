@@ -20,11 +20,14 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
 
     public string $plexError = '';
 
-    public function redirectToPlex(PlexService $plex): void
+    public function redirectToPlex(PlexService $plex, string $intent = 'register'): void
     {
         try {
             $pin = $plex->createPin();
-            session(['plex_pin_id' => $pin['id']]);
+            session([
+                'plex_pin_id' => $pin['id'],
+                'plex_intent' => $intent,
+            ]);
 
             $authUrl = $plex->getAuthUrl($pin['code'], route('auth.plex.callback'));
             $this->redirect($authUrl);
@@ -78,14 +81,18 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
             <div class="relative">
                 <img src="{{ Vite::image('logo.png') }}" alt="Lundflix" class="drop-shadow-glow-subtle mx-auto h-12" />
 
-                <flux:error name="plex" class="mt-4" />
+                @error('plex')
+                    <x-lundbergh-bubble variant="error" class="mt-4" contentTag="div">
+                        {!! nl2br(e($message)) !!}
+                    </x-lundbergh-bubble>
+                @enderror
 
                 <form wire:submit="login" class="mt-6 space-y-6">
                     <flux:field>
                         <flux:label>Email</flux:label>
                         <flux:input wire:model.blur="email" type="email" required autofocus />
                         <flux:error name="email" />
-                        @unless ($errors->has('password'))
+                        @unless ($errors->has('password') || $errors->has('plex'))
                             <x-lundbergh-bubble>
                                 {{ __('lundbergh.form.email_description') }}
                             </x-lundbergh-bubble>
@@ -94,8 +101,12 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
 
                     <flux:field>
                         <flux:label>Password</flux:label>
-                        <flux:input wire:model.blur="password" type="password" required />
-                        <flux:error name="password" />
+                        <flux:input wire:model.blur="password" type="password" required viewable />
+                        @error('password')
+                            <x-lundbergh-bubble variant="error" contentTag="div">
+                                {!! nl2br(e($message)) !!}
+                            </x-lundbergh-bubble>
+                        @enderror
                     </flux:field>
 
                     <flux:checkbox wire:model="remember" label="Remember me" />
@@ -108,8 +119,7 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
                 <div class="flex flex-col items-center gap-3">
                     <flux:modal.trigger name="plex-register">
                         <flux:button
-                            variant="subtle"
-                            class="inline-flex items-center gap-1 border-b border-current pb-px"
+                            class="w-full items-center justify-center gap-1 !bg-white/10 !text-white !backdrop-blur-sm hover:!bg-white/20"
                         >
                             Register with
                             <x-plex-logo class="h-4" />
@@ -117,7 +127,9 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
                     </flux:modal.trigger>
 
                     <flux:modal.trigger name="plex-password-reset">
-                        <flux:button variant="subtle" class="border-b border-current pb-px">Forgot Password?</flux:button>
+                        <button type="button" class="text-sm text-zinc-400 underline hover:text-white">
+                            Forgot Password?
+                        </button>
                     </flux:modal.trigger>
                 </div>
 
@@ -164,9 +176,16 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
 
                         <div class="flex">
                             <flux:spacer />
-                            <flux:button variant="primary" class="inline-flex items-center gap-1">
-                                Continue to
-                                <x-plex-logo class="h-4" />
+                            <flux:button wire:click="redirectToPlex('password_reset')" variant="primary">
+                                <flux:icon.loading wire:loading wire:target="redirectToPlex" class="size-4" />
+                                <span
+                                    wire:loading.remove
+                                    wire:target="redirectToPlex"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Continue to
+                                    <x-plex-logo class="h-4" />
+                                </span>
                             </flux:button>
                         </div>
                     </div>

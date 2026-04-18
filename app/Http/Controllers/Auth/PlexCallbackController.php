@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ThirdParty\PlexService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 use InvalidArgumentException;
 
 class PlexCallbackController extends Controller
@@ -48,7 +49,12 @@ class PlexCallbackController extends Controller
                 ->withErrors(['plex' => __('lundbergh.plex.no_access')]);
         }
 
+        $intent = session()->pull('plex_intent', 'register');
         $user = User::findByPlexId((string) $plexUser['id']);
+
+        if ($intent === 'password_reset') {
+            return $this->handlePasswordReset($user, $plexUser, $token);
+        }
 
         // Existing user - redirect to login with message
         if ($user) {
@@ -76,5 +82,25 @@ class PlexCallbackController extends Controller
         ]);
 
         return redirect()->route('register');
+    }
+
+    /**
+     * @param  array<string, mixed>  $plexUser
+     */
+    private function handlePasswordReset(?User $user, array $plexUser, string $plexToken): RedirectResponse
+    {
+        if (! $user) {
+            return redirect()->route('login')
+                ->withErrors(['plex' => __('lundbergh.plex.no_account')]);
+        }
+
+        $user->update(['plex_token' => $plexToken]);
+
+        $resetToken = Password::broker()->createToken($user);
+
+        return redirect()->route('password.reset', [
+            'token' => $resetToken,
+            'email' => $user->email,
+        ]);
     }
 }

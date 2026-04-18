@@ -4,14 +4,15 @@ return [
     'plex' => [
         'auth_failed' => "Yeah… so, we weren't able to authenticate your Plex user. That's… not great.",
         'no_access' => "Mmm yeah… I'm gonna need you to have access to lundflix. So… yeah.",
-        'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.",
+        'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.\nIf you forgot your password, you can go ahead and reset it below.",
+        'no_account' => "Mmm yeah… we couldn't find an account linked to that Plex user. I'm gonna need you to go ahead and register first. That'd be great.",
         'multi_server_intro' => 'Yeah… so,',
         'multi_server_middle' => 'is available on',
         'multi_server_outro' => 'and you can go ahead and open them below.',
         'pin_creation_failed' => "Yeah… so, we had a little trouble connecting to Plex. I'm gonna need you to go ahead and try again. That'd be great.",
     ],
     'auth' => [
-        'failed' => "Yeah… those credentials don't match our records. So… yeah.",
+        'failed' => "Yeah… those credentials don't match our records. So… yeah.\nIf you forgot your password, you can go ahead and reset it below.",
         'password' => "Mmm yeah… that password's not right. That's… not great.",
         'throttle' => "Yeah… you've tried too many times. I'm gonna need you to wait :seconds seconds.",
     ],
@@ -19,6 +20,7 @@ return [
         'email_description' => "Yeah… if you could use the address associated with your Plex account, that'd be great.",
         'plex_redirect' => "Mmm yeah… so you're gonna be redirected to plex.tv to authenticate your account and verify your access for registration.\n\nYeah… if you don't already have access to the lundflix server, I'm gonna need you to go ahead and not waste everyone's time here. That'd be great.",
         'plex_password_reset' => "Yeah… so, you forgot your password. That's… not great.\n\nI'm gonna need you to go ahead and sign in with Plex to verify your identity. Once we confirm you are who you say you are, you can set a new password. That'd be great.",
+        'password_reset_verified' => "Mmkay… so, we've confirmed you are who you say you are. Go ahead and set a new password below. And make sure it's something you'll actually remember this time. That'd be great.",
     ],
     'cart' => [
         'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",
