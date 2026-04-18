@@ -93,7 +93,9 @@ class PlexCallbackController extends Controller
 
         $user->update(['plex_token' => $plexToken]);
 
-        $resetToken = Password::broker()->createToken($user);
+        /** @var \Illuminate\Auth\Passwords\PasswordBroker $broker */
+        $broker = Password::broker();
+        $resetToken = $broker->createToken($user);
 
         return redirect()->route('password.reset', [
             'token' => $resetToken,
