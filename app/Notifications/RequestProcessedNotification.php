@@ -8,9 +8,10 @@ use App\Services\CartService;
 use App\Support\Formatters;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Slack\BlockKit\Blocks\SectionBlock;
 use Illuminate\Notifications\Slack\SlackMessage;
 
-class RequestFulfilledNotification extends Notification
+class RequestProcessedNotification extends Notification
 {
     use Queueable;
 
@@ -26,7 +27,39 @@ class RequestFulfilledNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        return (new SlackMessage)->text($this->formatItems());
+        $message = (new SlackMessage)
+            ->text($this->formatItems())
+            ->headerBlock('📤 Request Processed')
+            ->sectionBlock(function (SectionBlock $block) {
+                $block->text(__('lundbergh.notification.request_processed'));
+            });
+
+        $statusGroups = [
+            [RequestItemStatus::Fulfilled, 'Fulfilled'],
+            [RequestItemStatus::Rejected, 'Rejected'],
+            [RequestItemStatus::NotFound, 'Not Found'],
+        ];
+
+        foreach ($statusGroups as [$status, $label]) {
+            /** @var \Illuminate\Support\Collection<int, \App\Models\Movie|\App\Models\Episode> $requestables */
+            $requestables = $this->request->items
+                ->where('status', $status)
+                ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
+                ->filter();
+
+            if ($requestables->isEmpty()) {
+                continue;
+            }
+
+            $grouped = app(CartService::class)->groupItems($requestables);
+            $lines = $this->formatGroupedItems($grouped);
+
+            $message->sectionBlock(function (SectionBlock $block) use ($label, $lines) {
+                $block->text("*{$label}:*\n".implode("\n", $lines))->markdown();
+            });
+        }
+
+        return $message;
     }
 
     private function formatItems(): string

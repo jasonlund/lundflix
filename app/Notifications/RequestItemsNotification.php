@@ -7,6 +7,7 @@ use App\Services\CartService;
 use App\Support\Formatters;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Notifications\Slack\BlockKit\Blocks\SectionBlock;
 use Illuminate\Notifications\Slack\SlackMessage;
 
 class RequestItemsNotification extends Notification
@@ -25,7 +26,15 @@ class RequestItemsNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        return (new SlackMessage)->text($this->formatItems());
+        return (new SlackMessage)
+            ->text($this->formatItems())
+            ->headerBlock('📝 New Request')
+            ->sectionBlock(function (SectionBlock $block) {
+                $block->text(__('lundbergh.notification.request_intro'));
+            })
+            ->sectionBlock(function (SectionBlock $block) {
+                $block->text($this->formatItems())->markdown();
+            });
     }
 
     private function formatItems(): string
