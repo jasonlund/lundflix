@@ -2,7 +2,6 @@
 
 use App\Models\Movie;
 use App\Models\Subscription;
-use App\Services\CartService;
 use App\Support\Formatters;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
@@ -11,14 +10,11 @@ use Livewire\Component;
 new class extends Component {
     public Movie $movie;
 
-    public bool $inCart = false;
-
     public bool $isSubscribed = false;
 
-    public function mount(Movie $movie, CartService $cart): void
+    public function mount(Movie $movie): void
     {
         $this->movie = $movie;
-        $this->inCart = $cart->has($this->movie->id);
         $this->isSubscribed =
             auth()->check() &&
             Subscription::query()
@@ -81,22 +77,6 @@ new class extends Component {
         }
 
         return ! $status->isCartable();
-    }
-
-    public function toggleCart(CartService $cart): void
-    {
-        if ($this->isCartDisabled) {
-            return;
-        }
-
-        $this->inCart = $cart->toggleMovie($this->movie->id);
-        $this->dispatch('cart-updated');
-
-        Flux::toast(
-            text: __($this->inCart ? 'lundbergh.toast.cart_added' : 'lundbergh.toast.cart_removed', [
-                'title' => $this->movie->title,
-            ]),
-        );
     }
 
     #[Computed]
@@ -184,10 +164,15 @@ new class extends Component {
             @endif
 
             <div
-                x-data="{ syncing: false }"
-                @cart-syncing.window="syncing = true"
-                @cart-updated.window="syncing = false"
-                wire:key="cart-{{ $inCart ? 'yes' : 'no' }}"
+                x-data="{
+                    get inCart() {
+                        return $store.cart.hasMovie({{ $movie->id }})
+                    },
+                    addedMsg:
+                        {{ Js::from(__('lundbergh.toast.cart_added', ['title' => $movie->title])) }},
+                    removedMsg:
+                        {{ Js::from(__('lundbergh.toast.cart_removed', ['title' => $movie->title])) }},
+                }"
             >
                 @if ($this->isCartDisabled)
                     <flux:tooltip content="Not yet released">
@@ -199,24 +184,32 @@ new class extends Component {
                         </div>
                     </flux:tooltip>
                 @else
-                    <button
-                        x-on:click="
-                            syncing = true
-                            window.dispatchEvent(new CustomEvent('cart-syncing'))
-                            $wire.toggleCart()
-                        "
-                        class="{{ $inCart ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
-                    >
-                        <div class="relative flex items-center justify-center">
-                            @if ($inCart)
-                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
-                            @else
-                                <flux:icon.plus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
-                            @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
-                        </div>
-                        <span x-bind:class="syncing && 'opacity-0'">Cart</span>
-                    </button>
+                    <flux:tooltip x-bind:content="inCart ? 'Remove from Cart' : 'Add to Cart'">
+                        <button
+                            x-on:click="
+                                $store.cart.toggleMovie({{ $movie->id }})
+                                $dispatch('cart-movie-toggled', {
+                                    text: $store.cart.hasMovie({{ $movie->id }}) ? addedMsg : removedMsg,
+                                })
+                            "
+                            x-bind:class="
+                                inCart
+                                    ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white'
+                                    : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20'
+                            "
+                            class="flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                        >
+                            <div class="relative flex items-center justify-center">
+                                <span x-show="inCart" x-cloak>
+                                    <flux:icon.check class="size-4 sm:size-5" />
+                                </span>
+                                <span x-show="!inCart">
+                                    <flux:icon.plus class="size-4 sm:size-5" />
+                                </span>
+                            </div>
+                            <span>Cart</span>
+                        </button>
+                    </flux:tooltip>
                 @endif
             </div>
         </x-slot>
