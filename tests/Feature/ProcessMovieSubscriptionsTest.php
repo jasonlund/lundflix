@@ -3,7 +3,6 @@
 use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
 use App\Models\Request;
-use App\Models\RequestItem;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Event;
 
 uses(RefreshDatabase::class);
 
-it('creates a request for a user subscribed to a movie with digital release today', function () {
+it('dispatches a release notification for a subscribed movie digitally released today', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
@@ -28,15 +27,12 @@ it('creates a request for a user subscribed to a movie with digital release toda
         ->assertSuccessful()
         ->expectsOutputToContain('Processed 1 movie subscription(s)');
 
-    expect(Request::count())->toBe(1);
-    expect(Request::first()->user_id)->toBe($user->id);
-    expect(RequestItem::count())->toBe(1);
-    expect(RequestItem::first()->requestable_id)->toBe($movie->id);
+    expect(Request::count())->toBe(0);
 
     Event::assertDispatched(SubscriptionTriggered::class);
 });
 
-it('does not create a request for a movie with only theatrical release today', function () {
+it('does not dispatch for a movie with only theatrical release today', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
@@ -54,12 +50,10 @@ it('does not create a request for a movie with only theatrical release today', f
         ->assertSuccessful()
         ->expectsOutputToContain('Processed 0 movie subscription(s)');
 
-    expect(Request::count())->toBe(0);
-
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
-it('does not create a request for movies not releasing today', function () {
+it('does not dispatch for movies not releasing today', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
@@ -76,12 +70,10 @@ it('does not create a request for movies not releasing today', function () {
         ->assertSuccessful()
         ->expectsOutputToContain('Processed 0 movie subscription(s)');
 
-    expect(Request::count())->toBe(0);
-
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
-it('does not create a request for unreleased movies even if date matches', function () {
+it('does not dispatch for unreleased movies even if date matches', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
@@ -98,12 +90,10 @@ it('does not create a request for unreleased movies even if date matches', funct
         ->assertSuccessful()
         ->expectsOutputToContain('Processed 0 movie subscription(s)');
 
-    expect(Request::count())->toBe(0);
-
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
-it('does not create a request for unsubscribed movies', function () {
+it('does not dispatch for unsubscribed movies', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     Movie::factory()->create([
@@ -117,12 +107,10 @@ it('does not create a request for unsubscribed movies', function () {
         ->assertSuccessful()
         ->expectsOutputToContain('Processed 0 movie subscription(s)');
 
-    expect(Request::count())->toBe(0);
-
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
-it('creates separate requests for each subscribed user', function () {
+it('dispatches only once when multiple users are subscribed to the same movie', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $userA = User::factory()->create();
@@ -136,10 +124,9 @@ it('creates separate requests for each subscribed user', function () {
     Subscription::factory()->forSubscribable($movie)->create(['user_id' => $userB->id]);
 
     $this->artisan('process:movie-subscriptions')
-        ->assertSuccessful()
-        ->expectsOutputToContain('Processed 2 movie subscription(s)');
+        ->assertSuccessful();
 
-    expect(Request::count())->toBe(2);
+    expect(Request::count())->toBe(0);
 
-    Event::assertDispatchedTimes(SubscriptionTriggered::class, 2);
+    Event::assertDispatchedTimes(SubscriptionTriggered::class, 1);
 });

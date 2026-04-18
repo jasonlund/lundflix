@@ -2,18 +2,18 @@
 
 namespace App\Listeners;
 
-use App\Events\SubscriptionTriggered;
-use App\Notifications\SubscriptionMediaNotification;
+use App\Events\MediaAvailable;
+use App\Notifications\MediaAvailableNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
-class SendSubscriptionNotification implements ShouldQueue
+class SendMediaAvailableNotification implements ShouldQueue
 {
     use Queueable;
 
-    public function handle(SubscriptionTriggered $event): void
+    public function handle(MediaAvailable $event): void
     {
         if (! config('services.slack.enabled')) {
             Log::error('Slack notification skipped: Slack is not enabled', [
@@ -33,9 +33,7 @@ class SendSubscriptionNotification implements ShouldQueue
             return;
         }
 
-        $notification = new SubscriptionMediaNotification($event->media, $event->episodes);
-
         Notification::route('slack', $channel)
-            ->notify($notification);
+            ->notify(new MediaAvailableNotification($event->media, $event->episodes, $event->quality));
     }
 }

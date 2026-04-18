@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property EpisodeType $type
+ * @property \App\Enums\ReleaseQuality|null $predb_quality Transient attribute set by PreDBService::findAvailableEpisodes.
  */
 class Episode extends Model
 {

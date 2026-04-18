@@ -2,9 +2,6 @@
 
 namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Request\CreateRequest;
-use App\Actions\Request\CreateRequestItems;
-use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
@@ -15,14 +12,7 @@ class ProcessMovieSubscriptions extends Command
 {
     protected $signature = 'process:movie-subscriptions';
 
-    protected $description = 'Create requests for users subscribed to movies releasing today';
-
-    public function __construct(
-        private readonly CreateRequest $createRequest,
-        private readonly CreateRequestItems $createRequestItems,
-    ) {
-        parent::__construct();
-    }
+    protected $description = 'Notify subscribers when subscribed movies release digitally';
 
     public function handle(): int
     {
@@ -34,6 +24,7 @@ class ProcessMovieSubscriptions extends Command
             ->get();
 
         $processed = 0;
+        $notified = [];
 
         foreach ($subscriptions as $subscription) {
             /** @var Movie $movie */
@@ -47,12 +38,12 @@ class ProcessMovieSubscriptions extends Command
                 continue;
             }
 
-            $request = $this->createRequest->create($subscription->user);
-            $this->createRequestItems->create($request, [
-                ['type' => MediaType::MOVIE, 'id' => $movie->id],
-            ]);
+            if (isset($notified[$movie->id])) {
+                continue;
+            }
 
-            SubscriptionTriggered::dispatch($request, $movie);
+            SubscriptionTriggered::dispatch(null, $movie);
+            $notified[$movie->id] = true;
 
             $processed++;
         }

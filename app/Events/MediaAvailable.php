@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Enums\ReleaseQuality;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\Show;
@@ -10,7 +11,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 
-class SubscriptionTriggered implements ShouldDispatchAfterCommit
+class MediaAvailable implements ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
@@ -21,5 +22,6 @@ class SubscriptionTriggered implements ShouldDispatchAfterCommit
         public ?Request $request,
         public Movie|Show $media,
         public ?Collection $episodes = null,
+        public ?ReleaseQuality $quality = null,
     ) {}
 }

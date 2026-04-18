@@ -2,9 +2,6 @@
 
 namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Request\CreateRequest;
-use App\Actions\Request\CreateRequestItems;
-use App\Enums\MediaType;
 use App\Events\SubscriptionTriggered;
 use App\Models\Episode;
 use App\Models\Show;
@@ -17,14 +14,7 @@ class ProcessShowSubscriptions extends Command
 {
     protected $signature = 'process:show-subscriptions';
 
-    protected $description = 'Create requests for users subscribed to shows with newly aired episodes';
-
-    public function __construct(
-        private readonly CreateRequest $createRequest,
-        private readonly CreateRequestItems $createRequestItems,
-    ) {
-        parent::__construct();
-    }
+    protected $description = 'Notify subscribers when new episodes of subscribed shows air';
 
     public function handle(): int
     {
@@ -51,6 +41,7 @@ class ProcessShowSubscriptions extends Command
             ->keyBy('id');
 
         $processed = 0;
+        $notified = [];
 
         foreach ($subscriptions as $subscription) {
             /** @var Show $show */
@@ -78,13 +69,12 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            $request = $this->createRequest->create($subscription->user);
-            $this->createRequestItems->create(
-                $request,
-                $newEpisodes->map(fn (Episode $episode) => ['type' => MediaType::EPISODE, 'id' => $episode->id])->all(),
-            );
+            if (isset($notified[$show->id])) {
+                continue;
+            }
 
-            SubscriptionTriggered::dispatch($request, $show, $newEpisodes);
+            SubscriptionTriggered::dispatch(null, $show, $newEpisodes);
+            $notified[$show->id] = true;
 
             $processed++;
         }

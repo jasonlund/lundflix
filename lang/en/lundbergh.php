@@ -64,6 +64,8 @@ return [
         'request_processed' => "Mmkay… the Bobs have processed your request. Here's what came back:",
         'movie_released' => "Yeah… so, this just released digitally. I'm gonna need someone to go ahead and grab it. That'd be great.",
         'episodes_premiered' => "{1} Mmkay… a new episode just aired. I'm gonna need someone to go ahead and grab it. That'd be great.|[2,*] Mmkay… new episodes just aired. I'm gonna need someone to go ahead and grab those. That'd be great.",
+        'movie_available' => "Yeah… so, this just hit the pre. The Bobs have gone ahead and added it to the cart. That'd be great.",
+        'episodes_available' => "{1} Mmkay… an episode just hit the pre. The Bobs have gone ahead and added it to the cart. That'd be great.|[2,*] Mmkay… these episodes just hit the pre. The Bobs have gone ahead and added them to the cart. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
