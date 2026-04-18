@@ -118,9 +118,7 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
 
                 <div class="flex flex-col items-center gap-3">
                     <flux:modal.trigger name="plex-register">
-                        <flux:button
-                            class="w-full items-center justify-center gap-1 !bg-white/10 !text-white !backdrop-blur-sm hover:!bg-white/20"
-                        >
+                        <flux:button variant="filled" class="w-full items-center justify-center gap-1 backdrop-blur-sm">
                             Register with
                             <x-plex-logo class="h-4" />
                         </flux:button>
@@ -151,10 +149,10 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
                         <div class="flex">
                             <flux:spacer />
                             <flux:button wire:click="redirectToPlex" variant="primary">
-                                <flux:icon.loading wire:loading wire:target="redirectToPlex" class="size-4" />
+                                <flux:icon.loading wire:loading wire:target="redirectToPlex()" class="size-4" />
                                 <span
                                     wire:loading.remove
-                                    wire:target="redirectToPlex"
+                                    wire:target="redirectToPlex()"
                                     class="inline-flex items-center gap-1"
                                 >
                                     Continue to
@@ -174,13 +172,23 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
                             </flux:text>
                         </div>
 
+                        @if ($plexError)
+                            <flux:text class="text-red-400">
+                                {{ $plexError }}
+                            </flux:text>
+                        @endif
+
                         <div class="flex">
                             <flux:spacer />
                             <flux:button wire:click="redirectToPlex('password_reset')" variant="primary">
-                                <flux:icon.loading wire:loading wire:target="redirectToPlex" class="size-4" />
+                                <flux:icon.loading
+                                    wire:loading
+                                    wire:target="redirectToPlex('password_reset')"
+                                    class="size-4"
+                                />
                                 <span
                                     wire:loading.remove
-                                    wire:target="redirectToPlex"
+                                    wire:target="redirectToPlex('password_reset')"
                                     class="inline-flex items-center gap-1"
                                 >
                                     Continue to

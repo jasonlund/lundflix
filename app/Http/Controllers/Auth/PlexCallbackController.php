@@ -53,7 +53,7 @@ class PlexCallbackController extends Controller
         $user = User::findByPlexId((string) $plexUser['id']);
 
         if ($intent === 'password_reset') {
-            return $this->handlePasswordReset($user, $plexUser, $token);
+            return $this->handlePasswordReset($user, $token);
         }
 
         // Existing user - redirect to login with message
@@ -84,10 +84,7 @@ class PlexCallbackController extends Controller
         return redirect()->route('register');
     }
 
-    /**
-     * @param  array<string, mixed>  $plexUser
-     */
-    private function handlePasswordReset(?User $user, array $plexUser, string $plexToken): RedirectResponse
+    private function handlePasswordReset(?User $user, string $plexToken): RedirectResponse
     {
         if (! $user) {
             return redirect()->route('login')
