@@ -17,14 +17,6 @@
                         {{ __('lundbergh.form.password_reset_verified') }}
                     </x-lundbergh-bubble>
 
-                    @if ($errors->any())
-                        <div class="mt-4">
-                            @foreach ($errors->all() as $error)
-                                <flux:text class="text-red-400">{{ $error }}</flux:text>
-                            @endforeach
-                        </div>
-                    @endif
-
                     <form method="POST" action="{{ route('password.update') }}" class="mt-6 space-y-6">
                         @csrf
 
@@ -36,7 +28,11 @@
                         <flux:field>
                             <flux:label>New Password</flux:label>
                             <flux:input name="password" type="password" required autofocus viewable />
-                            <flux:error name="password" />
+                            @error('password')
+                                <x-lundbergh-bubble variant="error" contentTag="div">
+                                    {!! nl2br(e($message)) !!}
+                                </x-lundbergh-bubble>
+                            @enderror
                         </flux:field>
 
                         <flux:field>
