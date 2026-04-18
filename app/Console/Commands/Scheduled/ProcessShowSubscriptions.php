@@ -2,10 +2,7 @@
 
 namespace App\Console\Commands\Scheduled;
 
-use App\Actions\Request\CreateRequest;
-use App\Actions\Request\CreateRequestItems;
-use App\Enums\MediaType;
-use App\Events\RequestSubmitted;
+use App\Events\SubscriptionTriggered;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
@@ -17,14 +14,7 @@ class ProcessShowSubscriptions extends Command
 {
     protected $signature = 'process:show-subscriptions';
 
-    protected $description = 'Create requests for users subscribed to shows with newly aired episodes';
-
-    public function __construct(
-        private readonly CreateRequest $createRequest,
-        private readonly CreateRequestItems $createRequestItems,
-    ) {
-        parent::__construct();
-    }
+    protected $description = 'Notify subscribers when new episodes of subscribed shows air';
 
     public function handle(): int
     {
@@ -35,8 +25,9 @@ class ProcessShowSubscriptions extends Command
         $nowDate = $now->toDateString();
 
         $subscriptions = Subscription::query()
-            ->where('subscribable_type', Show::class)
-            ->with('user')
+            ->active()
+            ->forShows()
+            ->with(['user', 'processedEpisodes'])
             ->get();
 
         $showIds = $subscriptions->pluck('subscribable_id');
@@ -51,12 +42,20 @@ class ProcessShowSubscriptions extends Command
             ->keyBy('id');
 
         $processed = 0;
+        $notified = [];
 
         foreach ($subscriptions as $subscription) {
-            /** @var Show $show */
+            /** @var Show|null $show */
             $show = $shows->get($subscription->subscribable_id);
 
+            if (! $show) {
+                continue;
+            }
+
+            $processedEpisodeIds = $subscription->processedEpisodes->pluck('id');
+
             $newEpisodes = $show->episodes
+                ->reject(fn (Episode $episode): bool => $processedEpisodeIds->contains($episode->id))
                 ->filter(function (Episode $episode) use ($windowStart, $now, $show): bool {
                     if (! $episode->airdate) {
                         return false;
@@ -78,15 +77,13 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            $request = $this->createRequest->create($subscription->user);
-            $this->createRequestItems->create(
-                $request,
-                $newEpisodes->map(fn (Episode $episode) => ['type' => MediaType::EPISODE, 'id' => $episode->id])->all(),
-            );
+            if (! isset($notified[$show->id])) {
+                SubscriptionTriggered::dispatch(null, $show, $newEpisodes);
+                $notified[$show->id] = true;
+                $processed++;
+            }
 
-            RequestSubmitted::dispatch($request);
-
-            $processed++;
+            $subscription->processedEpisodes()->syncWithoutDetaching($newEpisodes->pluck('id'));
         }
 
         $this->info("Processed {$processed} show subscription(s).");

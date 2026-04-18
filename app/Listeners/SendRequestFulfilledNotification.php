@@ -4,7 +4,7 @@ namespace App\Listeners;
 
 use App\Events\RequestFulfilled;
 use App\Models\Episode;
-use App\Notifications\RequestFulfilledNotification;
+use App\Notifications\RequestProcessedNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Notification;
@@ -36,6 +36,6 @@ class SendRequestFulfilledNotification implements ShouldQueue
         }
 
         Notification::route('slack', $channel)
-            ->notify(new RequestFulfilledNotification($request));
+            ->notify(new RequestProcessedNotification($request));
     }
 }

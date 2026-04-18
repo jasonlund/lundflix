@@ -3,13 +3,24 @@
 namespace App\Services;
 
 use App\Enums\ReleaseQuality;
+use App\Exceptions\PreDBRateLimitExceededException;
+use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\Show;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 class PreDBService
 {
+    private const RATE_LIMIT_KEY = 'predb-api';
+
+    private const RATE_LIMIT_ATTEMPTS = 28;
+
+    private const RATE_LIMIT_DECAY = 60;
+
     /**
      * Check if a movie has any non-nuked scene releases after excluding low-quality tags.
      */
@@ -71,9 +82,17 @@ class PreDBService
      * Search PreDB for releases matching a query, excluding low-quality tags.
      *
      * @return array<int, array<string, mixed>>
+     *
+     * @throws PreDBRateLimitExceededException
      */
     public function search(string $query, int $limit = 100): array
     {
+        if (RateLimiter::tooManyAttempts(self::RATE_LIMIT_KEY, self::RATE_LIMIT_ATTEMPTS)) {
+            throw new PreDBRateLimitExceededException;
+        }
+
+        RateLimiter::hit(self::RATE_LIMIT_KEY, self::RATE_LIMIT_DECAY);
+
         $response = $this->client()->get($this->baseUrl(), [
             'q' => $query,
             'tag' => implode(',', array_map(fn (string $tag) => '-'.$tag, ReleaseQuality::excludedTags())),
@@ -111,6 +130,86 @@ class PreDBService
         }
 
         return $title;
+    }
+
+    /**
+     * Build a dot-separated search query from a show's name (no year).
+     */
+    public function buildShowQuery(Show $show): ?string
+    {
+        if (empty($show->name)) {
+            return null;
+        }
+
+        $name = preg_replace('/[^\w\s.-]/', '', $show->name);
+        $name = (string) preg_replace('/\s+/', '.', trim((string) $name));
+
+        return $name === '' ? null : $name;
+    }
+
+    /**
+     * Query PreDB for a show and return the subset of candidate episodes that
+     * have a non-nuked release. Each returned episode receives a `predb_quality`
+     * attribute carrying the highest detected ReleaseQuality.
+     *
+     * Performs exactly one HTTP call per show.
+     *
+     * @param  Collection<int, Episode>  $episodes
+     * @return Collection<int, Episode>
+     */
+    public function findAvailableEpisodes(Show $show, Collection $episodes): Collection
+    {
+        if ($episodes->isEmpty()) {
+            return collect();
+        }
+
+        $query = $this->buildShowQuery($show);
+
+        if ($query === null) {
+            return collect();
+        }
+
+        $results = $this->search($query);
+
+        /** @var array<string, ReleaseQuality> $qualityByCode keyed s{season}e{number} */
+        $qualityByCode = [];
+
+        foreach ($results as $release) {
+            if (($release['status'] ?? -1) === 1) {
+                continue;
+            }
+
+            $name = (string) ($release['release'] ?? '');
+
+            if (! preg_match('/\bS(\d{1,3})E(\d{1,3})\b/i', $name, $m)) {
+                continue;
+            }
+
+            $code = 's'.(int) $m[1].'e'.(int) $m[2];
+            $quality = ReleaseQuality::fromReleaseName($name);
+
+            if ($quality === null) {
+                continue;
+            }
+
+            if (! isset($qualityByCode[$code]) || $quality->value > $qualityByCode[$code]->value) {
+                $qualityByCode[$code] = $quality;
+            }
+        }
+
+        return $episodes
+            ->filter(function (Episode $episode) use ($qualityByCode) {
+                $code = 's'.(int) $episode->season.'e'.(int) $episode->number;
+
+                if (! isset($qualityByCode[$code])) {
+                    return false;
+                }
+
+                $episode->predb_quality = $qualityByCode[$code];
+
+                return true;
+            })
+            ->values();
     }
 
     private function baseUrl(): string
