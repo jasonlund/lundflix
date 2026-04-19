@@ -436,7 +436,7 @@ new class extends Component {
 
     <div class="flex flex-col gap-8">
         @if ($show->imdb_id)
-            <livewire:shows.plex-availability :show="$show" lazy />
+            <livewire:shows.availability :show="$show" lazy />
         @endif
 
         @if ($this->episodes()->isNotEmpty())

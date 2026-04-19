@@ -292,7 +292,7 @@ new class extends Component {
 
     <div class="flex flex-col gap-8">
         @if ($movie->imdb_id)
-            <livewire:movies.plex-availability :movie="$movie" lazy />
+            <livewire:movies.availability :movie="$movie" lazy />
         @endif
 
         <livewire:movies.predb-releases :movie="$movie" lazy />

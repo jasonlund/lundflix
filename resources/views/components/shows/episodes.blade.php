@@ -90,6 +90,7 @@ new class extends Component {
 
         if (! empty($apiEpisodes)) {
             app(UpsertTVMazeEpisodes::class)->fromApi($this->show, $apiEpisodes);
+            $this->dispatch('episodes-loaded');
         }
 
         $this->episodes = collect($apiEpisodes)

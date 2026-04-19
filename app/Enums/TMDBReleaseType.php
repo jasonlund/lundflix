@@ -10,4 +10,16 @@ enum TMDBReleaseType: int
     case Digital = 4;
     case Physical = 5;
     case Tv = 6;
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Premiere => 'Premiere',
+            self::TheatricalLimited => 'Limited Theatrical',
+            self::Theatrical => 'Theatrical',
+            self::Digital => 'Digital',
+            self::Physical => 'Physical',
+            self::Tv => 'TV',
+        };
+    }
 }

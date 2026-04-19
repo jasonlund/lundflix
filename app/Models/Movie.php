@@ -21,7 +21,7 @@ use Laravel\Scout\Searchable;
  * @property \Illuminate\Support\Carbon|null $release_date
  * @property \Illuminate\Support\Carbon|null $digital_release_date
  * @property list<string>|null $origin_country
- * @property list<array{iso_3166_1: string, release_dates: list<array{type: int, release_date: string, certification: string}>}>|null $release_dates
+ * @property list<array{iso_3166_1: string, release_dates: list<array{type: int, release_date: string, certification: string, note?: string, iso_639_1?: string, descriptors?: list<string>}>}>|null $release_dates
  */
 class Movie extends Model
 {
@@ -117,7 +117,7 @@ class Movie extends Model
     }
 
     /**
-     * @return Collection<int, array{type: int, release_date: string, certification: string}>
+     * @return Collection<int, array{type: int, release_date: string, certification: string, note?: string, iso_639_1?: string, descriptors?: list<string>}>
      */
     private function allReleaseDates(): Collection
     {
@@ -177,6 +177,65 @@ class Movie extends Model
             ->filter(fn (Carbon $date): bool => $date->isFuture())
             ->sortBy(fn (Carbon $date): int => $date->timestamp)
             ->first();
+    }
+
+    public function meaningfulReleases(): Collection
+    {
+        if (empty($this->release_dates)) {
+            return collect();
+        }
+
+        $originCountries = collect($this->origin_country ?? []);
+
+        return collect($this->release_dates)
+            ->flatMap(fn (array $country): array => array_map(
+                fn (array $rd): array => [...$rd, 'country' => $country['iso_3166_1']],
+                $country['release_dates'],
+            ))
+            ->filter(fn (array $rd): bool => ! empty($rd['release_date']))
+            ->groupBy('type')
+            ->map(function (Collection $entries, int $type) use ($originCountries): ?array {
+                $releaseType = TMDBReleaseType::tryFrom($type);
+                if (! $releaseType) {
+                    return null;
+                }
+
+                $isOrigin = fn (array $rd): bool => $originCountries->contains($rd['country']);
+
+                if ($releaseType !== TMDBReleaseType::Premiere) {
+                    $entries = $entries->filter(
+                        fn (array $rd): bool => $isOrigin($rd) || $rd['country'] === 'US'
+                    );
+
+                    if ($entries->isEmpty()) {
+                        return null;
+                    }
+                }
+
+                $preferred = $releaseType === TMDBReleaseType::Premiere
+                    ? $entries->sortBy(fn (array $rd): string => Carbon::parse($rd['release_date'])->toDateTimeString())
+                        ->sortBy(fn (array $rd): int => $isOrigin($rd) ? 1 : 0)
+                        ->first()
+                    : $entries->sortBy(fn (array $rd): string => Carbon::parse($rd['release_date'])->toDateTimeString())
+                        ->sortByDesc(fn (array $rd): int => $isOrigin($rd) ? 1 : 0)
+                        ->first();
+
+                if (! $preferred) {
+                    return null;
+                }
+
+                return [
+                    'type' => $releaseType,
+                    'date' => Carbon::parse($preferred['release_date']),
+                    'country' => $preferred['country'],
+                    'certification' => $preferred['certification'] !== '' ? $preferred['certification'] : null,
+                    'note' => ($preferred['note'] ?? '') !== '' ? $preferred['note'] : null,
+                    'descriptors' => $preferred['descriptors'] ?? [],
+                ];
+            })
+            ->filter()
+            ->sortBy(fn (array $r): int => $r['type']->value)
+            ->values();
     }
 
     public function contentRating(): ?string
