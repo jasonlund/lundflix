@@ -1,12 +1,15 @@
 <?php
 
 use App\Enums\ReleaseQuality;
+use App\Exceptions\PreDBRateLimitExceededException;
 use App\Models\Movie;
 use App\Services\PreDBService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 beforeEach(function () {
     Http::preventStrayRequests();
+    RateLimiter::clear('predb-api');
 });
 
 function fakePredbSearch(array $releases = []): array
@@ -219,4 +222,20 @@ describe('buildQuery', function () {
         $service = new PreDBService;
         expect($service->buildQuery($movie))->toBeNull();
     });
+});
+
+it('throws PreDBRateLimitExceededException when rate limit is exhausted', function () {
+    foreach (range(1, 28) as $_) {
+        RateLimiter::hit('predb-api', 60);
+    }
+
+    Http::fake(fakePredbSearch([]));
+
+    $movie = Movie::factory()->create(['title' => 'Test Movie', 'year' => 2024]);
+
+    $service = new PreDBService;
+    expect(fn () => $service->hasQualityRelease($movie))
+        ->toThrow(PreDBRateLimitExceededException::class);
+
+    Http::assertNothingSent();
 });
