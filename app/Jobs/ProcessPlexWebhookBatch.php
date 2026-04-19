@@ -52,7 +52,7 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
         });
 
         if (! $result) {
-            Log::debug('Plex webhook batch empty or expired', ['serverUuid' => $this->serverUuid]);
+            Log::warning('Plex webhook batch empty or expired', ['serverUuid' => $this->serverUuid]);
 
             return;
         }
@@ -66,16 +66,37 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
 
         $batch = $result['batch'];
 
-        if (config('services.slack.enabled')) {
-            $channel = config('services.slack.notifications.channel');
+        if (! config('services.slack.enabled')) {
+            Log::warning('Plex batch notification skipped: Slack is not enabled', [
+                'serverUuid' => $this->serverUuid,
+                'itemCount' => count($batch['items']),
+            ]);
 
-            if ($channel) {
-                Notification::route('slack', $channel)
-                    ->notify(new PlexLibraryNotification(
-                        serverName: $batch['server_name'],
-                        items: collect($batch['items']),
-                    ));
-            }
+            return;
         }
+
+        $channel = config('services.slack.notifications.channel');
+
+        if (! $channel) {
+            Log::warning('Plex batch notification skipped: channel not configured', [
+                'serverUuid' => $this->serverUuid,
+                'itemCount' => count($batch['items']),
+            ]);
+
+            return;
+        }
+
+        Log::info('Sending Plex batch notification', [
+            'serverUuid' => $this->serverUuid,
+            'serverName' => $batch['server_name'],
+            'itemCount' => count($batch['items']),
+            'channel' => $channel,
+        ]);
+
+        Notification::route('slack', $channel)
+            ->notify(new PlexLibraryNotification(
+                serverName: $batch['server_name'],
+                items: collect($batch['items']),
+            ));
     }
 }
