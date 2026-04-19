@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Tables;
 
 use App\Actions\Media\ActivateMedia;

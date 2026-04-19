@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\PlexServers\Pages;
 
 use App\Filament\Resources\PlexServers\PlexServerResource;

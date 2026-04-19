@@ -6,6 +6,7 @@ use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveEmptyClassMethodRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
+use Rector\TypeDeclaration\Rector\StmtsAwareInterface\DeclareStrictTypesRector;
 use RectorLaravel\Set\LaravelSetList;
 
 return RectorConfig::configure()
@@ -14,6 +15,9 @@ return RectorConfig::configure()
         __DIR__.'/config',
         __DIR__.'/database',
         __DIR__.'/routes',
+    ])
+    ->withRules([
+        DeclareStrictTypesRector::class,
     ])
     ->withSkip([
         RemoveEmptyClassMethodRector::class,
