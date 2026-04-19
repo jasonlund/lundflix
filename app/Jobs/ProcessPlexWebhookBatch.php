@@ -8,28 +8,17 @@ use App\Models\Movie;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
-use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
-class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQueue
+class ProcessPlexWebhookBatch implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(public string $serverUuid) {}
-
-    public function uniqueId(): string
-    {
-        return $this->serverUuid;
-    }
-
-    public function uniqueFor(): int
-    {
-        return (int) config('services.plex.webhook_debounce_seconds', 30);
-    }
 
     public function handle(): void
     {
