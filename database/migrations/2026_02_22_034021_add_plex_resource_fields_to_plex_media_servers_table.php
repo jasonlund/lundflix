@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('plex_media_servers', function (Blueprint $table) {
+        Schema::table('plex_media_servers', function (Blueprint $table): void {
             $table->string('source_title')->nullable()->after('connections');
             $table->string('owner_thumb')->nullable()->after('source_title');
             $table->string('owner_id')->nullable()->after('owner_thumb');
@@ -27,7 +27,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('plex_media_servers', function (Blueprint $table) {
+        Schema::table('plex_media_servers', function (Blueprint $table): void {
             $table->dropColumn([
                 'source_title',
                 'owner_thumb',

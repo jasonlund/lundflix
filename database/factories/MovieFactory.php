@@ -4,10 +4,11 @@ namespace Database\Factories;
 
 use App\Enums\Language;
 use App\Enums\MovieStatus;
+use App\Models\Movie;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Movie>
+ * @extends Factory<Movie>
  */
 class MovieFactory extends Factory
 {
@@ -30,7 +31,7 @@ class MovieFactory extends Factory
 
     public function withTmdbData(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'release_date' => fake()->date(),
             'digital_release_date' => fake()->date(),

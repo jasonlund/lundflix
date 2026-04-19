@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Http::macro('resilient', fn () => Http::retry(
             3,
             1000,
-            when: fn ($e) => $e instanceof ConnectionException
+            when: fn ($e): bool => $e instanceof ConnectionException
                 || ($e instanceof RequestException && in_array($e->response->status(), [408, 429, 502, 503, 504])),
         ));
 
@@ -53,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
 
         Blaze::optimize();
 
-        View::composer('components.layouts.app', function ($view) {
+        View::composer('components.layouts.app', function ($view): void {
             $data = $view->getData();
             $defaultBackground = Vite::image('default-background.svg');
 

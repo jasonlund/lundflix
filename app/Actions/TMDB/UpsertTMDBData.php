@@ -13,7 +13,7 @@ class UpsertTMDBData
      */
     public function upsert(array $movies): int
     {
-        $movies = array_map(function (array $movie) {
+        $movies = array_map(function (array $movie): array {
             foreach (['origin_country', 'release_dates'] as $field) {
                 if (isset($movie[$field])) {
                     $movie[$field] = json_encode($movie[$field]);
@@ -46,7 +46,7 @@ class UpsertTMDBData
         return [
             'tmdb_id' => $details['id'],
             'release_date' => $details['release_date'] ?: null,
-            'digital_release_date' => $digitalRelease ? substr($digitalRelease['release_date'], 0, 10) : null,
+            'digital_release_date' => $digitalRelease ? substr((string) $digitalRelease['release_date'], 0, 10) : null,
             'original_language' => $details['original_language'] ?? null,
             'original_title' => $details['original_title'] ?? null,
             'status' => $details['status'] ?? null,

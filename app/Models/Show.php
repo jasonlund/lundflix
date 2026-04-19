@@ -10,6 +10,8 @@ use App\Enums\StreamingLogo;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
 use App\Support\AirDateTime;
+use Database\Factories\ShowFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +21,7 @@ use Laravel\Scout\Searchable;
 
 class Show extends Model
 {
-    /** @use HasFactory<\Database\Factories\ShowFactory> */
+    /** @use HasFactory<ShowFactory> */
     use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
         HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
     }
@@ -66,8 +68,8 @@ class Show extends Model
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
     public function resolveRouteBindingQuery($query, $value, $field = null)
     {

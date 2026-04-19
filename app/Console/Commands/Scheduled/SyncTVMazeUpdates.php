@@ -67,7 +67,7 @@ class SyncTVMazeUpdates extends Command
         }
 
         // Process remaining batch
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $upsertShows->upsert($batch);
         }
 

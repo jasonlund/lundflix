@@ -19,13 +19,13 @@ class SyncIMDBMovies extends Command
     {
         // Download export file
         $file = spin(
-            fn () => $imdb->downloadExport(),
+            fn (): string => $imdb->downloadExport(),
             'Downloading IMDb export...'
         );
 
         // Count lines for progress
         $total = spin(
-            fn () => $imdb->countExportLines($file),
+            fn (): int => $imdb->countExportLines($file),
             'Counting entries...'
         );
 

@@ -34,7 +34,7 @@ class SendRequestNotification implements ShouldQueue
             return;
         }
 
-        $request = $event->request->load(['items.requestable' => function ($morphTo) {
+        $request = $event->request->load(['items.requestable' => function ($morphTo): void {
             $morphTo->morphWith([
                 Episode::class => ['show'],
             ]);

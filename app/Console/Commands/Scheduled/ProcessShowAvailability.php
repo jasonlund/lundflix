@@ -147,14 +147,14 @@ class ProcessShowAvailability extends Command
 
             $available = $showAvailable[$show->id];
 
-            if ($available === null || $available->isEmpty()) {
+            if (! $available instanceof Collection || $available->isEmpty()) {
                 continue;
             }
 
             $availableIds = $available->pluck('id')->all();
 
             $subAvailable = $candidates
-                ->filter(fn (Episode $e) => in_array($e->id, $availableIds, true))
+                ->filter(fn (Episode $e): bool => in_array($e->id, $availableIds, true))
                 ->sortBy([['season', 'asc'], ['number', 'asc']])
                 ->values();
 
@@ -165,7 +165,7 @@ class ProcessShowAvailability extends Command
             $request = $this->createRequest->create($subscription->user);
             $this->createRequestItems->create(
                 $request,
-                $subAvailable->map(fn (Episode $e) => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
+                $subAvailable->map(fn (Episode $e): array => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
             );
 
             $subscription->processedEpisodes()->attach($subAvailable->pluck('id')->all());
@@ -188,9 +188,7 @@ class ProcessShowAvailability extends Command
             $bestQuality = $episodes
                 ->map(fn (Episode $e) => $e->predb_quality ?? null)
                 ->filter()
-                ->reduce(function (?ReleaseQuality $carry, ReleaseQuality $q): ReleaseQuality {
-                    return $carry === null || $q->value > $carry->value ? $q : $carry;
-                });
+                ->reduce(fn (?ReleaseQuality $carry, ReleaseQuality $q): ReleaseQuality => ! $carry instanceof ReleaseQuality || $q->value > $carry->value ? $q : $carry);
 
             MediaAvailable::dispatch(null, $show, $episodes, $bestQuality);
         }

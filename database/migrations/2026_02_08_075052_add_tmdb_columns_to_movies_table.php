@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->unsignedInteger('tmdb_id')->nullable()->after('num_votes');
             $table->date('release_date')->nullable()->after('tmdb_id');
             $table->json('production_companies')->nullable()->after('release_date');
@@ -26,7 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->dropIndex(['tmdb_id']);
             $table->dropIndex(['tmdb_synced_at']);
             $table->dropColumn([

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\ThirdParty\PlexService;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -57,7 +58,7 @@ class PlexCallbackController extends Controller
         }
 
         // Existing user - redirect to login with message
-        if ($user) {
+        if ($user instanceof User) {
             report(new InvalidArgumentException(sprintf(
                 'Plex auth failed: user already linked (plex_id=%s, plex_username=%s, plex_email=%s, existing_user_id=%s)',
                 $plexUser['id'],
@@ -86,14 +87,14 @@ class PlexCallbackController extends Controller
 
     private function handlePasswordReset(?User $user, string $plexToken): RedirectResponse
     {
-        if (! $user) {
+        if (! $user instanceof User) {
             return redirect()->route('login')
                 ->withErrors(['plex' => __('lundbergh.plex.no_account')]);
         }
 
         $user->update(['plex_token' => $plexToken]);
 
-        /** @var \Illuminate\Auth\Passwords\PasswordBroker $broker */
+        /** @var PasswordBroker $broker */
         $broker = Password::broker();
         $resetToken = $broker->createToken($user);
 

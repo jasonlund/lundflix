@@ -37,7 +37,7 @@ class PlexLibraryNotification extends Notification
         return (new SlackMessage)
             ->text($text)
             ->headerBlock('☑️ Added to lundflix')
-            ->sectionBlock(function (SectionBlock $block) use ($text) {
+            ->sectionBlock(function (SectionBlock $block) use ($text): void {
                 $block->text($text)->markdown();
             });
     }

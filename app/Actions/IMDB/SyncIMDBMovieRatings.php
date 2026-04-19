@@ -12,7 +12,7 @@ class SyncIMDBMovieRatings
      */
     public function sync(array $ratings): int
     {
-        if (empty($ratings)) {
+        if ($ratings === []) {
             return 0;
         }
 

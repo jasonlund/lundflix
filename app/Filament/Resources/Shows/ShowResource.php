@@ -10,6 +10,7 @@ use App\Filament\Resources\Shows\Schemas\ShowInfolist;
 use App\Filament\Resources\Shows\Tables\ShowsTable;
 use App\Models\Show;
 use BackedEnum;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -31,7 +32,7 @@ class ShowResource extends Resource
     }
 
     /**
-     * @return array<class-string<\Filament\Resources\RelationManagers\RelationManager>>
+     * @return array<class-string<RelationManager>>
      */
     public static function getRelations(): array
     {

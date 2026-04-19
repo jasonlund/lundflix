@@ -9,6 +9,7 @@ use App\Models\Request;
 use Filament\Actions\BulkAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Exceptions\Halt;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -133,7 +134,7 @@ class RequestItemsRelationManager extends RelationManager
     }
 
     /**
-     * @throws \Filament\Support\Exceptions\Halt
+     * @throws Halt
      */
     private function authorizeRecordsForStatusChange(Collection $records, RequestItemStatus $newStatus): void
     {
@@ -156,7 +157,7 @@ class RequestItemsRelationManager extends RelationManager
                 ->danger()
                 ->send();
 
-            throw new \Filament\Support\Exceptions\Halt;
+            throw new Halt;
         }
     }
 }

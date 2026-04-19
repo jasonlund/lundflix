@@ -3,11 +3,11 @@
 use App\Http\Controllers\ArtController;
 use App\Http\Controllers\Auth\PlexCallbackController;
 use App\Http\Controllers\ErrorPreviewController;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('dashboard');
-})->middleware('auth')->name('home');
+Route::get('/', fn (): Factory|View => view('dashboard'))->middleware('auth')->name('home');
 
 if (app()->environment(['local', 'staging', 'testing'])) {
     Route::livewire('/demo', 'demo')->middleware('auth')->name('demo');
@@ -23,7 +23,7 @@ Route::get('/art/{mediable}/{id}/{type}', ArtController::class)
     ->name('art');
 
 // Plex authentication (guests only)
-Route::middleware('guest')->group(function () {
+Route::middleware('guest')->group(function (): void {
     Route::get('/auth/plex/callback', PlexCallbackController::class)->name('auth.plex.callback');
 
     // Livewire SFC routes

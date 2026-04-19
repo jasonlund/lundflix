@@ -58,7 +58,7 @@ class TMDBService
                     ]),
             )->all(), concurrency: 20);
 
-            $pending->each(function (string $imdbId) use ($responses, &$results, $attempt) {
+            $pending->each(function (string $imdbId) use ($responses, &$results, $attempt): void {
                 $response = $responses[$imdbId];
 
                 if ($response instanceof Response && $response->successful()) {
@@ -70,7 +70,7 @@ class TMDBService
                 }
             });
 
-            $pending = $pending->reject(fn (string $imdbId) => array_key_exists($imdbId, $results))->values();
+            $pending = $pending->reject(fn (string $imdbId): bool => array_key_exists($imdbId, $results))->values();
         }
 
         return $results;
@@ -128,7 +128,7 @@ class TMDBService
                     ]),
             )->all(), concurrency: 20);
 
-            $pending->each(function (int $tmdbId) use ($responses, &$results, $attempt) {
+            $pending->each(function (int $tmdbId) use ($responses, &$results, $attempt): void {
                 $response = $responses[(string) $tmdbId];
 
                 if ($response instanceof Response && $response->successful()) {
@@ -140,7 +140,7 @@ class TMDBService
                 }
             });
 
-            $pending = $pending->reject(fn (int $tmdbId) => array_key_exists($tmdbId, $results))->values();
+            $pending = $pending->reject(fn (int $tmdbId): bool => array_key_exists($tmdbId, $results))->values();
         }
 
         return $results;
@@ -224,7 +224,7 @@ class TMDBService
                     ]),
             )->all(), concurrency: 20);
 
-            $pending->each(function (string $id) use ($responses, &$results, $attempt) {
+            $pending->each(function (string $id) use ($responses, &$results, $attempt): void {
                 $response = $responses[$id];
 
                 if ($response instanceof Response && $response->successful()) {
@@ -236,7 +236,7 @@ class TMDBService
                 }
             });
 
-            $pending = $pending->reject(fn (string $id) => array_key_exists($id, $results))->values();
+            $pending = $pending->reject(fn (string $id): bool => array_key_exists($id, $results))->values();
         }
 
         return $results;
@@ -292,7 +292,7 @@ class TMDBService
                     ]),
             )->all(), concurrency: 20);
 
-            $pending->each(function (int $tmdbId) use ($responses, &$results, $attempt) {
+            $pending->each(function (int $tmdbId) use ($responses, &$results, $attempt): void {
                 $response = $responses[(string) $tmdbId];
 
                 if ($response instanceof Response && $response->successful()) {
@@ -304,7 +304,7 @@ class TMDBService
                 }
             });
 
-            $pending = $pending->reject(fn (int $tmdbId) => array_key_exists($tmdbId, $results))->values();
+            $pending = $pending->reject(fn (int $tmdbId): bool => array_key_exists($tmdbId, $results))->values();
         }
 
         return $results;

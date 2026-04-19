@@ -10,6 +10,7 @@ use App\Filament\Resources\Requests\Tables\RequestsTable;
 use App\Filament\Resources\Requests\Widgets\IptSearchLinksWidget;
 use App\Models\Request;
 use BackedEnum;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -31,7 +32,7 @@ class RequestResource extends Resource
     }
 
     /**
-     * @return array<class-string<\Filament\Resources\RelationManagers\RelationManager>>
+     * @return array<class-string<RelationManager>>
      */
     public static function getRelations(): array
     {

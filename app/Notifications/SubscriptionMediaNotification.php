@@ -55,10 +55,10 @@ class SubscriptionMediaNotification extends Notification
         return (new SlackMessage)
             ->text($title)
             ->headerBlock('🎬 New Release')
-            ->sectionBlock(function (SectionBlock $block) {
+            ->sectionBlock(function (SectionBlock $block): void {
                 $block->text(__('lundbergh.notification.movie_released'));
             })
-            ->sectionBlock(function (SectionBlock $block) use ($title) {
+            ->sectionBlock(function (SectionBlock $block) use ($title): void {
                 $block->text($title)->markdown();
             });
     }
@@ -92,10 +92,10 @@ class SubscriptionMediaNotification extends Notification
         return (new SlackMessage)
             ->text($detail)
             ->headerBlock($header)
-            ->sectionBlock(function (SectionBlock $block) use ($episodeCount) {
+            ->sectionBlock(function (SectionBlock $block) use ($episodeCount): void {
                 $block->text(trans_choice('lundbergh.notification.episodes_premiered', $episodeCount));
             })
-            ->sectionBlock(function (SectionBlock $block) use ($detail) {
+            ->sectionBlock(function (SectionBlock $block) use ($detail): void {
                 $block->text($detail)->markdown();
             });
     }

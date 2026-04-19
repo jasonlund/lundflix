@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\PlexMediaServerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 class PlexMediaServer extends Model
 {
-    /** @use HasFactory<\Database\Factories\PlexMediaServerFactory> */
+    /** @use HasFactory<PlexMediaServerFactory> */
     use HasFactory;
 
     /**

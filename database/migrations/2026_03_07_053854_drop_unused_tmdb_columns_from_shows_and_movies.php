@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->dropColumn([
                 'overview',
                 'tagline',
@@ -21,7 +21,7 @@ return new class extends Migration
             ]);
         });
 
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->dropColumn([
                 'production_companies',
                 'spoken_languages',
@@ -35,7 +35,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->text('overview')->nullable()->after('web_channel');
             $table->text('tagline')->nullable()->after('overview');
             $table->json('spoken_languages')->nullable()->after('original_language');
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->boolean('in_production')->nullable()->after('homepage');
         });
 
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->json('production_companies')->nullable()->after('digital_release_date');
             $table->json('spoken_languages')->nullable()->after('production_companies');
             $table->json('alternative_titles')->nullable()->after('spoken_languages');

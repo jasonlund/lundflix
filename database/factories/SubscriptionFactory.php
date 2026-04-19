@@ -3,11 +3,12 @@
 namespace Database\Factories;
 
 use App\Models\Movie;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Subscription>
+ * @extends Factory<Subscription>
  */
 class SubscriptionFactory extends Factory
 {
@@ -30,7 +31,7 @@ class SubscriptionFactory extends Factory
      */
     public function forSubscribable(mixed $subscribable): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'subscribable_type' => $subscribable::class,
             'subscribable_id' => $subscribable->id,
         ]);

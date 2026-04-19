@@ -42,6 +42,9 @@ jobs:
       - name: Run Pint
         run: vendor/bin/pint --test
 
+      - name: Run Rector
+        run: vendor/bin/rector process --dry-run --memory-limit=512M
+
       - name: Run Prettier
         run: npm run format:check
 

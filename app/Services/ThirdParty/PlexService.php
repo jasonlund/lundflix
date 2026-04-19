@@ -11,11 +11,11 @@ class PlexService
 {
     private const BASE_URL = 'https://clients.plex.tv/api/v2';
 
-    private string $clientIdentifier;
+    private readonly string $clientIdentifier;
 
-    private string $productName;
+    private readonly string $productName;
 
-    private string $serverIdentifier;
+    private readonly string $serverIdentifier;
 
     public function __construct()
     {
@@ -121,10 +121,8 @@ class PlexService
     {
         $resources = $this->getUserResources($token);
 
-        return $resources->contains(function (array $resource) {
-            return $resource['clientIdentifier'] === $this->serverIdentifier
-                && $resource['provides'] === 'server';
-        });
+        return $resources->contains(fn (array $resource): bool => $resource['clientIdentifier'] === $this->serverIdentifier
+            && $resource['provides'] === 'server');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\User;
 use Carbon\Carbon;
 
 class UserTime
@@ -64,7 +65,7 @@ class UserTime
      */
     public static function timezone(): string
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
         return $user ? $user->timezone : 'America/New_York';

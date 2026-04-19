@@ -55,7 +55,7 @@ return [
     */
 
     'admin_emails' => array_filter(
-        array_map('trim', explode(',', env('HORIZON_ADMIN_EMAILS', '')))
+        array_map(trim(...), explode(',', (string) env('HORIZON_ADMIN_EMAILS', '')))
     ),
 
     /*

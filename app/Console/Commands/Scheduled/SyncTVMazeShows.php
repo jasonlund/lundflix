@@ -40,7 +40,7 @@ class SyncTVMazeShows extends Command
                 throw $e;
             }
 
-            $batch = $shows->map(fn ($show) => [
+            $batch = $shows->map(fn (array $show): array => [
                 'tvmaze_id' => $show['id'],
                 ...UpsertTVMazeShows::mapFromApi($show),
             ])->all();

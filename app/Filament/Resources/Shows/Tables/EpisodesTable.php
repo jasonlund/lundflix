@@ -39,7 +39,7 @@ class EpisodesTable
                         ->distinct()
                         ->orderBy('season')
                         ->pluck('season', 'season')
-                        ->mapWithKeys(fn ($season) => [$season => "Season {$season}"])
+                        ->mapWithKeys(fn ($season): array => [$season => "Season {$season}"])
                         ->toArray()
                     ),
                 SelectFilter::make('type')

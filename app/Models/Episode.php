@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\EpisodeType;
 use App\Enums\MediaType;
+use App\Enums\ReleaseQuality;
 use App\Support\EpisodeCode;
+use Database\Factories\EpisodeFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,11 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property EpisodeType $type
- * @property \App\Enums\ReleaseQuality|null $predb_quality Transient attribute set by PreDBService::findAvailableEpisodes.
+ * @property ReleaseQuality|null $predb_quality Transient attribute set by PreDBService::findAvailableEpisodes.
  */
 class Episode extends Model
 {
-    /** @use HasFactory<\Database\Factories\EpisodeFactory> */
+    /** @use HasFactory<EpisodeFactory> */
     use HasFactory;
 
     protected function casts(): array

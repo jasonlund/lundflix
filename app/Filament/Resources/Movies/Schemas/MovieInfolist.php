@@ -18,7 +18,7 @@ class MovieInfolist
                         TextEntry::make('id'),
                         TextEntry::make('imdb_id')
                             ->label('IMDb ID')
-                            ->url(fn ($record) => "https://www.imdb.com/title/{$record->imdb_id}/")
+                            ->url(fn ($record): string => "https://www.imdb.com/title/{$record->imdb_id}/")
                             ->openUrlInNewTab(),
                         TextEntry::make('title'),
                         TextEntry::make('year'),

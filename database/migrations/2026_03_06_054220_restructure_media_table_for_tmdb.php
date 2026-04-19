@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('media', function (Blueprint $table) {
+        Schema::table('media', function (Blueprint $table): void {
             $table->dropUnique('media_mediable_type_mediable_id_fanart_id_unique');
 
             $table->renameColumn('fanart_id', 'file_path');
@@ -21,14 +21,14 @@ return new class extends Migration
             $table->unsignedInteger('height')->nullable()->after('width');
         });
 
-        Schema::table('media', function (Blueprint $table) {
+        Schema::table('media', function (Blueprint $table): void {
             $table->unique(['mediable_type', 'mediable_id', 'file_path']);
         });
     }
 
     public function down(): void
     {
-        Schema::table('media', function (Blueprint $table) {
+        Schema::table('media', function (Blueprint $table): void {
             $table->dropUnique(['mediable_type', 'mediable_id', 'file_path']);
 
             $table->renameColumn('file_path', 'fanart_id');
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->string('disc_type')->nullable();
         });
 
-        Schema::table('media', function (Blueprint $table) {
+        Schema::table('media', function (Blueprint $table): void {
             $table->unique(['mediable_type', 'mediable_id', 'fanart_id']);
         });
     }

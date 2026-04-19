@@ -54,17 +54,17 @@ class MediaAvailableNotification extends Notification
             $title .= " ({$movie->year})";
         }
 
-        $detail = $this->quality === null
-            ? $title
-            : $title.' — '.$this->quality->getLabel();
+        $detail = $this->quality instanceof ReleaseQuality
+            ? $title.' — '.$this->quality->getLabel()
+            : $title;
 
         return (new SlackMessage)
             ->text($detail)
             ->headerBlock('🟢 Available')
-            ->sectionBlock(function (SectionBlock $block) {
+            ->sectionBlock(function (SectionBlock $block): void {
                 $block->text(__('lundbergh.notification.movie_available'));
             })
-            ->sectionBlock(function (SectionBlock $block) use ($detail) {
+            ->sectionBlock(function (SectionBlock $block) use ($detail): void {
                 $block->text($detail)->markdown();
             });
     }
@@ -95,17 +95,17 @@ class MediaAvailableNotification extends Notification
 
         $detail = $show->name.' '.implode(', ', $parts);
 
-        if ($this->quality !== null) {
+        if ($this->quality instanceof ReleaseQuality) {
             $detail .= ' — '.$this->quality->getLabel();
         }
 
         return (new SlackMessage)
             ->text($detail)
             ->headerBlock($header)
-            ->sectionBlock(function (SectionBlock $block) use ($episodeCount) {
+            ->sectionBlock(function (SectionBlock $block) use ($episodeCount): void {
                 $block->text(trans_choice('lundbergh.notification.episodes_available', $episodeCount));
             })
-            ->sectionBlock(function (SectionBlock $block) use ($detail) {
+            ->sectionBlock(function (SectionBlock $block) use ($detail): void {
                 $block->text($detail)->markdown();
             });
     }

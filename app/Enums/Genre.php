@@ -79,7 +79,7 @@ enum Genre: string implements HasIcon, HasLabel
     {
         $genre = self::tryFromString($value);
 
-        if ($genre !== null) {
+        if ($genre instanceof \App\Enums\Genre) {
             return $genre->getLabel();
         }
 

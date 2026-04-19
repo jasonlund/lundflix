@@ -12,7 +12,7 @@ class UpsertTMDBShowData
      */
     public function upsert(array $shows): int
     {
-        $shows = array_map(function (array $show) {
+        $shows = array_map(function (array $show): array {
             foreach (['content_ratings'] as $field) {
                 if (isset($show[$field])) {
                     $show[$field] = json_encode($show[$field]);

@@ -23,7 +23,7 @@ class MediaRelationManager extends RelationManager
         return MediaTable::configure($table)
             ->headerActions([
                 Action::make('syncArtwork')
-                    ->label(fn () => $this->getMediableOwner()->media()->exists()
+                    ->label(fn (): string => $this->getMediableOwner()->media()->exists()
                         ? 'Refresh Artwork'
                         : 'Fetch Artwork')
                     ->icon('lucide-refresh-cw')

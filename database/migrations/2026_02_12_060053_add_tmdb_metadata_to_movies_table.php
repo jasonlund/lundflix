@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->string('original_title')->nullable()->after('alternative_titles');
             $table->string('tagline')->nullable()->after('original_title');
             $table->string('status')->nullable()->after('tagline');
@@ -27,7 +27,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->dropColumn([
                 'original_title',
                 'tagline',

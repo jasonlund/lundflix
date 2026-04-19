@@ -21,7 +21,7 @@ class EpisodesRelationManager extends RelationManager
         return EpisodesTable::configure($table)
             ->headerActions([
                 Action::make('fetchEpisodes')
-                    ->label(fn () => $this->getShow()->episodes()->exists()
+                    ->label(fn (): string => $this->getShow()->episodes()->exists()
                         ? 'Refresh Episodes'
                         : 'Fetch Episodes')
                     ->icon('lucide-refresh-cw')
@@ -32,7 +32,7 @@ class EpisodesRelationManager extends RelationManager
 
                         try {
                             $episodes = $tvMaze->episodes($show->tvmaze_id);
-                        } catch (RequestException $e) {
+                        } catch (RequestException) {
                             Notification::make()
                                 ->title('Failed to fetch episodes')
                                 ->body('Could not connect to TVMaze API.')
@@ -42,7 +42,7 @@ class EpisodesRelationManager extends RelationManager
                             $action->halt();
                         }
 
-                        if (empty($episodes)) {
+                        if ($episodes === []) {
                             Notification::make()
                                 ->title('No episodes found')
                                 ->body('TVMaze has no episode data for this show.')

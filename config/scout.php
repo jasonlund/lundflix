@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Movie;
+use App\Models\Show;
+
 return [
 
     /*
@@ -179,7 +182,7 @@ return [
         ],
         // 'max_total_results' => env('TYPESENSE_MAX_TOTAL_RESULTS', 1000),
         'model-settings' => [
-            App\Models\Movie::class => [
+            Movie::class => [
                 'collection-schema' => [
                     'fields' => [
                         ['name' => 'id', 'type' => 'string'],
@@ -198,7 +201,7 @@ return [
                     'prioritize_token_position' => true,
                 ],
             ],
-            App\Models\Show::class => [
+            Show::class => [
                 'collection-schema' => [
                     'fields' => [
                         ['name' => 'id', 'type' => 'string'],

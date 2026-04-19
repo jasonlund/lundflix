@@ -30,7 +30,7 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
     {
         $cacheKey = "plex-webhook:{$this->serverUuid}";
 
-        $result = Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey) {
+        $result = Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey): ?array {
             $batch = Cache::get($cacheKey);
 
             if (! $batch || empty($batch['items'])) {
