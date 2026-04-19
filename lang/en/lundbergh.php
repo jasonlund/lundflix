@@ -4,20 +4,23 @@ return [
     'plex' => [
         'auth_failed' => "Yeah… so, we weren't able to authenticate your Plex user. That's… not great.",
         'no_access' => "Mmm yeah… I'm gonna need you to have access to lundflix. So… yeah.",
-        'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.",
+        'already_linked' => "Yeah… it looks like someone's already using this Plex account. So… yeah.\nIf you forgot your password, you can go ahead and reset it below.",
+        'no_account' => "Mmm yeah… we couldn't find an account linked to that Plex user. I'm gonna need you to go ahead and register first. That'd be great.",
         'multi_server_intro' => 'Yeah… so,',
         'multi_server_middle' => 'is available on',
         'multi_server_outro' => 'and you can go ahead and open them below.',
         'pin_creation_failed' => "Yeah… so, we had a little trouble connecting to Plex. I'm gonna need you to go ahead and try again. That'd be great.",
     ],
     'auth' => [
-        'failed' => "Yeah… those credentials don't match our records. So… yeah.",
+        'failed' => "Yeah… those credentials don't match our records. So… yeah.\nIf you forgot your password, you can go ahead and reset it below.",
         'password' => "Mmm yeah… that password's not right. That's… not great.",
         'throttle' => "Yeah… you've tried too many times. I'm gonna need you to wait :seconds seconds.",
     ],
     'form' => [
         'email_description' => "Yeah… if you could use the address associated with your Plex account, that'd be great.",
         'plex_redirect' => "Mmm yeah… so you're gonna be redirected to plex.tv to authenticate your account and verify your access for registration.\n\nYeah… if you don't already have access to the lundflix server, I'm gonna need you to go ahead and not waste everyone's time here. That'd be great.",
+        'plex_password_reset' => "Yeah… so, you forgot your password. That's… not great.\n\nI'm gonna need you to go ahead and sign in with Plex to verify your identity. Once we confirm you are who you say you are, you can set a new password. That'd be great.",
+        'password_reset_verified' => "Mmkay… so, we've confirmed you are who you say you are. Go ahead and set a new password below. And make sure it's something you'll actually remember this time. That'd be great.",
     ],
     'cart' => [
         'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",
@@ -58,6 +61,14 @@ return [
         'when_yesterday' => 'yesterday',
         'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
         'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
+    ],
+    'notification' => [
+        'request_intro' => "Yeah… so, here's what's been requested:",
+        'request_processed' => "Mmkay… the Bobs have processed your request. Here's what came back:",
+        'movie_released' => "Yeah… so, this just released digitally. I'm gonna need someone to go ahead and grab it. That'd be great.",
+        'episodes_premiered' => "{1} Mmkay… a new episode just aired. I'm gonna need someone to go ahead and grab it. That'd be great.|[2,*] Mmkay… new episodes just aired. I'm gonna need someone to go ahead and grab those. That'd be great.",
+        'movie_available' => "Yeah… so, this just hit the pre. The Bobs have gone ahead and added it to the cart. That'd be great.",
+        'episodes_available' => "{1} Mmkay… an episode just hit the pre. The Bobs have gone ahead and added it to the cart. That'd be great.|[2,*] Mmkay… these episodes just hit the pre. The Bobs have gone ahead and added them to the cart. That'd be great.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

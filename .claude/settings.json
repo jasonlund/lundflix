@@ -10,7 +10,8 @@
       "Read(./.env.example)",
       "Edit(./.env.example)",
       "mcp__laravel-boost*",
-      "mcp__chrome-devtools*"
+      "mcp__chrome-devtools*",
+      "mcp__linear-server*"
     ],
     "ask": [
       "Edit(./CLAUDE.md)",

@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\RequestStatus;
 use App\Models\Episode;
 use App\Models\Request;
-use App\Notifications\RequestFulfilledNotification;
+use App\Notifications\RequestProcessedNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 
@@ -56,7 +56,7 @@ class SendRequestFulfilledNotification extends Command
         }
 
         Notification::route('slack', $channel)
-            ->notify(new RequestFulfilledNotification($request));
+            ->notify(new RequestProcessedNotification($request));
 
         $this->info("Notification sent for request #{$request->id}.");
 

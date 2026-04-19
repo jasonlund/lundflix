@@ -7,7 +7,7 @@ use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
-use App\Notifications\RequestFulfilledNotification;
+use App\Notifications\RequestProcessedNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -37,7 +37,7 @@ it('sends slack notification when slack is enabled and channel is configured', f
     $listener = new SendRequestFulfilledNotification;
     $listener->handle(new RequestFulfilled($request));
 
-    Notification::assertSentOnDemand(RequestFulfilledNotification::class);
+    Notification::assertSentOnDemand(RequestProcessedNotification::class);
 });
 
 it('sends notification with episodes', function () {
@@ -57,7 +57,7 @@ it('sends notification with episodes', function () {
     $listener = new SendRequestFulfilledNotification;
     $listener->handle(new RequestFulfilled($request));
 
-    Notification::assertSentOnDemand(RequestFulfilledNotification::class);
+    Notification::assertSentOnDemand(RequestProcessedNotification::class);
 });
 
 it('does not send notification when slack is disabled', function () {

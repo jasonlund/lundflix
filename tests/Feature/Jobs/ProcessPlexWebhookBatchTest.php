@@ -3,6 +3,7 @@
 use App\Jobs\ProcessPlexWebhookBatch;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -78,6 +79,7 @@ it('does not mix batches from different servers', function () {
 
 it('skips notification when slack is disabled', function () {
     Notification::fake();
+    Log::spy();
     config(['services.slack.enabled' => false]);
 
     cacheBatch('server-123', [
@@ -88,10 +90,12 @@ it('skips notification when slack is disabled', function () {
 
     expect(Cache::get('plex-webhook:server-123'))->toBeNull();
     Notification::assertNothingSent();
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'Slack is not enabled'));
 });
 
 it('skips notification when slack channel is not configured', function () {
     Notification::fake();
+    Log::spy();
     config(['services.slack.notifications.channel' => null]);
 
     cacheBatch('server-123', [
@@ -102,4 +106,5 @@ it('skips notification when slack channel is not configured', function () {
 
     expect(Cache::get('plex-webhook:server-123'))->toBeNull();
     Notification::assertNothingSent();
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'channel not configured'));
 });
