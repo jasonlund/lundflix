@@ -38,7 +38,7 @@ class PlexWebhookController extends Controller
         $maxAgeMinutes = (int) config('services.plex.webhook_added_at_max_age_minutes', 15);
 
         if (! is_numeric($addedAt) || $addedAt <= 0) {
-            Log::debug('Plex webhook rejected: missing addedAt', [
+            Log::warning('Plex webhook rejected: missing addedAt', [
                 'title' => $metadata['title'] ?? 'Unknown',
             ]);
 
@@ -48,7 +48,7 @@ class PlexWebhookController extends Controller
         $addedAtDate = Carbon::createFromTimestamp((int) $addedAt);
 
         if ($addedAtDate->isBefore(now()->subMinutes($maxAgeMinutes))) {
-            Log::debug('Plex webhook rejected: addedAt too old', [
+            Log::warning('Plex webhook rejected: addedAt too old', [
                 'title' => $metadata['title'] ?? 'Unknown',
                 'addedAt' => $addedAtDate->toIso8601String(),
                 'maxAgeMinutes' => $maxAgeMinutes,
