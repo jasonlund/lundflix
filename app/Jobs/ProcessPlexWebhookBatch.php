@@ -2,6 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Enums\RequestItemStatus;
+use App\Models\Episode;
+use App\Models\Movie;
+use App\Models\RequestItem;
+use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -63,11 +68,85 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
         }
 
         $batch = $result['batch'];
+        $items = collect($batch['items']);
 
+        $this->fulfillMatchingRequests($items);
+        $this->sendSlackNotification($batch, $items);
+    }
+
+    private function fulfillMatchingRequests(\Illuminate\Support\Collection $items): void
+    {
+        $fulfilled = 0;
+
+        foreach ($items as $item) {
+            $fulfilled += match ($item['media_type']) {
+                'movie' => $this->fulfillMovie($item),
+                'episode' => $this->fulfillEpisode($item),
+                default => 0,
+            };
+        }
+
+        if ($fulfilled > 0) {
+            Log::info('Plex webhook auto-fulfilled request items', [
+                'serverUuid' => $this->serverUuid,
+                'fulfilledCount' => $fulfilled,
+            ]);
+        }
+    }
+
+    private function fulfillMovie(array $item): int
+    {
+        $movie = Movie::query()
+            ->where('title', $item['title'])
+            ->where('year', $item['year'])
+            ->first();
+
+        if (! $movie) {
+            return 0;
+        }
+
+        return RequestItem::pending()
+            ->where('requestable_type', Movie::class)
+            ->where('requestable_id', $movie->id)
+            ->update([
+                'status' => RequestItemStatus::Fulfilled,
+                'actioned_at' => now(),
+            ]);
+    }
+
+    private function fulfillEpisode(array $item): int
+    {
+        $show = Show::query()->where('name', $item['show_title'])->first();
+
+        if (! $show) {
+            return 0;
+        }
+
+        $episode = Episode::query()
+            ->where('show_id', $show->id)
+            ->where('season', $item['season'])
+            ->where('number', $item['episode_number'])
+            ->first();
+
+        if (! $episode) {
+            return 0;
+        }
+
+        return RequestItem::pending()
+            ->where('requestable_type', Episode::class)
+            ->where('requestable_id', $episode->id)
+            ->update([
+                'status' => RequestItemStatus::Fulfilled,
+                'actioned_at' => now(),
+            ]);
+    }
+
+    private function sendSlackNotification(array $batch, \Illuminate\Support\Collection $items): void
+    {
         if (! config('services.slack.enabled')) {
             Log::warning('Plex batch notification skipped: Slack is not enabled', [
                 'serverUuid' => $this->serverUuid,
-                'itemCount' => count($batch['items']),
+                'itemCount' => $items->count(),
             ]);
 
             return;
@@ -78,7 +157,7 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
         if (! $channel) {
             Log::warning('Plex batch notification skipped: channel not configured', [
                 'serverUuid' => $this->serverUuid,
-                'itemCount' => count($batch['items']),
+                'itemCount' => $items->count(),
             ]);
 
             return;
@@ -87,14 +166,14 @@ class ProcessPlexWebhookBatch implements ShouldBeUniqueUntilProcessing, ShouldQu
         Log::info('Sending Plex batch notification', [
             'serverUuid' => $this->serverUuid,
             'serverName' => $batch['server_name'],
-            'itemCount' => count($batch['items']),
+            'itemCount' => $items->count(),
             'channel' => $channel,
         ]);
 
         Notification::route('slack', $channel)
             ->notify(new PlexLibraryNotification(
                 serverName: $batch['server_name'],
-                items: collect($batch['items']),
+                items: $items,
             ));
     }
 }
