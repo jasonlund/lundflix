@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\IMDB\SyncIMDBMovieRatings;
@@ -23,13 +25,13 @@ class SyncIMDBRatings extends Command
     ): int {
         // Download ratings file
         $file = spin(
-            fn () => $imdb->downloadRatings(),
+            fn (): string => $imdb->downloadRatings(),
             'Downloading IMDb ratings...'
         );
 
         // Count lines for progress
         $total = spin(
-            fn () => $this->countLines($file),
+            fn (): int => $this->countLines($file),
             'Counting entries...'
         );
 

@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Casts\LanguageFromCode;
-use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Enums\TMDBReleaseType;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
 use Carbon\Carbon;
+use Database\Factories\MovieFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,7 +28,7 @@ use Laravel\Scout\Searchable;
  */
 class Movie extends Model
 {
-    /** @use HasFactory<\Database\Factories\MovieFactory> */
+    /** @use HasFactory<MovieFactory> */
     use HasArtwork, HasFactory, HasObfuscatedId, Searchable {
         HasObfuscatedId::resolveRouteBindingQuery as resolveSqidRouteBindingQuery;
     }
@@ -82,7 +85,7 @@ class Movie extends Model
 
         $theatricalDate = $this->earliestPastDateOfTypes($allDates, TMDBReleaseType::Theatrical, TMDBReleaseType::TheatricalLimited);
 
-        if ($theatricalDate) {
+        if ($theatricalDate instanceof Carbon) {
             $hasKnownDigitalPhysical = $this->digital_release_date !== null
                 || $this->hasAnyDateOfTypes($allDates, TMDBReleaseType::Digital, TMDBReleaseType::Physical);
 
@@ -95,7 +98,7 @@ class Movie extends Model
 
         $premiereDate = $this->earliestPastDateOfTypes($allDates, TMDBReleaseType::Premiere);
 
-        if ($premiereDate) {
+        if ($premiereDate instanceof Carbon) {
             $hasFutureTheatrical = $this->earliestFutureDateOfTypes($allDates, TMDBReleaseType::Theatrical, TMDBReleaseType::TheatricalLimited);
 
             if (! $hasFutureTheatrical && $premiereDate->copy()->addDays(90)->isPast()) {
@@ -105,7 +108,7 @@ class Movie extends Model
             return MovieStatus::FestivalRelease;
         }
 
-        if ($this->earliestFutureDateOfTypes($allDates, TMDBReleaseType::Theatrical, TMDBReleaseType::TheatricalLimited)) {
+        if ($this->earliestFutureDateOfTypes($allDates, TMDBReleaseType::Theatrical, TMDBReleaseType::TheatricalLimited) instanceof Carbon) {
             return MovieStatus::Upcoming;
         }
 
@@ -239,8 +242,8 @@ class Movie extends Model
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<static>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<static>
+     * @param  Builder<static>  $query
+     * @return Builder<static>
      */
     public function resolveRouteBindingQuery($query, $value, $field = null)
     {

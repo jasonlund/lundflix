@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TMDB\UpsertTMDBData;
@@ -90,7 +92,7 @@ class SyncTMDBMovies extends Command
 
         $changedTmdbIds = $tmdb->changedMovieIds();
 
-        if (empty($changedTmdbIds)) {
+        if ($changedTmdbIds === []) {
             return 0;
         }
 
@@ -143,7 +145,7 @@ class SyncTMDBMovies extends Command
             }
 
             $detailsMap = [];
-            if ($tmdbIdMap) {
+            if ($tmdbIdMap !== []) {
                 $details = $tmdb->movieDetailsMany(array_values(array_unique($tmdbIdMap)));
                 foreach ($tmdbIdMap as $imdbId => $tmdbId) {
                     $detailsMap[$imdbId] = $details[$tmdbId] ?? null;

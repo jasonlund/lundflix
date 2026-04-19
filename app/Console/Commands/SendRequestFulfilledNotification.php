@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Enums\RequestStatus;
@@ -23,7 +25,7 @@ class SendRequestFulfilledNotification extends Command
             return Command::FAILURE;
         }
 
-        $request = Request::with(['items.requestable' => function ($morphTo) {
+        $request = Request::with(['items.requestable' => function ($morphTo): void {
             $morphTo->morphWith([
                 Episode::class => ['show'],
             ]);

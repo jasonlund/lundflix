@@ -1,15 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Enums\RequestItemStatus;
+use App\Models\Episode;
+use App\Models\Movie;
 use App\Models\Request;
+use App\Models\Show;
 use App\Services\CartService;
 use App\Support\Formatters;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\BlockKit\Blocks\SectionBlock;
 use Illuminate\Notifications\Slack\SlackMessage;
+use Illuminate\Support\Collection;
 
 class RequestProcessedNotification extends Notification
 {
@@ -30,7 +36,7 @@ class RequestProcessedNotification extends Notification
         $message = (new SlackMessage)
             ->text($this->formatItems())
             ->headerBlock('📤 Request Processed')
-            ->sectionBlock(function (SectionBlock $block) {
+            ->sectionBlock(function (SectionBlock $block): void {
                 $block->text(__('lundbergh.notification.request_processed'));
             });
 
@@ -41,7 +47,7 @@ class RequestProcessedNotification extends Notification
         ];
 
         foreach ($statusGroups as [$status, $label]) {
-            /** @var \Illuminate\Support\Collection<int, \App\Models\Movie|\App\Models\Episode> $requestables */
+            /** @var Collection<int, Movie|Episode> $requestables */
             $requestables = $this->request->items
                 ->where('status', $status)
                 ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
@@ -54,7 +60,7 @@ class RequestProcessedNotification extends Notification
             $grouped = app(CartService::class)->groupItems($requestables);
             $lines = $this->formatGroupedItems($grouped);
 
-            $message->sectionBlock(function (SectionBlock $block) use ($label, $lines) {
+            $message->sectionBlock(function (SectionBlock $block) use ($label, $lines): void {
                 $block->text("*{$label}:*\n".implode("\n", $lines))->markdown();
             });
         }
@@ -73,7 +79,7 @@ class RequestProcessedNotification extends Notification
         ];
 
         foreach ($statusGroups as [$status, $label]) {
-            /** @var \Illuminate\Support\Collection<int, \App\Models\Movie|\App\Models\Episode> $requestables */
+            /** @var Collection<int, Movie|Episode> $requestables */
             $requestables = $this->request->items
                 ->where('status', $status)
                 ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
@@ -93,7 +99,7 @@ class RequestProcessedNotification extends Notification
     }
 
     /**
-     * @param  array{movies: \Illuminate\Support\Collection<int, \App\Models\Movie>, shows: array<int, array{show: \App\Models\Show, seasons: array<int, array{season: int, is_full: bool, runs: array<int, \Illuminate\Support\Collection<int, \App\Models\Episode>>, episodes: \Illuminate\Support\Collection<int, \App\Models\Episode>}>}>}  $grouped
+     * @param  array{movies: Collection<int, Movie>, shows: array<int, array{show: Show, seasons: array<int, array{season: int, is_full: bool, runs: array<int, Collection<int, Episode>>, episodes: Collection<int, Episode>}>}>}  $grouped
      * @return array<int, string>
      */
     private function formatGroupedItems(array $grouped): array

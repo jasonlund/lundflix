@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Enums\RequestItemStatus;
@@ -10,6 +12,7 @@ use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -24,7 +27,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
     {
         $cacheKey = "plex-webhook:{$this->serverUuid}";
 
-        $result = Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey) {
+        $result = Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey): ?array {
             $batch = Cache::get($cacheKey);
 
             if (! $batch || empty($batch['items'])) {
@@ -63,7 +66,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
         $this->sendSlackNotification($batch, $items);
     }
 
-    private function fulfillMatchingRequests(\Illuminate\Support\Collection $items): void
+    private function fulfillMatchingRequests(Collection $items): void
     {
         $fulfilled = 0;
 
@@ -130,7 +133,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             ]);
     }
 
-    private function sendSlackNotification(array $batch, \Illuminate\Support\Collection $items): void
+    private function sendSlackNotification(array $batch, Collection $items): void
     {
         if (! config('services.slack.enabled')) {
             Log::warning('Plex batch notification skipped: Slack is not enabled', [

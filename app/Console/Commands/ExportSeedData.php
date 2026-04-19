@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
+use App\Models\Movie;
+use App\Models\Show;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -27,7 +31,7 @@ class ExportSeedData extends Command
     private const MEDIA_PER_TYPE = 5;
 
     /** @var resource|closed-resource|null */
-    private $gzHandle = null;
+    private $gzHandle;
 
     public function handle(): int
     {
@@ -87,7 +91,7 @@ class ExportSeedData extends Command
         foreach ($files as $file) {
             if ($file !== $currentFile) {
                 File::delete($file);
-                $this->info('Deleted old seed file: '.basename($file));
+                $this->info('Deleted old seed file: '.basename((string) $file));
             }
         }
 
@@ -135,7 +139,7 @@ class ExportSeedData extends Command
         $batch = [];
 
         $query->cursor()
-            ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
+            ->each(function (object $row) use (&$batch, &$exported, $columns, $progress): void {
                 $batch[] = $this->formatMovieRow($row);
                 $exported++;
 
@@ -195,7 +199,7 @@ class ExportSeedData extends Command
         $batch = [];
 
         $query->cursor()
-            ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
+            ->each(function (object $row) use (&$batch, &$exported, $columns, $progress): void {
                 $batch[] = $this->formatShowRow($row);
                 $exported++;
 
@@ -292,23 +296,23 @@ class ExportSeedData extends Command
 
         // Use subqueries to match the same vote filter applied to movies/shows
         $query = $db->query()
-            ->fromSub(function ($sub) use ($db, $exportAll, $minVotes) {
+            ->fromSub(function ($sub) use ($db, $exportAll, $minVotes): void {
                 $sub->from('media')
                     ->selectRaw('*, ROW_NUMBER() OVER (PARTITION BY mediable_type, mediable_id, type ORDER BY vote_average DESC, id) as rn')
-                    ->where(function ($q) use ($db, $exportAll, $minVotes) {
-                        $q->where(function ($q) use ($db, $exportAll, $minVotes) {
+                    ->where(function ($q) use ($db, $exportAll, $minVotes): void {
+                        $q->where(function ($q) use ($db, $exportAll, $minVotes): void {
                             $movieQuery = $db->table('movies')->select('id');
                             if (! $exportAll) {
                                 $movieQuery->where('num_votes', '>=', $minVotes);
                             }
-                            $q->where('mediable_type', 'App\\Models\\Movie')
+                            $q->where('mediable_type', Movie::class)
                                 ->whereIn('mediable_id', $movieQuery);
-                        })->orWhere(function ($q) use ($db, $exportAll, $minVotes) {
+                        })->orWhere(function ($q) use ($db, $exportAll, $minVotes): void {
                             $showQuery = $db->table('shows')->select('id');
                             if (! $exportAll) {
                                 $showQuery->where('num_votes', '>=', $minVotes);
                             }
-                            $q->where('mediable_type', 'App\\Models\\Show')
+                            $q->where('mediable_type', Show::class)
                                 ->whereIn('mediable_id', $showQuery);
                         });
                     });
@@ -331,7 +335,7 @@ class ExportSeedData extends Command
         $batch = [];
 
         $query->orderBy('id')->cursor()
-            ->each(function ($row) use (&$batch, &$exported, $columns, $progress) {
+            ->each(function (object $row) use (&$batch, &$exported, $columns, $progress): void {
                 $batch[] = $this->formatMediaRow($row);
                 $exported++;
 
@@ -390,7 +394,7 @@ class ExportSeedData extends Command
     private function buildInsertStatement(string $table, array $columns, array $rows): string
     {
         $columnList = implode(',', $columns);
-        $values = array_map(fn ($row) => '('.implode(',', $row).')', $rows);
+        $values = array_map(fn (array $row): string => '('.implode(',', $row).')', $rows);
 
         return "INSERT INTO {$table} ({$columnList}) VALUES \n".implode(",\n", $values).";\n";
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Shows\Tables;
 
 use App\Enums\EpisodeType;
@@ -39,7 +41,7 @@ class EpisodesTable
                         ->distinct()
                         ->orderBy('season')
                         ->pluck('season', 'season')
-                        ->mapWithKeys(fn ($season) => [$season => "Season {$season}"])
+                        ->mapWithKeys(fn ($season): array => [$season => "Season {$season}"])
                         ->toArray()
                     ),
                 SelectFilter::make('type')

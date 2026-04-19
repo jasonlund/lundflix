@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 use App\Enums\ShowStatus;
@@ -90,13 +92,13 @@ class Formatters
         }
 
         if (count($episodes) === 1) {
-            return strtoupper($episodes[0]->code);
+            return strtoupper((string) $episodes[0]->code);
         }
 
         $start = $episodes[0];
         $end = $episodes[count($episodes) - 1];
 
-        $startCode = strtoupper($start->code);
+        $startCode = strtoupper((string) $start->code);
         $endSuffix = ($end->isSpecial() ? 'S' : 'E').sprintf('%02d', $end->number);
 
         return $startCode.'-'.$endSuffix;

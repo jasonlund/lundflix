@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\EpisodeType;
@@ -45,7 +47,7 @@ class CartService
         $movies = collect($this->movies());
 
         if ($movies->contains($movieId)) {
-            session([self::SESSION_KEY.'.movies' => $movies->reject(fn ($id) => $id === $movieId)->values()->all()]);
+            session([self::SESSION_KEY.'.movies' => $movies->reject(fn ($id): bool => $id === $movieId)->values()->all()]);
 
             return false;
         }
@@ -83,7 +85,7 @@ class CartService
     public function countEpisodesForShow(int $showId): int
     {
         return collect($this->episodes())
-            ->filter(fn ($ep) => $ep['show_id'] === $showId)
+            ->filter(fn ($ep): bool => $ep['show_id'] === $showId)
             ->count();
     }
 
@@ -100,10 +102,10 @@ class CartService
     public function syncShowEpisodes(int $showId, array $episodeCodes): void
     {
         $otherShowEpisodes = collect($this->episodes())
-            ->reject(fn ($ep) => $ep['show_id'] === $showId);
+            ->reject(fn ($ep): bool => $ep['show_id'] === $showId);
 
         $thisShowEpisodes = collect($episodeCodes)
-            ->map(function ($code) use ($showId) {
+            ->map(function ($code) use ($showId): array {
                 $parsed = EpisodeCode::parse(strtolower($code));
 
                 return [
@@ -111,7 +113,7 @@ class CartService
                     'code' => EpisodeCode::generate($parsed['season'], $parsed['number'], $parsed['is_special']),
                 ];
             })
-            ->unique(fn ($ep) => $ep['code']);
+            ->unique(fn ($ep): string => $ep['code']);
 
         session([self::SESSION_KEY.'.episodes' => $otherShowEpisodes->concat($thisShowEpisodes)->values()->all()]);
     }
@@ -129,13 +131,13 @@ class CartService
         $movies = Movie::whereIn('id', $movieIds)->get();
 
         $episodes = collect();
-        if (! empty($episodeEntries)) {
+        if ($episodeEntries !== []) {
             $episodes = Episode::with('show')
-                ->where(function ($query) use ($episodeEntries) {
+                ->where(function ($query) use ($episodeEntries): void {
                     foreach ($episodeEntries as $ep) {
                         $parsed = EpisodeCode::parse($ep['code']);
                         $type = $parsed['is_special'] ? EpisodeType::SignificantSpecial : EpisodeType::Regular;
-                        $query->orWhere(function ($q) use ($ep, $parsed, $type) {
+                        $query->orWhere(function ($q) use ($ep, $parsed, $type): void {
                             $q->where('show_id', $ep['show_id'])
                                 ->where('season', $parsed['season'])
                                 ->where('number', $parsed['number'])
@@ -173,13 +175,13 @@ class CartService
             ->get();
 
         $episodes = collect();
-        if (! empty($episodeEntries)) {
+        if ($episodeEntries !== []) {
             $episodes = Episode::with('show')
-                ->where(function ($query) use ($episodeEntries) {
+                ->where(function ($query) use ($episodeEntries): void {
                     foreach ($episodeEntries as $ep) {
                         $parsed = EpisodeCode::parse($ep['code']);
                         $type = $parsed['is_special'] ? EpisodeType::SignificantSpecial : EpisodeType::Regular;
-                        $query->orWhere(function ($q) use ($ep, $parsed, $type) {
+                        $query->orWhere(function ($q) use ($ep, $parsed, $type): void {
                             $q->where('show_id', $ep['show_id'])
                                 ->where('season', $parsed['season'])
                                 ->where('number', $parsed['number'])
@@ -220,8 +222,8 @@ class CartService
      */
     public function groupItems(Collection $items): array
     {
-        $movies = $items->filter(fn ($item) => $item instanceof Movie)->values();
-        $episodes = $items->filter(fn ($item) => $item instanceof Episode);
+        $movies = $items->filter(fn ($item): bool => $item instanceof Movie)->values();
+        $episodes = $items->filter(fn ($item): bool => $item instanceof Episode);
 
         return [
             'movies' => $movies,
@@ -268,7 +270,7 @@ class CartService
         }
 
         // Sort shows by name
-        usort($result, fn ($a, $b) => strcmp($a['show']->name, $b['show']->name));
+        usort($result, fn (array $a, array $b): int => strcmp((string) $a['show']->name, (string) $b['show']->name));
 
         return $result;
     }
@@ -301,7 +303,7 @@ class CartService
         }
 
         // Sort by season number
-        usort($result, fn ($a, $b) => $a['season'] <=> $b['season']);
+        usort($result, fn (array $a, array $b): int => $a['season'] <=> $b['season']);
 
         return $result;
     }
@@ -339,7 +341,7 @@ class CartService
 
         // Sort ALL episodes by airdate using EpisodeCode::compareForSorting
         $sortedAll = $allSeasonEpisodes
-            ->sort(fn ($a, $b) => EpisodeCode::compareForSorting($a->toArray(), $b->toArray()))
+            ->sort(fn ($a, $b): int => EpisodeCode::compareForSorting($a->toArray(), $b->toArray()))
             ->values();
 
         // Get cart episode IDs for lookup

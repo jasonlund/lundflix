@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 use Illuminate\Support\Arr;
@@ -40,17 +42,15 @@ class ErrorPageResolver
         $pages = config('error-pages');
 
         return collect($pages)
-            ->mapWithKeys(function (array $page, int $code) {
-                return [$code => [
-                    'message' => $page['message'],
-                    'description' => $page['description'],
-                    'videos' => array_map(fn (array $video): array => [
-                        'src' => (string) Vite::image($video['video']),
-                        'url' => self::resolveUrl($video),
-                        'caption' => $video['caption'] ?? null,
-                    ], $page['videos']),
-                ]];
-            });
+            ->mapWithKeys(fn (array $page, int $code): array => [$code => [
+                'message' => $page['message'],
+                'description' => $page['description'],
+                'videos' => array_map(fn (array $video): array => [
+                    'src' => (string) Vite::image($video['video']),
+                    'url' => self::resolveUrl($video),
+                    'caption' => $video['caption'] ?? null,
+                ], $page['videos']),
+            ]]);
     }
 
     /** @param array{type: string, imdb_id: string} $video */

@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\Language;
 use App\Enums\ShowStatus;
+use App\Models\Show;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Show>
+ * @extends Factory<Show>
  */
 class ShowFactory extends Factory
 {
@@ -40,7 +43,7 @@ class ShowFactory extends Factory
 
     public function appleTvPlus(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'network' => null,
             'web_channel' => ['id' => 310, 'name' => 'Apple TV+'],
         ]);
@@ -48,7 +51,7 @@ class ShowFactory extends Factory
 
     public function paramountPlus(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'network' => null,
             'web_channel' => ['id' => 107, 'name' => 'Paramount+'],
         ]);
@@ -56,7 +59,7 @@ class ShowFactory extends Factory
 
     public function hboMax(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'network' => null,
             'web_channel' => ['id' => 329, 'name' => 'Max'],
         ]);
@@ -64,7 +67,7 @@ class ShowFactory extends Factory
 
     public function withTmdbData(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'tmdb_id' => fake()->unique()->numberBetween(1, 999999),
             'tmdb_synced_at' => now(),
         ]);

@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
+use App\Models\Episode;
+use App\Models\Movie;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Str;
 
 enum MediaType: string implements HasLabel
 {
-    case MOVIE = 'App\Models\Movie';
-    case EPISODE = 'App\Models\Episode';
+    case MOVIE = Movie::class;
+    case EPISODE = Episode::class;
 
     public function getLabel(): string
     {

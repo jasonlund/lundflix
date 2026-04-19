@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\RequestItemStatus;
+use Database\Factories\RequestItemFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class RequestItem extends Model
 {
-    /** @use HasFactory<\Database\Factories\RequestItemFactory> */
+    /** @use HasFactory<RequestItemFactory> */
     use HasFactory;
 
     protected function casts(): array
@@ -36,22 +40,26 @@ class RequestItem extends Model
         return $this->belongsTo(User::class, 'actioned_by');
     }
 
-    public function scopeFulfilled($query)
+    #[Scope]
+    protected function fulfilled($query)
     {
         return $query->where('status', RequestItemStatus::Fulfilled);
     }
 
-    public function scopePending($query)
+    #[Scope]
+    protected function pending($query)
     {
         return $query->where('status', RequestItemStatus::Pending);
     }
 
-    public function scopeRejected($query)
+    #[Scope]
+    protected function rejected($query)
     {
         return $query->where('status', RequestItemStatus::Rejected);
     }
 
-    public function scopeNotFound($query)
+    #[Scope]
+    protected function notFound($query)
     {
         return $query->where('status', RequestItemStatus::NotFound);
     }

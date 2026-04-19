@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TMDB\UpsertTMDBImages;
@@ -50,7 +52,7 @@ class SyncTMDBShows extends Command
 
     private function syncFresh(TMDBService $tmdb, UpsertTMDBShowData $upsertTMDB, int $limit): int
     {
-        $query = Show::query()->where(function (Builder $q) {
+        $query = Show::query()->where(function (Builder $q): void {
             $q->whereNotNull('imdb_id')->orWhereNotNull('thetvdb_id');
         });
 
@@ -70,7 +72,7 @@ class SyncTMDBShows extends Command
     private function syncUnsynced(TMDBService $tmdb, UpsertTMDBShowData $upsertTMDB, int $limit): int
     {
         $query = Show::query()
-            ->where(function (Builder $q) {
+            ->where(function (Builder $q): void {
                 $q->whereNotNull('imdb_id')->orWhereNotNull('thetvdb_id');
             })
             ->whereNull('tmdb_synced_at');
@@ -92,7 +94,7 @@ class SyncTMDBShows extends Command
 
         $changedTmdbIds = $tmdb->changedShowIds();
 
-        if (empty($changedTmdbIds)) {
+        if ($changedTmdbIds === []) {
             return 0;
         }
 
@@ -134,11 +136,9 @@ class SyncTMDBShows extends Command
             $findResults = $imdbIds ? $tmdb->findManyShowsByExternalId($imdbIds) : [];
 
             // For shows not found via IMDb, try TheTVDB
-            $tvdbFallbacks = $shows->filter(function (Show $s) use ($findResults): bool {
-                return ($s->imdb_id === null || ($findResults[$s->imdb_id] ?? null) === null) && $s->thetvdb_id !== null;
-            });
+            $tvdbFallbacks = $shows->filter(fn (Show $s): bool => ($s->imdb_id === null || ($findResults[$s->imdb_id] ?? null) === null) && $s->thetvdb_id !== null);
 
-            $tvdbIds = $tvdbFallbacks->pluck('thetvdb_id')->map(fn ($id) => (string) $id)->all();
+            $tvdbIds = $tvdbFallbacks->pluck('thetvdb_id')->map(fn ($id): string => (string) $id)->all();
             $tvdbResults = $tvdbIds ? $tmdb->findManyShowsByExternalId($tvdbIds, 'tvdb_id') : [];
 
             // Build tmdb_id map
@@ -161,7 +161,7 @@ class SyncTMDBShows extends Command
 
             // Fetch details for found shows
             $detailsMap = [];
-            if ($tmdbIdMap) {
+            if ($tmdbIdMap !== []) {
                 $details = $tmdb->showDetailsMany(array_values(array_unique($tmdbIdMap)));
                 foreach ($tmdbIdMap as $tvmazeId => $tmdbId) {
                     $detailsMap[$tvmazeId] = $details[$tmdbId] ?? null;
