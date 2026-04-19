@@ -295,6 +295,5 @@ new class extends Component {
             <livewire:movies.availability :movie="$movie" lazy />
         @endif
 
-        <livewire:movies.predb-releases :movie="$movie" lazy />
     </div>
 </div>
