@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
+/**
+ * @property \Illuminate\Support\Carbon|null $fulfilled_at
+ */
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
