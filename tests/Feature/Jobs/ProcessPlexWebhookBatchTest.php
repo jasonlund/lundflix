@@ -1,8 +1,15 @@
 <?php
 
+use App\Enums\RequestItemStatus;
 use App\Jobs\ProcessPlexWebhookBatch;
+use App\Models\Episode;
+use App\Models\Movie;
+use App\Models\Request;
+use App\Models\RequestItem;
+use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -107,4 +114,89 @@ it('skips notification when slack channel is not configured', function () {
     expect(Cache::get('plex-webhook:server-123'))->toBeNull();
     Notification::assertNothingSent();
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, 'channel not configured'));
+});
+
+it('auto-fulfills pending movie request items matching webhook content', function () {
+    Notification::fake();
+
+    $movie = Movie::factory()->create(['title' => 'Inception', 'year' => 2010]);
+    $request = Request::factory()->create();
+    $item = RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    cacheBatch('server-123', [
+        ['media_type' => 'movie', 'title' => 'Inception', 'year' => 2010, 'show_title' => null, 'season' => null, 'episode_number' => null],
+    ]);
+
+    (new ProcessPlexWebhookBatch('server-123'))->handle();
+
+    expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled)
+        ->and($item->fresh()->actioned_at)->not->toBeNull();
+});
+
+it('auto-fulfills pending episode request items matching webhook content', function () {
+    Notification::fake();
+
+    $show = Show::factory()->create(['name' => 'Breaking Bad']);
+    $episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 3, 'number' => 7]);
+    $request = Request::factory()->create();
+    $item = RequestItem::factory()->pending()->forRequestable($episode)->create(['request_id' => $request->id]);
+
+    cacheBatch('server-123', [
+        ['media_type' => 'episode', 'title' => 'One Minute', 'year' => null, 'show_title' => 'Breaking Bad', 'season' => 3, 'episode_number' => 7],
+    ]);
+
+    (new ProcessPlexWebhookBatch('server-123'))->handle();
+
+    expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
+});
+
+it('does not fulfill already fulfilled request items', function () {
+    Notification::fake();
+
+    $movie = Movie::factory()->create(['title' => 'Inception', 'year' => 2010]);
+    $request = Request::factory()->create();
+    $item = RequestItem::factory()->fulfilled()->forRequestable($movie)->create(['request_id' => $request->id]);
+    $originalActionedAt = $item->actioned_at;
+
+    cacheBatch('server-123', [
+        ['media_type' => 'movie', 'title' => 'Inception', 'year' => 2010, 'show_title' => null, 'season' => null, 'episode_number' => null],
+    ]);
+
+    (new ProcessPlexWebhookBatch('server-123'))->handle();
+
+    expect($item->fresh()->actioned_at->timestamp)->toBe($originalActionedAt->timestamp);
+});
+
+it('does not dispatch RequestFulfilled event on auto-fulfillment', function () {
+    Notification::fake();
+    Event::fake([\App\Events\RequestFulfilled::class]);
+
+    $movie = Movie::factory()->create(['title' => 'Inception', 'year' => 2010]);
+    $request = Request::factory()->create();
+    RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    cacheBatch('server-123', [
+        ['media_type' => 'movie', 'title' => 'Inception', 'year' => 2010, 'show_title' => null, 'season' => null, 'episode_number' => null],
+    ]);
+
+    (new ProcessPlexWebhookBatch('server-123'))->handle();
+
+    Event::assertNotDispatched(\App\Events\RequestFulfilled::class);
+});
+
+it('still auto-fulfills requests when slack is disabled', function () {
+    Notification::fake();
+    config(['services.slack.enabled' => false]);
+
+    $movie = Movie::factory()->create(['title' => 'Inception', 'year' => 2010]);
+    $request = Request::factory()->create();
+    $item = RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    cacheBatch('server-123', [
+        ['media_type' => 'movie', 'title' => 'Inception', 'year' => 2010, 'show_title' => null, 'season' => null, 'episode_number' => null],
+    ]);
+
+    (new ProcessPlexWebhookBatch('server-123'))->handle();
+
+    expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
 });
