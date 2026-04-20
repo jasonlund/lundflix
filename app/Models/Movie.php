@@ -238,6 +238,57 @@ class Movie extends Model
             ->values();
     }
 
+    public function releaseDatesByCountry(): Collection
+    {
+        if (empty($this->release_dates)) {
+            return collect();
+        }
+
+        $originCountries = collect($this->origin_country ?? []);
+        $showCountries = $originCountries->merge(
+            $originCountries->contains('US') ? [] : ['US']
+        )->unique();
+
+        return collect($this->release_dates)
+            ->filter(fn (array $country): bool => $showCountries->contains($country['iso_3166_1']))
+            ->map(function (array $country): ?array {
+                $releases = collect($country['release_dates'])
+                    ->filter(fn (array $rd): bool => ! empty($rd['release_date']))
+                    ->map(function (array $rd): ?array {
+                        $type = TMDBReleaseType::tryFrom($rd['type']);
+                        if (! $type) {
+                            return null;
+                        }
+
+                        return [
+                            'type' => $type,
+                            'date' => Carbon::parse($rd['release_date']),
+                            'certification' => $rd['certification'] !== '' ? $rd['certification'] : null,
+                            'note' => (isset($rd['note']) && $rd['note'] !== '') ? $rd['note'] : null,
+                            'descriptors' => $rd['descriptors'] ?? [],
+                        ];
+                    })
+                    ->filter()
+                    ->sortBy(fn (array $r): string => $r['date']->toDateTimeString())
+                    ->unique(fn (array $r): int => $r['type']->value)
+                    ->values()
+                    ->all();
+
+                if (empty($releases)) {
+                    return null;
+                }
+
+                return [
+                    'country' => $country['iso_3166_1'],
+                    'countryName' => \Locale::getDisplayRegion("-{$country['iso_3166_1']}", 'en') ?: $country['iso_3166_1'],
+                    'releases' => $releases,
+                ];
+            })
+            ->filter()
+            ->sortByDesc(fn (array $c): bool => $originCountries->contains($c['country']))
+            ->values();
+    }
+
     public function contentRating(): ?string
     {
         $usEntry = collect($this->release_dates ?? [])

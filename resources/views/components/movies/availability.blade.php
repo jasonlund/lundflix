@@ -50,7 +50,7 @@ new class extends Component {
     #[Computed]
     public function releaseData(): Collection
     {
-        return $this->movie->meaningfulReleases();
+        return $this->movie->releaseDatesByCountry();
     }
 
     /**
@@ -193,42 +193,47 @@ new class extends Component {
         @endif
 
         @if ($this->releaseData->isNotEmpty())
-            <flux:separator class="my-4" />
-            <flux:heading size="xs" class="mb-2 text-zinc-400">Release Dates</flux:heading>
-            <flux:table>
-                <flux:table.rows>
-                    @foreach ($this->releaseData as $release)
-                        <flux:table.row wire:key="release-{{ $release['type']->value }}">
-                            <flux:table.cell variant="strong">
-                                {{ $release['type']->label() }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                {{ $release['date']->format('M j, Y') }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
-                                    <span>{{ $release['country'] }}</span>
-                                    @if ($release['certification'])
-                                        <flux:badge size="sm" class="bg-white/10 backdrop-blur-sm">
-                                            {{ $release['certification'] }}
-                                        </flux:badge>
-                                    @endif
+            @foreach ($this->releaseData as $countryGroup)
+                <flux:separator class="my-4" />
+                <flux:heading size="xs" class="mb-2 text-zinc-400">
+                    {{ $countryGroup['countryName'] }}
+                </flux:heading>
+                <flux:table>
+                    <flux:table.rows>
+                        @foreach ($countryGroup['releases'] as $release)
+                            <flux:table.row
+                                wire:key="release-{{ $countryGroup['country'] }}-{{ $release['type']->value }}"
+                            >
+                                <flux:table.cell variant="strong">
+                                    {{ $release['type']->label() }}
+                                </flux:table.cell>
+                                <flux:table.cell>
+                                    {{ $release['date']->format('M j, Y') }}
+                                </flux:table.cell>
+                                <flux:table.cell>
+                                    <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                                        @if ($release['certification'])
+                                            <flux:badge size="sm" class="bg-white/10 backdrop-blur-sm">
+                                                {{ $release['certification'] }}
+                                            </flux:badge>
+                                        @endif
 
-                                    @if ($release['note'])
-                                        <span class="text-zinc-500">{{ $release['note'] }}</span>
-                                    @endif
+                                        @if ($release['note'])
+                                            <span class="text-zinc-500">{{ $release['note'] }}</span>
+                                        @endif
 
-                                    @if (! empty($release['descriptors']))
-                                        <span class="text-zinc-500">
-                                            {{ implode(', ', $release['descriptors']) }}
-                                        </span>
-                                    @endif
-                                </div>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                                        @if (! empty($release['descriptors']))
+                                            <span class="text-zinc-500">
+                                                {{ implode(', ', $release['descriptors']) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </flux:table.cell>
+                            </flux:table.row>
+                        @endforeach
+                    </flux:table.rows>
+                </flux:table>
+            @endforeach
         @endif
     </x-section>
 </div>
