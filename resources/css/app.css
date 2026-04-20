@@ -182,22 +182,39 @@ button[data-flux-control] {
 }
 
 [data-crt] {
-    --crt-overlay-opacity: 0.05;
+    --crt-overlay-opacity: 0.06;
     --crt-flicker-duration: 50ms;
     --crt-row-step: 1px;
     --crt-column-step: 2px;
-    --crt-row-shadow-opacity: 0.25;
-    --crt-rgb-red-opacity: 0.06;
-    --crt-rgb-green-opacity: 0.03;
-    --crt-rgb-blue-opacity: 0.06;
-    --crt-beam-opacity: 0.5;
-    --crt-beam-duration: 20s;
+    --crt-row-shadow-opacity: 0.28;
+    --crt-rgb-red-opacity: 0.075;
+    --crt-rgb-green-opacity: 0.035;
+    --crt-rgb-blue-opacity: 0.075;
+    --crt-beam-opacity: 0.42;
+    --crt-beam-duration: 32s;
+    --crt-beam-height: 1px;
+    --crt-tube-shadow-opacity: 0.1;
     isolation: isolate;
     contain: paint;
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     will-change: transform;
+}
+
+[data-crt]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            140% 115% at 50% 50%,
+            transparent 56%,
+            rgb(0 0 0 / var(--crt-tube-shadow-opacity)) 100%
+        ),
+        radial-gradient(120% 90% at 50% -8%, rgb(255 255 255 / 0.03), transparent 42%),
+        radial-gradient(120% 90% at 50% 108%, rgb(0 0 0 / 0.12), transparent 42%);
 }
 
 [data-crt-layer] {
@@ -231,7 +248,14 @@ button[data-flux-control] {
 }
 
 [data-crt-beam] {
-    background-color: rgb(255 255 255 / 0.15);
+    height: var(--crt-beam-height);
+    background-image: linear-gradient(
+        to bottom,
+        rgb(255 255 255 / 0.45),
+        rgb(255 255 255 / 0.14),
+        transparent
+    );
+    box-shadow: 0 0 4px rgb(255 255 255 / 0.06);
     opacity: var(--crt-beam-opacity);
 }
 
@@ -240,7 +264,7 @@ button[data-flux-control] {
         transform: translate3d(0, 100%, 0);
     }
     100% {
-        transform: translate3d(0, -100%, 0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -286,12 +310,13 @@ button[data-flux-control] {
         --crt-flicker-duration: 120ms;
         --crt-row-step: 2px;
         --crt-column-step: 4px;
-        --crt-row-shadow-opacity: 0.14;
-        --crt-rgb-red-opacity: 0.03;
-        --crt-rgb-green-opacity: 0.015;
-        --crt-rgb-blue-opacity: 0.03;
-        --crt-beam-opacity: 0.22;
-        --crt-beam-duration: 28s;
+        --crt-row-shadow-opacity: 0.16;
+        --crt-rgb-red-opacity: 0.035;
+        --crt-rgb-green-opacity: 0.018;
+        --crt-rgb-blue-opacity: 0.035;
+        --crt-beam-opacity: 0.24;
+        --crt-beam-duration: 42s;
+        --crt-tube-shadow-opacity: 0.08;
     }
 }
 
