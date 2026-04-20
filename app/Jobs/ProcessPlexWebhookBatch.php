@@ -226,7 +226,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
 
         $show = $this->resolveShow($item, $showIdentifiers);
 
-        if (! $show) {
+        if (! $show instanceof Show) {
             return null;
         }
 
@@ -282,7 +282,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             return null;
         }
 
-        if (! $server) {
+        if (! $server instanceof PlexMediaServer) {
             Log::warning('Plex metadata enrichment failed: source server missing', [
                 ...$context,
                 'rating_key' => $ratingKey,

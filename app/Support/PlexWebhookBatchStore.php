@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 use Closure;
+use Illuminate\Cache\Repository;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
@@ -199,11 +202,11 @@ class PlexWebhookBatchStore
         return $this->repository()->getStore();
     }
 
-    private function repository(): \Illuminate\Cache\Repository
+    private function repository(): Repository
     {
         $store = app()->runningUnitTests() ? config('cache.default') : 'redis';
 
-        /** @var \Illuminate\Cache\Repository */
+        /** @var Repository */
         return Cache::store($store);
     }
 }
