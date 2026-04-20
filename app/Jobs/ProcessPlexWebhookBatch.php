@@ -16,6 +16,7 @@ use App\Support\PlexWebhookBatchStore;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Nightwatch\Compatibility;
@@ -142,25 +143,27 @@ class ProcessPlexWebhookBatch implements ShouldQueue
      */
     private function fulfillMatchingRequests(?PlexMediaServer $server, Collection $items, PlexService $plex, array $context): int
     {
-        $fulfilled = 0;
+        return DB::transaction(function () use ($server, $items, $plex, $context): int {
+            $fulfilled = 0;
 
-        foreach ($items as $item) {
-            $requestable = $this->resolveRequestable($server, $item, $plex, $context);
+            foreach ($items as $item) {
+                $requestable = $this->resolveRequestable($server, $item, $plex, $context);
 
-            if (! $requestable) {
-                continue;
+                if (! $requestable) {
+                    continue;
+                }
+
+                $fulfilled += RequestItem::pending()
+                    ->where('requestable_type', $requestable::class)
+                    ->where('requestable_id', $requestable->id)
+                    ->update([
+                        'status' => RequestItemStatus::Fulfilled,
+                        'actioned_at' => now(),
+                    ]);
             }
 
-            $fulfilled += RequestItem::pending()
-                ->where('requestable_type', $requestable::class)
-                ->where('requestable_id', $requestable->id)
-                ->update([
-                    'status' => RequestItemStatus::Fulfilled,
-                    'actioned_at' => now(),
-                ]);
-        }
-
-        return $fulfilled;
+            return $fulfilled;
+        });
     }
 
     /**
