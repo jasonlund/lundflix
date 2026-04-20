@@ -369,3 +369,71 @@ it('does not fulfill already fulfilled request items', function () {
 
     expect($item->fresh()->actioned_at->timestamp)->toBe($originalActionedAt->timestamp);
 });
+
+it('processes a multi-item episode batch and sends notification with all items', function () {
+    Notification::fake();
+
+    $episodes = [
+        ['title' => 'Pilot', 'ratingKey' => 'ep-1', 'index' => 1],
+        ['title' => 'The Series Has Landed', 'ratingKey' => 'ep-2', 'index' => 2],
+        ['title' => 'I, Roommate', 'ratingKey' => 'ep-3', 'index' => 3],
+    ];
+
+    $batch = null;
+    $normalized = null;
+
+    foreach ($episodes as $ep) {
+        [$normalized, $batch] = storeWebhookBatch(webhookPayload('episode', [
+            'title' => $ep['title'],
+            'ratingKey' => $ep['ratingKey'],
+            'grandparentRatingKey' => 'show-99',
+            'grandparentTitle' => 'Futurama',
+            'parentIndex' => 1,
+            'index' => $ep['index'],
+        ]));
+    }
+
+    $this->travel(31)->seconds();
+
+    (new ProcessPlexWebhookBatch(
+        serverUuid: $normalized['server_uuid'],
+        groupKey: $normalized['group_key'],
+        version: $batch['version'],
+    ))->handle(app(PlexWebhookBatchStore::class), app(\App\Services\ThirdParty\PlexService::class));
+
+    expect(app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']))->toBeNull();
+
+    Notification::assertSentOnDemand(PlexLibraryNotification::class, function (PlexLibraryNotification $notification): bool {
+        return $notification->items->count() === 3
+            && $notification->items->pluck('title')->sort()->values()->all() === ['I, Roommate', 'Pilot', 'The Series Has Landed'];
+    });
+});
+
+it('logs when the processing lock is busy', function () {
+    Log::spy();
+    Notification::fake();
+
+    [$normalized, $batch] = storeWebhookBatch(webhookPayload());
+
+    $this->travel(31)->seconds();
+
+    $batchStore = app(PlexWebhookBatchStore::class);
+
+    $lock = app('cache')->store((string) config('services.plex.webhook_cache_store', 'redis'))
+        ->getStore()
+        ->lock('plex:webhook:processing:'.$normalized['server_uuid'].':'.sha1($normalized['group_key']), 300);
+    $lock->acquire();
+
+    try {
+        (new ProcessPlexWebhookBatch(
+            serverUuid: $normalized['server_uuid'],
+            groupKey: $normalized['group_key'],
+            version: $batch['version'],
+        ))->handle($batchStore, app(\App\Services\ThirdParty\PlexService::class));
+
+        Notification::assertNothingSent();
+        Log::shouldHaveReceived('info')->withArgs(fn (string $message) => $message === 'Plex webhook batch flush skipped: processing lock busy');
+    } finally {
+        $lock->release();
+    }
+});

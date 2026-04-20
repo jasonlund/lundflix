@@ -127,7 +127,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             return 'processed';
         });
 
-        if ($processingResult === null) {
+        if ($processingResult === false) {
             Log::info('Plex webhook batch flush skipped: processing lock busy', [
                 'server_uuid' => $this->serverUuid,
                 'group_key' => $this->groupKey,
@@ -362,11 +362,21 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             'channel' => $channel,
         ]);
 
-        Notification::route('slack', $channel)
-            ->notify(new PlexLibraryNotification(
-                serverName: $batch['server_name'],
-                items: $items,
-            ));
+        try {
+            Notification::route('slack', $channel)
+                ->notify(new PlexLibraryNotification(
+                    serverName: $batch['server_name'],
+                    items: $items,
+                ));
+        } catch (\Throwable $e) {
+            Log::error('Plex batch notification failed', [
+                ...$context,
+                'channel' => $channel,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
