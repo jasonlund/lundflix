@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->unsignedInteger('tmdb_id')->nullable()->index()->after('thetvdb_id');
             $table->timestamp('tmdb_synced_at')->nullable()->after('tmdb_id');
             $table->text('overview')->nullable()->after('web_channel');
@@ -27,7 +27,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->dropColumn([
                 'tmdb_id',
                 'tmdb_synced_at',

@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -43,7 +46,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'email_verified_at' => null,
         ]);
     }
@@ -53,7 +56,7 @@ class UserFactory extends Factory
      */
     public function withTwoFactor(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
@@ -65,7 +68,7 @@ class UserFactory extends Factory
      */
     public function admin(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'role' => UserRole::Admin,
         ]);
     }
@@ -75,7 +78,7 @@ class UserFactory extends Factory
      */
     public function serverOwner(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'role' => UserRole::ServerOwner,
         ]);
     }
@@ -85,7 +88,7 @@ class UserFactory extends Factory
      */
     public function withPlex(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'plex_id' => (string) fake()->unique()->randomNumber(8),
             'plex_token' => 'fake-plex-token-'.Str::random(20),
             'plex_username' => $attributes['name'] ?? fake()->userName(),

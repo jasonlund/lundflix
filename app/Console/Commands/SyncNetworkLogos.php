@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Enums\NetworkLogo;
@@ -21,9 +23,9 @@ class SyncNetworkLogos extends Command
     public function handle(): int
     {
         $entries = collect(NetworkLogo::cases())
-            ->map(fn (NetworkLogo $logo) => ['file' => $logo->file(), 'source' => $logo->source(), 'type' => 'networks'])
+            ->map(fn (NetworkLogo $logo): array => ['file' => $logo->file(), 'source' => $logo->source(), 'type' => 'networks'])
             ->merge(collect(StreamingLogo::cases())
-                ->map(fn (StreamingLogo $logo) => ['file' => $logo->file(), 'source' => $logo->source(), 'type' => 'streaming']))
+                ->map(fn (StreamingLogo $logo): array => ['file' => $logo->file(), 'source' => $logo->source(), 'type' => 'streaming']))
             ->values();
 
         /** @var string|null $customPath */

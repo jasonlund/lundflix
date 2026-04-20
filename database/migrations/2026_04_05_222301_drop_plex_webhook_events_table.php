@@ -19,7 +19,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::create('plex_webhook_events', function (Blueprint $table) {
+        Schema::create('plex_webhook_events', function (Blueprint $table): void {
             $table->id();
             $table->string('server_uuid');
             $table->string('server_name')->nullable();

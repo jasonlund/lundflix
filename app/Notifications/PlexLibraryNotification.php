@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Support\PlexWebhookFormatter;
@@ -37,7 +39,7 @@ class PlexLibraryNotification extends Notification
         return (new SlackMessage)
             ->text($text)
             ->headerBlock('☑️ Added to lundflix')
-            ->sectionBlock(function (SectionBlock $block) use ($text) {
+            ->sectionBlock(function (SectionBlock $block) use ($text): void {
                 $block->text($text)->markdown();
             });
     }

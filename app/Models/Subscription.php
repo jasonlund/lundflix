@@ -1,17 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Database\Factories\SubscriptionFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $fulfilled_at
+ */
 class Subscription extends Model
 {
-    /** @use HasFactory<\Database\Factories\SubscriptionFactory> */
+    /** @use HasFactory<SubscriptionFactory> */
     use HasFactory;
 
     protected function casts(): array
@@ -46,17 +54,20 @@ class Subscription extends Model
             ->withTimestamps();
     }
 
-    public function scopeActive(Builder $query): Builder
+    #[Scope]
+    protected function active(Builder $query): Builder
     {
         return $query->whereNull('fulfilled_at');
     }
 
-    public function scopeForMovies(Builder $query): Builder
+    #[Scope]
+    protected function forMovies(Builder $query): Builder
     {
         return $query->where('subscribable_type', Movie::class);
     }
 
-    public function scopeForShows(Builder $query): Builder
+    #[Scope]
+    protected function forShows(Builder $query): Builder
     {
         return $query->where('subscribable_type', Show::class);
     }

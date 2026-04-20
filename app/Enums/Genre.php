@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 use Filament\Support\Contracts\HasIcon;
@@ -79,7 +81,7 @@ enum Genre: string implements HasIcon, HasLabel
     {
         $genre = self::tryFromString($value);
 
-        if ($genre !== null) {
+        if ($genre instanceof self) {
             return $genre->getLabel();
         }
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\ReleaseQuality;
@@ -66,11 +68,11 @@ class PreDBService
 
             $quality = ReleaseQuality::fromReleaseName($release['release'] ?? '');
 
-            if ($quality === null) {
+            if (! $quality instanceof ReleaseQuality) {
                 continue;
             }
 
-            if ($highest === null || $quality->value > $highest->value) {
+            if (! $highest instanceof ReleaseQuality || $quality->value > $highest->value) {
                 $highest = $quality;
             }
         }
@@ -95,7 +97,7 @@ class PreDBService
 
         $response = $this->client()->get($this->baseUrl(), [
             'q' => $query,
-            'tag' => implode(',', array_map(fn (string $tag) => '-'.$tag, ReleaseQuality::excludedTags())),
+            'tag' => implode(',', array_map(fn (string $tag): string => '-'.$tag, ReleaseQuality::excludedTags())),
             'limit' => $limit,
         ]);
 
@@ -122,7 +124,7 @@ class PreDBService
         }
 
         // Replace spaces with dots, strip characters that don't appear in scene names
-        $title = preg_replace('/[^\w\s.-]/', '', $movie->title);
+        $title = preg_replace('/[^\w\s.-]/', '', (string) $movie->title);
         $title = (string) preg_replace('/\s+/', '.', trim((string) $title));
 
         if ($movie->year) {
@@ -141,7 +143,7 @@ class PreDBService
             return null;
         }
 
-        $name = preg_replace('/[^\w\s.-]/', '', $show->name);
+        $name = preg_replace('/[^\w\s.-]/', '', (string) $show->name);
         $name = (string) preg_replace('/\s+/', '.', trim((string) $name));
 
         return $name === '' ? null : $name;
@@ -188,7 +190,7 @@ class PreDBService
             $code = 's'.(int) $m[1].'e'.(int) $m[2];
             $quality = ReleaseQuality::fromReleaseName($name);
 
-            if ($quality === null) {
+            if (! $quality instanceof ReleaseQuality) {
                 continue;
             }
 
@@ -198,7 +200,7 @@ class PreDBService
         }
 
         return $episodes
-            ->filter(function (Episode $episode) use ($qualityByCode) {
+            ->filter(function (Episode $episode) use ($qualityByCode): bool {
                 $code = 's'.(int) $episode->season.'e'.(int) $episode->number;
 
                 if (! isset($qualityByCode[$code])) {
@@ -221,6 +223,6 @@ class PreDBService
     {
         return Http::accept('application/json')
             ->timeout(15)
-            ->retry(3, 1000, when: fn ($e, $request) => $e instanceof RequestException && $e->response->status() === 429);
+            ->retry(3, 1000, when: fn ($e, $request): bool => $e instanceof RequestException && $e->response->status() === 429);
     }
 }

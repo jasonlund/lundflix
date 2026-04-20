@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TVMaze\UpsertTVMazeShows;
@@ -67,7 +69,7 @@ class SyncTVMazeUpdates extends Command
         }
 
         // Process remaining batch
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $upsertShows->upsert($batch);
         }
 

@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Events;
 
 use App\Enums\ReleaseQuality;
+use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\Show;
@@ -16,7 +19,7 @@ class MediaAvailable implements ShouldDispatchAfterCommit
     use Dispatchable, SerializesModels;
 
     /**
-     * @param  Collection<int, \App\Models\Episode>|null  $episodes
+     * @param  Collection<int, Episode>|null  $episodes
      */
     public function __construct(
         public ?Request $request,

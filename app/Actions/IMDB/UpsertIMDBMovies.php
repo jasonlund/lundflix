@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\IMDB;
 
 use App\Models\Movie;
@@ -13,7 +15,7 @@ class UpsertIMDBMovies
     public function upsert(array $movies): int
     {
         // Encode genres arrays to JSON for database storage
-        $movies = array_map(function ($movie) {
+        $movies = array_map(function (array $movie): array {
             if (isset($movie['genres'])) {
                 $movie['genres'] = json_encode($movie['genres']);
             }

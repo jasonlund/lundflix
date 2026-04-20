@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Requests\Widgets;
 
 use App\Enums\IptCategory;
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\Request;
 use App\Models\RequestItem;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -20,7 +23,7 @@ class IptSearchLinksWidget extends TableWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    public \App\Models\Request $record;
+    public Request $record;
 
     /** @var Collection<int, string>|null */
     private ?Collection $completeSeasonKeys = null;
@@ -97,7 +100,7 @@ class IptSearchLinksWidget extends TableWidget
      */
     private function getCompleteSeasonKeys(): Collection
     {
-        if ($this->completeSeasonKeys !== null) {
+        if ($this->completeSeasonKeys instanceof Collection) {
             return $this->completeSeasonKeys;
         }
 

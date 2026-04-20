@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\ArtworkType;
+use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Media>
+ * @extends Factory<Media>
  */
 class MediaFactory extends Factory
 {
@@ -35,14 +38,14 @@ class MediaFactory extends Factory
 
     public function active(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'is_active' => true,
         ]);
     }
 
     public function forShow(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'mediable_type' => Show::class,
             'mediable_id' => Show::factory(),
         ]);
@@ -50,7 +53,7 @@ class MediaFactory extends Factory
 
     public function withSeason(int $season): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'season' => $season,
         ]);
     }

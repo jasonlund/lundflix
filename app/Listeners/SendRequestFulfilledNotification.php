@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Listeners;
 
 use App\Events\RequestFulfilled;
@@ -25,7 +27,7 @@ class SendRequestFulfilledNotification implements ShouldQueue
             return;
         }
 
-        $request = $event->request->load(['items.requestable' => function ($morphTo) {
+        $request = $event->request->load(['items.requestable' => function ($morphTo): void {
             $morphTo->morphWith([
                 Episode::class => ['show'],
             ]);

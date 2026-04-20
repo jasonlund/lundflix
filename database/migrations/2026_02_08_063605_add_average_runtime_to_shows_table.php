@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->smallInteger('average_runtime')->nullable()->after('runtime');
         });
     }
 
     public function down(): void
     {
-        Schema::table('shows', function (Blueprint $table) {
+        Schema::table('shows', function (Blueprint $table): void {
             $table->dropColumn('average_runtime');
         });
     }

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('request_items', function (Blueprint $table) {
+        Schema::table('request_items', function (Blueprint $table): void {
             $table->string('status')->default('pending')->after('requestable_id');
             $table->foreignId('actioned_by')->nullable()->constrained('users')->after('status');
             $table->timestamp('actioned_at')->nullable()->after('actioned_by');
@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('request_items', function (Blueprint $table) {
+        Schema::table('request_items', function (Blueprint $table): void {
             $table->dropForeign(['actioned_by']);
             $table->dropColumn(['status', 'actioned_by', 'actioned_at']);
         });

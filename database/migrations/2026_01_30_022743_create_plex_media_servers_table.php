@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('plex_media_servers', function (Blueprint $table) {
+        Schema::create('plex_media_servers', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
             $table->string('client_identifier')->unique();

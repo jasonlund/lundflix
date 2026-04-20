@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
+use App\Models\Episode;
+use App\Models\Movie;
 use App\Models\Request;
 use App\Services\CartService;
 use App\Support\Formatters;
@@ -9,6 +13,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\BlockKit\Blocks\SectionBlock;
 use Illuminate\Notifications\Slack\SlackMessage;
+use Illuminate\Support\Collection;
 
 class RequestItemsNotification extends Notification
 {
@@ -29,17 +34,17 @@ class RequestItemsNotification extends Notification
         return (new SlackMessage)
             ->text($this->formatItems())
             ->headerBlock('📝 New Request')
-            ->sectionBlock(function (SectionBlock $block) {
+            ->sectionBlock(function (SectionBlock $block): void {
                 $block->text(__('lundbergh.notification.request_intro'));
             })
-            ->sectionBlock(function (SectionBlock $block) {
+            ->sectionBlock(function (SectionBlock $block): void {
                 $block->text($this->formatItems())->markdown();
             });
     }
 
     private function formatItems(): string
     {
-        /** @var \Illuminate\Support\Collection<int, \App\Models\Movie|\App\Models\Episode> $requestables */
+        /** @var Collection<int, Movie|Episode> $requestables */
         $requestables = $this->request->items
             ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
             ->filter();

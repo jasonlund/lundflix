@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\TVMaze\UpsertTVMazeEpisodes;
@@ -37,7 +39,7 @@ class SyncTVMazeSchedule extends Command
 
         // Fetch full schedule (large response ~10MB)
         $schedule = spin(
-            fn () => $tvmaze->fullSchedule(),
+            fn (): array => $tvmaze->fullSchedule(),
             'Fetching full schedule from TVMaze...'
         );
 
@@ -63,14 +65,14 @@ class SyncTVMazeSchedule extends Command
         unset($schedule);
         gc_collect_cycles();
 
-        if (empty($episodesByShow)) {
+        if ($episodesByShow === []) {
             $this->info('No relevant episodes found in schedule.');
 
             return Command::SUCCESS;
         }
 
         $totalShows = count($episodesByShow);
-        $totalEpisodes = array_sum(array_map('count', $episodesByShow));
+        $totalEpisodes = array_sum(array_map(count(...), $episodesByShow));
 
         $this->info(sprintf('Found %d episodes across %d tracked shows.', $totalEpisodes, $totalShows));
 
@@ -116,7 +118,7 @@ class SyncTVMazeSchedule extends Command
         }
 
         // Final batch
-        if (! empty($batch)) {
+        if ($batch !== []) {
             $upsertedCount += $upsertEpisodes->upsert($batch);
         }
 
