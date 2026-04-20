@@ -1,4 +1,4 @@
-import.meta.glob(['../images/**'])
+import.meta.glob(['../images/**/*.{jpg,jpeg,png,gif,webp,avif,svg,webm}'])
 import './cart.js'
 
 document.addEventListener('livewire:init', () => {
