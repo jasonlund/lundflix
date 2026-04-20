@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -42,10 +44,10 @@ class MovieShowSeeder extends Seeder
 
             $cmd = sprintf(
                 'mysql --default-character-set=utf8mb4 -h%s -P%s -u%s %s < %s',
-                escapeshellarg($host),
-                escapeshellarg($port),
-                escapeshellarg($username),
-                escapeshellarg($database),
+                escapeshellarg((string) $host),
+                escapeshellarg((string) $port),
+                escapeshellarg((string) $username),
+                escapeshellarg((string) $database),
                 escapeshellarg($tempSql)
             );
 

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\RequestItemStatus;
 use App\Enums\RequestStatus;
+use Database\Factories\RequestFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Request extends Model
 {
-    /** @use HasFactory<\Database\Factories\RequestFactory> */
+    /** @use HasFactory<RequestFactory> */
     use HasFactory;
 
     protected $with = ['items'];

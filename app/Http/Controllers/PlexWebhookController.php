@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPlexWebhookBatch;
@@ -71,7 +73,7 @@ class PlexWebhookController extends Controller
 
         $cacheKey = "plex-webhook:{$serverUuid}";
 
-        Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey, $serverName, $item) {
+        Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey, $serverName, $item): void {
             $batch = Cache::get($cacheKey, ['server_name' => null, 'items' => [], 'last_received_at' => null]);
             $batch['server_name'] = $serverName ?? $batch['server_name'];
 

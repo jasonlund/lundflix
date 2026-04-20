@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\TVMaze;
 
 use App\Enums\EpisodeType;
@@ -17,7 +19,7 @@ class UpsertTVMazeEpisodes
      */
     public function fromApi(Show $show, array $apiEpisodes): int
     {
-        $data = array_map(fn (array $episode) => [
+        $data = array_map(fn (array $episode): array => [
             'tvmaze_id' => $episode['id'],
             'show_id' => $show->id,
             'season' => $episode['season'],
@@ -44,13 +46,13 @@ class UpsertTVMazeEpisodes
         $episodes = $this->assignSpecialNumbers($episodes);
 
         // Encode array fields for upsert (model casts don't apply)
-        $data = array_map(fn ($ep) => [
+        $data = array_map(fn (array $ep): array => [
             ...$ep,
             'rating' => is_array($ep['rating'] ?? null) ? json_encode($ep['rating']) : $ep['rating'],
             'image' => is_array($ep['image'] ?? null) ? json_encode($ep['image']) : $ep['image'],
         ], $episodes);
 
-        if (empty($data)) {
+        if ($data === []) {
             return 0;
         }
 
@@ -99,7 +101,7 @@ class UpsertTVMazeEpisodes
             $specialsBySeason[$key][] = $special;
         }
 
-        if (empty($specialsBySeason)) {
+        if ($specialsBySeason === []) {
             return $regular;
         }
 

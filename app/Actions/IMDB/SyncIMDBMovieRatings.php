@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\IMDB;
 
 use App\Support\DatabaseRetry;
@@ -12,7 +14,7 @@ class SyncIMDBMovieRatings
      */
     public function sync(array $ratings): int
     {
-        if (empty($ratings)) {
+        if ($ratings === []) {
             return 0;
         }
 

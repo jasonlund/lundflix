@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\EpisodeType;
+use App\Models\Episode;
 use App\Models\Show;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Episode>
+ * @extends Factory<Episode>
  */
 class EpisodeFactory extends Factory
 {
@@ -39,7 +42,7 @@ class EpisodeFactory extends Factory
      */
     public function special(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'type' => EpisodeType::SignificantSpecial,
         ]);
     }
@@ -49,7 +52,7 @@ class EpisodeFactory extends Factory
      */
     public function insignificant(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'type' => EpisodeType::InsignificantSpecial,
         ]);
     }

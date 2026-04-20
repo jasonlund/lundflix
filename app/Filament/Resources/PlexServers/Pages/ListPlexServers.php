@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\PlexServers\Pages;
 
 use App\Filament\Resources\PlexServers\PlexServerResource;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Artisan;
 
@@ -20,7 +23,7 @@ class ListPlexServers extends ListRecords
             Action::make('sync')
                 ->label('Sync Servers')
                 ->icon('lucide-refresh-cw')
-                ->action(function () {
+                ->action(function (): void {
                     Artisan::call('plex:sync-servers');
 
                     $this->sendSuccessNotification();
@@ -33,9 +36,9 @@ class ListPlexServers extends ListRecords
         $this->getSavedNotification()?->send();
     }
 
-    protected function getSavedNotification(): ?\Filament\Notifications\Notification
+    protected function getSavedNotification(): ?Notification
     {
-        return \Filament\Notifications\Notification::make()
+        return Notification::make()
             ->success()
             ->title('Servers synced successfully');
     }

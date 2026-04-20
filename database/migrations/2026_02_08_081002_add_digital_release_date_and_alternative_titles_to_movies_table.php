@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->date('digital_release_date')->nullable()->after('release_date');
             $table->json('alternative_titles')->nullable()->after('spoken_languages');
         });
@@ -19,7 +19,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('movies', function (Blueprint $table) {
+        Schema::table('movies', function (Blueprint $table): void {
             $table->dropColumn(['digital_release_date', 'alternative_titles']);
         });
     }

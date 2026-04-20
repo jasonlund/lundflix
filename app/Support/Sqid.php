@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 use Sqids\Sqids;
@@ -10,7 +12,7 @@ class Sqid
 
     public static function instance(): Sqids
     {
-        if (self::$instance === null) {
+        if (! self::$instance instanceof Sqids) {
             self::$instance = new Sqids(
                 alphabet: config('sqids.alphabet') ?: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
                 minLength: (int) config('sqids.min_length', 8),

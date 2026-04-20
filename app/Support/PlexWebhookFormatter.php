@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 use Illuminate\Support\Collection;
@@ -58,7 +60,7 @@ class PlexWebhookFormatter
                 $numbers = $seasonEpisodes
                     ->pluck('episode_number')
                     ->filter()
-                    ->map(fn ($n) => (int) $n)
+                    ->map(fn ($n): int => (int) $n)
                     ->unique()
                     ->sort()
                     ->values()
@@ -72,7 +74,7 @@ class PlexWebhookFormatter
                 $seasonParts[] = $this->formatRuns((int) $seasonNum, $runs);
             }
 
-            if (! empty($seasonParts)) {
+            if ($seasonParts !== []) {
                 $lines[] = $showTitle.' '.implode(', ', $seasonParts);
             }
         }
@@ -91,8 +93,9 @@ class PlexWebhookFormatter
         $runs = [];
         $start = $numbers[0];
         $end = $numbers[0];
+        $counter = count($numbers);
 
-        for ($i = 1; $i < count($numbers); $i++) {
+        for ($i = 1; $i < $counter; $i++) {
             if ($numbers[$i] === $end + 1) {
                 $end = $numbers[$i];
             } else {
@@ -120,11 +123,7 @@ class PlexWebhookFormatter
         foreach ($runs as $run) {
             $startCode = sprintf('%sE%02d', $seasonPrefix, $run['start']);
 
-            if ($run['start'] === $run['end']) {
-                $parts[] = $startCode;
-            } else {
-                $parts[] = sprintf('%s-E%02d', $startCode, $run['end']);
-            }
+            $parts[] = $run['start'] === $run['end'] ? $startCode : sprintf('%s-E%02d', $startCode, $run['end']);
         }
 
         return implode(', ', $parts);

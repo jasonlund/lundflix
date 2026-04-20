@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands\Scheduled;
 
 use App\Actions\IMDB\UpsertIMDBMovies;
@@ -19,13 +21,13 @@ class SyncIMDBMovies extends Command
     {
         // Download export file
         $file = spin(
-            fn () => $imdb->downloadExport(),
+            fn (): string => $imdb->downloadExport(),
             'Downloading IMDb export...'
         );
 
         // Count lines for progress
         $total = spin(
-            fn () => $imdb->countExportLines($file),
+            fn (): int => $imdb->countExportLines($file),
             'Counting entries...'
         );
 

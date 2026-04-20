@@ -8,14 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('subscriptions', function (Blueprint $table) {
+        Schema::table('subscriptions', function (Blueprint $table): void {
             $table->timestamp('fulfilled_at')->nullable()->after('subscribable_id');
         });
     }
 
     public function down(): void
     {
-        Schema::table('subscriptions', function (Blueprint $table) {
+        Schema::table('subscriptions', function (Blueprint $table): void {
             $table->dropColumn('fulfilled_at');
         });
     }
