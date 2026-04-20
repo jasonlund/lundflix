@@ -226,7 +226,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             }
         }
 
-        $show = $this->resolveShow($item, $showIdentifiers);
+        $show = $this->resolveShow($showIdentifiers);
 
         if (! $show instanceof Show) {
             return null;
@@ -240,10 +240,9 @@ class ProcessPlexWebhookBatch implements ShouldQueue
     }
 
     /**
-     * @param  array<string, mixed>  $item
      * @param  array<string, mixed>  $identifiers
      */
-    private function resolveShow(array $item, array $identifiers): ?Show
+    private function resolveShow(array $identifiers): ?Show
     {
         if (isset($identifiers['tmdb'])) {
             $show = Show::query()->where('tmdb_id', (int) $identifiers['tmdb'])->first();
