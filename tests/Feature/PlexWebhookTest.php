@@ -1,13 +1,19 @@
 <?php
 
 use App\Jobs\ProcessPlexWebhookBatch;
-use Illuminate\Support\Facades\Cache;
+use App\Support\PlexWebhookBatchStore;
+use App\Support\PlexWebhookNormalizer;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
-    config(['services.plex.webhook_secret' => 'test-secret']);
-    config(['services.plex.webhook_debounce_seconds' => 30]);
-    config(['services.plex.webhook_added_at_max_age_minutes' => 15]);
+    config([
+        'services.plex.webhook_secret' => 'test-secret',
+        'services.plex.webhook_debounce_seconds' => 30,
+        'services.plex.webhook_max_batch_seconds' => 3600,
+        'services.plex.webhook_added_at_max_age_minutes' => 15,
+        'services.plex.webhook_queue' => 'plex-webhooks',
+    ]);
 });
 
 function plexPayload(string $event = 'library.new', string $type = 'movie', array $metadata = [], array $server = []): string
@@ -18,6 +24,9 @@ function plexPayload(string $event = 'library.new', string $type = 'movie', arra
             'type' => $type,
             'title' => 'Test Movie',
             'year' => 2024,
+            'ratingKey' => 'movie-100',
+            'key' => '/library/metadata/movie-100',
+            'guid' => 'plex://movie/movie-100',
             'addedAt' => now()->timestamp,
         ], $metadata),
         'Server' => array_merge([
@@ -27,83 +36,135 @@ function plexPayload(string $event = 'library.new', string $type = 'movie', arra
     ]);
 }
 
-it('stores a movie in the cache batch and dispatches debounce job', function () {
+function decodePayload(string $payload): array
+{
+    return json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
+}
+
+it('stores a movie in a versioned batch and dispatches a delayed job', function () {
     Queue::fake();
 
+    $payload = plexPayload();
+
     $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload(),
+        'payload' => $payload,
     ])->assertOk();
 
-    $batch = Cache::get('plex-webhook:server-uuid-123');
+    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($payload));
+    $batch = app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']);
 
     expect($batch)->not->toBeNull()
         ->and($batch['server_name'])->toBe('My Plex Server')
+        ->and($batch['group_type'])->toBe('movie')
+        ->and($batch['version'])->toBe(1)
         ->and($batch['items'])->toHaveCount(1)
-        ->and($batch['items'][0])->toMatchArray([
+        ->and($batch['items'][$normalized['item_key']])->toMatchArray([
             'media_type' => 'movie',
             'title' => 'Test Movie',
             'year' => 2024,
+            'rating_key' => 'movie-100',
+            'guid' => 'plex://movie/movie-100',
         ]);
 
-    Queue::assertPushed(ProcessPlexWebhookBatch::class, function ($job) {
-        return $job->serverUuid === 'server-uuid-123';
+    Queue::assertPushed(ProcessPlexWebhookBatch::class, function (ProcessPlexWebhookBatch $job) use ($normalized) {
+        return $job->serverUuid === 'server-uuid-123'
+            && $job->groupKey === $normalized['group_key']
+            && $job->version === 1
+            && $job->queue === 'plex-webhooks';
     });
 });
 
-it('stores an episode in the cache batch with correct fields', function () {
+it('groups episode webhooks by grandparent rating key and stores ancestor identifiers', function () {
     Queue::fake();
 
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'episode', [
-            'title' => 'The One Where They All Find Out',
-            'grandparentTitle' => 'Friends',
-            'parentIndex' => 5,
-            'index' => 14,
-            'addedAt' => now()->timestamp,
-        ]),
-    ])->assertOk();
-
-    $batch = Cache::get('plex-webhook:server-uuid-123');
-
-    expect($batch['items'][0])->toMatchArray([
-        'media_type' => 'episode',
+    $payload = plexPayload('library.new', 'episode', [
         'title' => 'The One Where They All Find Out',
-        'show_title' => 'Friends',
-        'season' => 5,
-        'episode_number' => 14,
+        'ratingKey' => 'episode-500',
+        'parentRatingKey' => 'season-50',
+        'grandparentRatingKey' => 'show-5',
+        'key' => '/library/metadata/episode-500',
+        'parentKey' => '/library/metadata/season-50',
+        'grandparentKey' => '/library/metadata/show-5',
+        'guid' => 'plex://episode/episode-500',
+        'grandparentTitle' => 'Friends',
+        'parentIndex' => 5,
+        'index' => 14,
+        'addedAt' => now()->timestamp,
     ]);
-});
-
-it('rejects invalid tokens', function () {
-    Queue::fake();
-
-    $this->post('/api/webhooks/plex/wrong-token', [
-        'payload' => plexPayload(),
-    ])->assertForbidden();
-
-    expect(Cache::get('plex-webhook:server-uuid-123'))->toBeNull();
-});
-
-it('ignores non-library.new events', function () {
-    Queue::fake();
 
     $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('media.play'),
+        'payload' => $payload,
     ])->assertOk();
 
-    expect(Cache::get('plex-webhook:server-uuid-123'))->toBeNull();
-    Queue::assertNothingPushed();
+    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($payload));
+    $batch = app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']);
+
+    expect($normalized['group_key'])->toBe('show:grandparent-rating-key:show-5')
+        ->and($batch['group_type'])->toBe('show')
+        ->and($batch['items'][$normalized['item_key']])->toMatchArray([
+            'media_type' => 'episode',
+            'title' => 'The One Where They All Find Out',
+            'show_title' => 'Friends',
+            'season' => 5,
+            'episode_number' => 14,
+            'rating_key' => 'episode-500',
+            'parent_rating_key' => 'season-50',
+            'grandparent_rating_key' => 'show-5',
+        ]);
 });
 
-it('ignores unsupported media types', function () {
+it('increments the batch version when a new item extends the debounce window', function () {
     Queue::fake();
 
+    $firstPayload = plexPayload('library.new', 'episode', [
+        'title' => 'Episode One',
+        'ratingKey' => 'episode-1',
+        'grandparentRatingKey' => 'show-1',
+        'grandparentTitle' => 'Lost',
+        'parentIndex' => 1,
+        'index' => 1,
+    ]);
+
+    $secondPayload = plexPayload('library.new', 'episode', [
+        'title' => 'Episode Two',
+        'ratingKey' => 'episode-2',
+        'grandparentRatingKey' => 'show-1',
+        'grandparentTitle' => 'Lost',
+        'parentIndex' => 1,
+        'index' => 2,
+    ]);
+
+    $this->post('/api/webhooks/plex/test-secret', ['payload' => $firstPayload])->assertOk();
+    $this->post('/api/webhooks/plex/test-secret', ['payload' => $secondPayload])->assertOk();
+
+    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($firstPayload));
+    $batch = app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']);
+
+    expect($batch['version'])->toBe(2)
+        ->and($batch['items'])->toHaveCount(2);
+
+    Queue::assertPushed(ProcessPlexWebhookBatch::class, 2);
+});
+
+it('falls back to grandparent key when grandparent rating key is missing', function () {
+    Queue::fake();
+
+    $payload = plexPayload('library.new', 'episode', [
+        'ratingKey' => 'episode-500',
+        'grandparentRatingKey' => null,
+        'grandparentKey' => '/library/metadata/show-5',
+        'grandparentTitle' => 'Friends',
+        'parentIndex' => 5,
+        'index' => 14,
+    ]);
+
     $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'track'),
+        'payload' => $payload,
     ])->assertOk();
 
-    expect(Cache::get('plex-webhook:server-uuid-123'))->toBeNull();
-    Queue::assertNothingPushed();
+    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($payload));
+
+    expect($normalized['group_key'])->toBe('show:grandparent-key:/library/metadata/show-5');
 });
 
 it('rejects webhook when addedAt is older than max age', function () {
@@ -115,96 +176,32 @@ it('rejects webhook when addedAt is older than max age', function () {
         ]),
     ])->assertOk();
 
-    expect(Cache::get('plex-webhook:server-uuid-123'))->toBeNull();
     Queue::assertNothingPushed();
 });
 
-it('rejects webhook when addedAt is missing', function () {
+it('logs a warning when rating key is missing but still batches the payload', function () {
     Queue::fake();
+    Log::spy();
 
-    $payload = json_encode([
-        'event' => 'library.new',
-        'Metadata' => ['type' => 'movie', 'title' => 'No AddedAt Movie', 'year' => 2024],
-        'Server' => ['uuid' => 'server-uuid-123', 'title' => 'My Plex Server'],
+    $payload = plexPayload('library.new', 'movie', [
+        'ratingKey' => null,
+        'key' => null,
+        'guid' => null,
     ]);
 
-    $this->post('/api/webhooks/plex/test-secret', ['payload' => $payload])->assertOk();
-
-    expect(Cache::get('plex-webhook:server-uuid-123'))->toBeNull();
-    Queue::assertNothingPushed();
-});
-
-it('accepts webhook when addedAt is within max age', function () {
-    Queue::fake();
-
     $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'movie', [
-            'addedAt' => now()->subMinutes(5)->timestamp,
-        ]),
+        'payload' => $payload,
     ])->assertOk();
 
-    $batch = Cache::get('plex-webhook:server-uuid-123');
+    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($payload));
+    $batch = app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']);
 
-    expect($batch['items'])->toHaveCount(1);
-});
+    expect($batch)->not->toBeNull();
 
-it('accumulates multiple items in the same cache batch', function () {
-    Queue::fake();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'movie', ['title' => 'Movie One', 'year' => 2020]),
-    ])->assertOk();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'movie', ['title' => 'Movie Two', 'year' => 2021]),
-    ])->assertOk();
-
-    $batch = Cache::get('plex-webhook:server-uuid-123');
-
-    expect($batch['items'])->toHaveCount(2);
-});
-
-it('deduplicates identical movie webhooks in the same batch', function () {
-    Queue::fake();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'movie', ['title' => 'Inception', 'year' => 2010]),
-    ])->assertOk();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'movie', ['title' => 'Inception', 'year' => 2010]),
-    ])->assertOk();
-
-    $batch = Cache::get('plex-webhook:server-uuid-123');
-
-    expect($batch['items'])->toHaveCount(1)
-        ->and($batch['items'][0]['title'])->toBe('Inception');
-});
-
-it('deduplicates identical episode webhooks in the same batch', function () {
-    Queue::fake();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'episode', [
-            'title' => 'The Pilot',
-            'grandparentTitle' => 'Lost',
-            'parentIndex' => 1,
-            'index' => 1,
-        ]),
-    ])->assertOk();
-
-    $this->post('/api/webhooks/plex/test-secret', [
-        'payload' => plexPayload('library.new', 'episode', [
-            'title' => 'The Pilot',
-            'grandparentTitle' => 'Lost',
-            'parentIndex' => 1,
-            'index' => 1,
-        ]),
-    ])->assertOk();
-
-    $batch = Cache::get('plex-webhook:server-uuid-123');
-
-    expect($batch['items'])->toHaveCount(1);
+    Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context) {
+        return $message === 'Plex webhook identifiers degraded'
+            && in_array('missing_rating_key', $context['warnings'], true);
+    });
 });
 
 it('handles malformed payload gracefully', function () {

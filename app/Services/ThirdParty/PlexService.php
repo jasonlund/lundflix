@@ -2,6 +2,7 @@
 
 namespace App\Services\ThirdParty;
 
+use App\Models\PlexMediaServer;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Collection;
@@ -341,6 +342,69 @@ class PlexService
     }
 
     /**
+     * Fetch canonical metadata for a webhook item directly from the source Plex server.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fetchMetadataForWebhookItem(PlexMediaServer $server, string $ratingKey): ?array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return null;
+        }
+
+        $response = $this->serverClient($server)
+            ->get($server->uri."/library/metadata/{$ratingKey}");
+
+        /** @var array<string, mixed>|null $metadata */
+        $metadata = $response->json('MediaContainer.Metadata.0');
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, int|string>
+     */
+    public function extractExternalIdentifiers(array $metadata): array
+    {
+        /** @var Collection<int, string> $guids */
+        $guids = collect($metadata['Guid'] ?? [])
+            ->pluck('id')
+            ->filter(fn (mixed $guid): bool => is_string($guid) && $guid !== '')
+            ->values();
+
+        foreach (['guid', 'parentGuid', 'grandparentGuid'] as $field) {
+            $guid = $metadata[$field] ?? null;
+
+            if (is_string($guid) && $guid !== '') {
+                $guids->push($guid);
+            }
+        }
+
+        $identifiers = [];
+
+        foreach ($guids->unique() as $guid) {
+            if (str_starts_with($guid, 'imdb://')) {
+                $identifiers['imdb'] = substr($guid, strlen('imdb://'));
+            }
+
+            if (str_starts_with($guid, 'tmdb://')) {
+                $identifiers['tmdb'] = (int) substr($guid, strlen('tmdb://'));
+            }
+
+            if (str_starts_with($guid, 'tvdb://')) {
+                $identifiers['tvdb'] = (int) substr($guid, strlen('tvdb://'));
+            }
+
+            if (str_starts_with($guid, 'plex://')) {
+                $identifiers['plex'] = $guid;
+            }
+        }
+
+        return $identifiers;
+    }
+
+    /**
      * Create an HTTP client with the required Plex headers.
      */
     private function client(?string $token = null): PendingRequest
@@ -359,5 +423,18 @@ class PlexService
         }
 
         return Http::resilient()->withHeaders($headers)->throw();
+    }
+
+    private function serverClient(PlexMediaServer $server): PendingRequest
+    {
+        return Http::resilient()->withHeaders([
+            'Accept' => 'application/json',
+            'X-Plex-Client-Identifier' => $this->clientIdentifier,
+            'X-Plex-Product' => $this->productName,
+            'X-Plex-Version' => '1.0.0',
+            'X-Plex-Platform' => PHP_OS_FAMILY,
+            'X-Plex-Device-Name' => $this->productName,
+            'X-Plex-Token' => $server->access_token,
+        ])->throw();
     }
 }
