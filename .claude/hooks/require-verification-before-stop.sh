@@ -48,6 +48,10 @@ if [[ -f "$runtime_dir/last_verification_epoch" ]]; then
     last_verification_epoch="$(cat "$runtime_dir/last_verification_epoch")"
 fi
 
+if (( last_edit_epoch == 0 )); then
+    exit 0
+fi
+
 if (( last_verification_epoch > 0 && last_verification_epoch >= last_edit_epoch )); then
     exit 0
 fi
