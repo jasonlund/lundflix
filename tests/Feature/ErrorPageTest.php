@@ -14,6 +14,7 @@ it('has valid error page config', function (int $status) {
     foreach ($config['videos'] as $video) {
         expect($video)->toHaveKeys(['video', 'type', 'imdb_id']);
         expect($video['type'])->toBeIn(['show', 'movie']);
+        expect(file_exists(resource_path('images/'.$video['video'])))->toBeTrue();
     }
 })->with([401, 403, 404, 419, 500, 503]);
 
@@ -106,7 +107,20 @@ it('renders error preview page for configured status codes', function (int $stat
 
     $response->assertStatus($status);
     $response->assertSee(config("error-pages.{$status}.message"));
+    $response->assertSeeHtml('data-crt');
+    $response->assertSeeHtml('data-crt-layer="flicker"');
+    $response->assertSeeHtml('data-crt-layer="scanlines"');
+    $response->assertSeeHtml('data-crt-layer="beam"');
+    $response->assertSeeHtml('data-crt-beam');
 })->with([401, 403, 404, 419, 500, 503]);
+
+it('renders the configured caption on the 403 preview page', function () {
+    $response = $this->get(route('error-preview', 403));
+
+    $response->assertForbidden();
+    $response->assertSee('The pineapple suite');
+    $response->assertSee('is occupied');
+});
 
 it('returns 404 for unconfigured status codes on preview route', function () {
     $this->get(route('error-preview', 418))
