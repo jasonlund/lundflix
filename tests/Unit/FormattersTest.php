@@ -173,13 +173,13 @@ it('returns null runtime for a show with no runtime', function () {
 it('formats time until as hours when less than 24h away', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
 
-    expect(Formatters::timeUntil(Carbon::parse('2026-04-01'), '20:00'))->toBe('8h');
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01 20:00:00')))->toBe('8h');
 });
 
 it('formats time until with minimum of 1h', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
 
-    expect(Formatters::timeUntil(Carbon::parse('2026-04-01'), '12:30'))->toBe('1h');
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01 12:30:00')))->toBe('1h');
 });
 
 it('formats time until as days when less than 7d away', function () {
@@ -209,13 +209,13 @@ it('formats time until as positive value for a past date', function () {
 it('formats time since as hours when less than 24h ago', function () {
     $this->travelTo(Carbon::parse('2026-04-01 20:00:00'));
 
-    expect(Formatters::timeSince(Carbon::parse('2026-04-01'), '12:00'))->toBe('8h');
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:00:00')))->toBe('8h');
 });
 
 it('formats time since with minimum of 1h', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:30:00'));
 
-    expect(Formatters::timeSince(Carbon::parse('2026-04-01'), '12:00'))->toBe('1h');
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:00:00')))->toBe('1h');
 });
 
 it('formats time since as days when less than 7d ago', function () {

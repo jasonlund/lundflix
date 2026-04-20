@@ -19,7 +19,7 @@ class SendRequestNotification implements ShouldQueue
     public function handle(RequestSubmitted $event): void
     {
         if (! config('services.slack.enabled')) {
-            Log::error('Slack notification skipped: Slack is not enabled', [
+            Log::warning('Slack notification skipped: Slack is not enabled', [
                 'request_id' => $event->request->id,
             ]);
 
@@ -29,7 +29,7 @@ class SendRequestNotification implements ShouldQueue
         $channel = config('services.slack.notifications.channel');
 
         if (! $channel) {
-            Log::error('Slack notification skipped: channel not configured', [
+            Log::warning('Slack notification skipped: channel not configured', [
                 'request_id' => $event->request->id,
             ]);
 

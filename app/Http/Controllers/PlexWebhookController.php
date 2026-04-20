@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPlexWebhookBatch;
+use App\Support\PlexWebhookBatchStore;
+use App\Support\PlexWebhookNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Laravel\Nightwatch\Compatibility;
 
 class PlexWebhookController extends Controller
 {
-    public function __invoke(Request $request, string $token): JsonResponse
+    public function __invoke(Request $request, string $token, PlexWebhookNormalizer $normalizer, PlexWebhookBatchStore $batchStore): JsonResponse
     {
         if (! hash_equals((string) config('services.plex.webhook_secret'), $token)) {
             abort(403);
@@ -54,55 +56,83 @@ class PlexWebhookController extends Controller
                 'title' => $metadata['title'] ?? 'Unknown',
                 'addedAt' => $addedAtDate->toIso8601String(),
                 'maxAgeMinutes' => $maxAgeMinutes,
+                ...$this->traceContext(),
             ]);
 
             return response()->json(['status' => 'ok']);
         }
 
-        $serverUuid = $payload['Server']['uuid'] ?? 'unknown';
-        $serverName = $payload['Server']['title'] ?? null;
+        $normalized = $normalizer->normalize($payload);
 
-        $item = [
-            'media_type' => $mediaType,
-            'title' => $metadata['title'] ?? 'Unknown',
-            'year' => $mediaType === 'movie' ? ($metadata['year'] ?? null) : null,
-            'show_title' => $mediaType === 'episode' ? ($metadata['grandparentTitle'] ?? null) : null,
-            'season' => $mediaType === 'episode' ? ($metadata['parentIndex'] ?? null) : null,
-            'episode_number' => $mediaType === 'episode' ? ($metadata['index'] ?? null) : null,
-        ];
+        if ($normalized === null) {
+            Log::warning('Plex webhook rejected: missing reliable identifiers', [
+                'title' => $metadata['title'] ?? 'Unknown',
+                'media_type' => $mediaType,
+                ...$this->traceContext(),
+            ]);
 
-        $cacheKey = "plex-webhook:{$serverUuid}";
+            return response()->json(['status' => 'ok']);
+        }
 
-        Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey, $serverName, $item): void {
-            $batch = Cache::get($cacheKey, ['server_name' => null, 'items' => [], 'last_received_at' => null]);
-            $batch['server_name'] = $serverName ?? $batch['server_name'];
+        $warningContext = $this->contextFor($normalized);
 
-            $isDuplicate = collect($batch['items'])->contains(function (array $existing) use ($item): bool {
-                if ($item['media_type'] === 'movie') {
-                    return $existing['media_type'] === 'movie'
-                        && $existing['title'] === $item['title']
-                        && $existing['year'] === $item['year'];
-                }
+        if ($normalized['warnings'] !== []) {
+            Log::warning('Plex webhook identifiers degraded', [
+                ...$warningContext,
+                'warnings' => $normalized['warnings'],
+            ]);
+        }
 
-                return $existing['media_type'] === 'episode'
-                    && $existing['show_title'] === $item['show_title']
-                    && $existing['season'] === $item['season']
-                    && $existing['episode_number'] === $item['episode_number'];
-            });
+        Log::info('Plex webhook accepted', $warningContext);
 
-            if (! $isDuplicate) {
-                $batch['items'][] = $item;
-            }
+        $batch = $batchStore->upsert($normalized);
 
-            $batch['last_received_at'] = now()->timestamp;
-            Cache::put($cacheKey, $batch, now()->addHours(4));
-        });
+        Log::info('Plex webhook batch updated', [
+            ...$warningContext,
+            'version' => $batch['version'],
+            'item_count' => count($batch['items']),
+            'flush_at' => Carbon::createFromTimestamp((int) $batch['flush_at'])->toIso8601String(),
+            'hard_deadline_at' => Carbon::createFromTimestamp((int) $batch['hard_deadline_at'])->toIso8601String(),
+        ]);
 
-        $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds');
-
-        ProcessPlexWebhookBatch::dispatch($serverUuid)
-            ->delay(now()->addSeconds($debounceSeconds));
+        ProcessPlexWebhookBatch::dispatch(
+            serverUuid: $normalized['server_uuid'],
+            groupKey: $normalized['group_key'],
+            version: (int) $batch['version'],
+        )
+            ->onQueue((string) config('services.plex.webhook_queue', 'plex-webhooks'))
+            ->delay(Carbon::createFromTimestamp((int) $batch['flush_at']));
 
         return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * @param  array{
+     *     server_uuid: string,
+     *     group_key: string,
+     *     item: array<string, mixed>
+     * }  $normalized
+     * @return array<string, mixed>
+     */
+    private function contextFor(array $normalized): array
+    {
+        return [
+            'server_uuid' => $normalized['server_uuid'],
+            'group_key' => $normalized['group_key'],
+            'rating_key' => $normalized['item']['rating_key'],
+            ...$this->traceContext(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function traceContext(): array
+    {
+        $traceId = class_exists(Compatibility::class)
+            ? Compatibility::getTraceIdFromContext()
+            : null;
+
+        return $traceId ? ['trace_id' => $traceId] : [];
     }
 }

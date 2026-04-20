@@ -2,6 +2,7 @@
 
 use App\Models\Episode;
 use App\Models\Show;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -210,6 +211,42 @@ it('does not render checkbox for episodes with null airdate', function () {
     Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])
         ->assertSee('TBA Episode')
         ->assertDontSeeHtml('value="S01E01"');
+});
+
+it('does not render checkbox for episode airing later today based on per-episode airtime', function () {
+    $this->travelTo(Carbon::parse('2026-04-19 12:00', 'America/New_York'));
+
+    $show = Show::factory()->create([
+        'tvmaze_id' => 1,
+        'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+        'web_channel' => null,
+    ]);
+
+    $airedEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Morning Episode',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => '2026-04-19',
+        'airtime' => '08:00',
+    ]);
+
+    $laterEpisode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 101,
+        'name' => 'Evening Episode',
+        'season' => 1,
+        'number' => 2,
+        'airdate' => '2026-04-19',
+        'airtime' => '20:00',
+    ]);
+
+    Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$airedEpisode, $laterEpisode])])
+        ->assertSee('Morning Episode')
+        ->assertSee('Evening Episode')
+        ->assertSeeHtml('value="S01E01"')
+        ->assertDontSeeHtml('value="S01E02"');
 });
 
 it('filters insignificant specials from API response', function () {

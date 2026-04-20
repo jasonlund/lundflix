@@ -75,7 +75,7 @@ it('does not send notification when slack is disabled', function () {
 
     Notification::assertNothingSent();
 
-    Log::shouldHaveReceived('error')
+    Log::shouldHaveReceived('warning')
         ->withArgs(fn ($message) => $message === 'Slack notification skipped: Slack is not enabled')
         ->once();
 });
@@ -94,7 +94,7 @@ it('does not send notification when channel is not configured', function () {
 
     Notification::assertNothingSent();
 
-    Log::shouldHaveReceived('error')
+    Log::shouldHaveReceived('warning')
         ->withArgs(fn ($message) => $message === 'Slack notification skipped: channel not configured')
         ->once();
 });

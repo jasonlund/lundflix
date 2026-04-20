@@ -58,6 +58,7 @@ class ProcessShowAvailability extends Command
             return Command::SUCCESS;
         }
 
+        // Pad ±1 day because airdates are date-only but the lookback window is a datetime; timezone offsets up to ±14h can shift the effective calendar day.
         $shows = Show::query()
             ->whereIn('id', $showIds)
             ->with(['episodes' => fn ($q) => $q

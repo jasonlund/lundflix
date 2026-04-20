@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\PlexMediaServer;
 use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Facades\Http;
 
@@ -574,4 +575,56 @@ test('searchShowWithEpisodes returns empty collection when show not found', func
     $results = $service->searchShowWithEpisodes('valid-token', 'imdb://tt9999999');
 
     expect($results)->toBeEmpty();
+});
+
+test('fetchMetadataForWebhookItem returns metadata from the source server', function () {
+    Http::fake([
+        'http://plex.example.com:32400/library/metadata/12345' => Http::response([
+            'MediaContainer' => [
+                'Metadata' => [[
+                    'title' => 'Inception',
+                    'ratingKey' => '12345',
+                    'Guid' => [
+                        ['id' => 'tmdb://27205'],
+                        ['id' => 'imdb://tt1375666'],
+                    ],
+                ]],
+            ],
+        ]),
+    ]);
+
+    $server = PlexMediaServer::factory()->make([
+        'uri' => 'http://plex.example.com:32400',
+        'access_token' => 'server-token',
+    ]);
+
+    $service = new PlexService;
+    $metadata = $service->fetchMetadataForWebhookItem($server, '12345');
+
+    expect($metadata)->toMatchArray([
+        'title' => 'Inception',
+        'ratingKey' => '12345',
+    ]);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('X-Plex-Token', 'server-token'));
+});
+
+test('extractExternalIdentifiers returns the first supported identifiers from metadata', function () {
+    $service = new PlexService;
+
+    $identifiers = $service->extractExternalIdentifiers([
+        'guid' => 'plex://movie/abc123',
+        'Guid' => [
+            ['id' => 'tmdb://27205'],
+            ['id' => 'imdb://tt1375666'],
+            ['id' => 'tvdb://1234'],
+        ],
+    ]);
+
+    expect($identifiers)->toBe([
+        'tmdb' => 27205,
+        'imdb' => 'tt1375666',
+        'tvdb' => 1234,
+        'plex' => 'plex://movie/abc123',
+    ]);
 });

@@ -7,139 +7,344 @@ namespace App\Jobs;
 use App\Enums\RequestItemStatus;
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\PlexMediaServer;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
+use App\Services\ThirdParty\PlexService;
+use App\Support\PlexWebhookBatchStore;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Nightwatch\Compatibility;
 
 class ProcessPlexWebhookBatch implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public string $serverUuid) {}
+    public int $tries = 5;
 
-    public function handle(): void
+    public int $timeout = 60;
+
+    /**
+     * @var array<string, array<string, mixed>|null>
+     */
+    private array $metadataCache = [];
+
+    public function __construct(
+        public string $serverUuid,
+        public string $groupKey,
+        public int $version,
+    ) {
+        $this->onQueue((string) config('services.plex.webhook_queue', 'plex-webhooks'));
+    }
+
+    public function handle(PlexWebhookBatchStore $batchStore, PlexService $plex): void
     {
-        $cacheKey = "plex-webhook:{$this->serverUuid}";
+        $processingResult = $batchStore->withProcessingLock($this->serverUuid, $this->groupKey, function () use ($batchStore, $plex): string {
+            $snapshot = $batchStore->withBatchLock($this->serverUuid, $this->groupKey, function () use ($batchStore): array {
+                $batch = $batchStore->get($this->serverUuid, $this->groupKey);
 
-        $result = Cache::lock("{$cacheKey}:lock", 10)->block(5, function () use ($cacheKey): ?array {
-            $batch = Cache::get($cacheKey);
+                if (! $batch) {
+                    return ['status' => 'missing'];
+                }
 
-            if (! $batch || empty($batch['items'])) {
-                return null;
+                $context = $this->contextForBatch($batch);
+
+                if ((int) ($batch['version'] ?? 0) !== $this->version) {
+                    Log::info('Plex webhook batch flush skipped: stale job', $context);
+
+                    return ['status' => 'stale'];
+                }
+
+                if (now()->timestamp < (int) ($batch['flush_at'] ?? 0)) {
+                    Log::info('Plex webhook batch flush skipped: early job', $context);
+
+                    return ['status' => 'early'];
+                }
+
+                return [
+                    'status' => 'process',
+                    'batch' => $batch,
+                    'item_keys' => array_keys($batch['items'] ?? []),
+                ];
+            });
+
+            if ($snapshot['status'] !== 'process') {
+                if ($snapshot['status'] === 'missing') {
+                    Log::info('Plex webhook batch flush skipped: batch missing', [
+                        'server_uuid' => $this->serverUuid,
+                        'group_key' => $this->groupKey,
+                        'version' => $this->version,
+                        ...$this->traceContext(),
+                    ]);
+                }
+
+                return $snapshot['status'];
             }
 
-            $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds', 30);
-            $lastReceivedAt = $batch['last_received_at'] ?? 0;
+            /** @var array<string, mixed> $batch */
+            $batch = $snapshot['batch'];
+            /** @var list<string> $itemKeys */
+            $itemKeys = $snapshot['item_keys'];
+            /** @var Collection<string, array<string, mixed>> $items */
+            $items = collect($batch['items'] ?? []);
+            $context = $this->contextForBatch($batch);
 
-            if (now()->timestamp - $lastReceivedAt < $debounceSeconds) {
-                return ['action' => 'release'];
+            Log::info('Plex webhook batch flush started', $context);
+
+            $server = PlexMediaServer::query()
+                ->where('client_identifier', $this->serverUuid)
+                ->first();
+
+            $fulfilledCount = $this->fulfillMatchingRequests($server, $items, $plex, $context);
+
+            if ($fulfilledCount > 0) {
+                Log::info('Plex webhook auto-fulfilled request items', [
+                    ...$context,
+                    'fulfilled_count' => $fulfilledCount,
+                ]);
             }
 
-            Cache::forget($cacheKey);
+            $this->sendSlackNotification($batch, $items->values(), $context);
 
-            return ['action' => 'process', 'batch' => $batch];
+            $remainingBatch = $batchStore->finalizeProcessedItems(
+                $this->serverUuid,
+                $this->groupKey,
+                $this->version,
+                $itemKeys,
+            );
+
+            Log::info('Plex webhook batch flush completed', [
+                ...$context,
+                'fulfilled_count' => $fulfilledCount,
+                'remaining_item_count' => $remainingBatch ? count($remainingBatch['items']) : 0,
+            ]);
+
+            return 'processed';
         });
 
-        if (! $result) {
-            Log::warning('Plex webhook batch empty or expired', ['serverUuid' => $this->serverUuid]);
-
-            return;
-        }
-
-        if ($result['action'] === 'release') {
-            $debounceSeconds = (int) config('services.plex.webhook_debounce_seconds', 30);
-            $this->release($debounceSeconds);
-
-            return;
-        }
-
-        $batch = $result['batch'];
-        $items = collect($batch['items']);
-
-        $this->fulfillMatchingRequests($items);
-        $this->sendSlackNotification($batch, $items);
-    }
-
-    private function fulfillMatchingRequests(Collection $items): void
-    {
-        $fulfilled = 0;
-
-        foreach ($items as $item) {
-            $fulfilled += match ($item['media_type']) {
-                'movie' => $this->fulfillMovie($item),
-                'episode' => $this->fulfillEpisode($item),
-                default => 0,
-            };
-        }
-
-        if ($fulfilled > 0) {
-            Log::info('Plex webhook auto-fulfilled request items', [
-                'serverUuid' => $this->serverUuid,
-                'fulfilledCount' => $fulfilled,
+        if ($processingResult === null) {
+            Log::info('Plex webhook batch flush skipped: processing lock busy', [
+                'server_uuid' => $this->serverUuid,
+                'group_key' => $this->groupKey,
+                'version' => $this->version,
+                ...$this->traceContext(),
             ]);
         }
     }
 
-    private function fulfillMovie(array $item): int
+    /**
+     * @param  Collection<string, array<string, mixed>>  $items
+     * @param  array<string, mixed>  $context
+     */
+    private function fulfillMatchingRequests(?PlexMediaServer $server, Collection $items, PlexService $plex, array $context): int
     {
-        $movie = Movie::query()
-            ->where('title', $item['title'])
-            ->where('year', $item['year'])
-            ->first();
+        return DB::transaction(function () use ($server, $items, $plex, $context): int {
+            $fulfilled = 0;
 
-        if (! $movie) {
-            return 0;
-        }
+            foreach ($items as $item) {
+                $requestable = $this->resolveRequestable($server, $item, $plex, $context);
 
-        return RequestItem::pending()
-            ->where('requestable_type', Movie::class)
-            ->where('requestable_id', $movie->id)
-            ->update([
-                'status' => RequestItemStatus::Fulfilled,
-                'actioned_at' => now(),
-            ]);
+                if (! $requestable) {
+                    continue;
+                }
+
+                $fulfilled += RequestItem::pending()
+                    ->where('requestable_type', $requestable::class)
+                    ->where('requestable_id', $requestable->id)
+                    ->update([
+                        'status' => RequestItemStatus::Fulfilled,
+                        'actioned_at' => now(),
+                    ]);
+            }
+
+            return $fulfilled;
+        });
     }
 
-    private function fulfillEpisode(array $item): int
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $context
+     */
+    private function resolveRequestable(?PlexMediaServer $server, array $item, PlexService $plex, array $context): Movie|Episode|null
     {
-        $show = Show::query()->where('name', $item['show_title'])->first();
+        return match ($item['media_type'] ?? null) {
+            'movie' => $this->resolveMovie($server, $item, $plex, $context),
+            'episode' => $this->resolveEpisode($server, $item, $plex, $context),
+            default => null,
+        };
+    }
 
-        if (! $show) {
-            return 0;
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $context
+     */
+    private function resolveMovie(?PlexMediaServer $server, array $item, PlexService $plex, array $context): ?Movie
+    {
+        $metadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex, $context);
+        $identifiers = $metadata ? $plex->extractExternalIdentifiers($metadata) : [];
+
+        if (isset($identifiers['tmdb'])) {
+            $movie = Movie::query()->where('tmdb_id', (int) $identifiers['tmdb'])->first();
+
+            if ($movie) {
+                return $movie;
+            }
         }
 
-        $episode = Episode::query()
+        if (isset($identifiers['imdb'])) {
+            $movie = Movie::query()->where('imdb_id', $identifiers['imdb'])->first();
+
+            if ($movie) {
+                return $movie;
+            }
+        }
+
+        Log::warning('Plex webhook movie resolution failed: no external identifiers', $context);
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $context
+     */
+    private function resolveEpisode(?PlexMediaServer $server, array $item, PlexService $plex, array $context): ?Episode
+    {
+        $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex, $context);
+        $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
+
+        if (! $this->hasShowIdentifiers($showIdentifiers) && isset($item['grandparent_rating_key'])) {
+            $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex, $context);
+
+            if ($showMetadata) {
+                $showIdentifiers = $plex->extractExternalIdentifiers($showMetadata);
+            }
+        }
+
+        $show = $this->resolveShow($showIdentifiers);
+
+        if (! $show instanceof Show) {
+            return null;
+        }
+
+        return Episode::query()
             ->where('show_id', $show->id)
             ->where('season', $item['season'])
             ->where('number', $item['episode_number'])
             ->first();
-
-        if (! $episode) {
-            return 0;
-        }
-
-        return RequestItem::pending()
-            ->where('requestable_type', Episode::class)
-            ->where('requestable_id', $episode->id)
-            ->update([
-                'status' => RequestItemStatus::Fulfilled,
-                'actioned_at' => now(),
-            ]);
     }
 
-    private function sendSlackNotification(array $batch, Collection $items): void
+    /**
+     * @param  array<string, mixed>  $identifiers
+     */
+    private function resolveShow(array $identifiers): ?Show
+    {
+        if (isset($identifiers['tmdb'])) {
+            $show = Show::query()->where('tmdb_id', (int) $identifiers['tmdb'])->first();
+
+            if ($show) {
+                return $show;
+            }
+        }
+
+        if (isset($identifiers['imdb'])) {
+            $show = Show::query()->where('imdb_id', $identifiers['imdb'])->first();
+
+            if ($show) {
+                return $show;
+            }
+        }
+
+        if (isset($identifiers['tvdb'])) {
+            $show = Show::query()->where('thetvdb_id', (int) $identifiers['tvdb'])->first();
+
+            if ($show) {
+                return $show;
+            }
+        }
+
+        Log::warning('Plex webhook show resolution failed: no external identifiers');
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>|null
+     */
+    private function fetchMetadata(?PlexMediaServer $server, ?string $ratingKey, PlexService $plex, array $context): ?array
+    {
+        if ($ratingKey === null) {
+            return null;
+        }
+
+        if (! $server instanceof PlexMediaServer) {
+            Log::warning('Plex metadata enrichment failed: source server missing', [
+                ...$context,
+                'rating_key' => $ratingKey,
+            ]);
+
+            return null;
+        }
+
+        $cacheKey = "{$server->client_identifier}:{$ratingKey}";
+
+        if (array_key_exists($cacheKey, $this->metadataCache)) {
+            return $this->metadataCache[$cacheKey];
+        }
+
+        try {
+            $this->metadataCache[$cacheKey] = $plex->fetchMetadataForWebhookItem($server, $ratingKey);
+        } catch (\Throwable $e) {
+            Log::warning('Plex metadata enrichment failed', [
+                ...$context,
+                'rating_key' => $ratingKey,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->metadataCache[$cacheKey] = null;
+        }
+
+        return $this->metadataCache[$cacheKey];
+    }
+
+    /**
+     * @param  array<string, mixed>  $identifiers
+     */
+    private function hasShowIdentifiers(array $identifiers): bool
+    {
+        return isset($identifiers['tmdb']) || isset($identifiers['imdb']) || isset($identifiers['tvdb']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $batch
+     * @return array<string, mixed>
+     */
+    private function contextForBatch(array $batch): array
+    {
+        return [
+            'server_uuid' => $batch['server_uuid'],
+            'group_key' => $batch['group_key'],
+            'version' => $batch['version'],
+            'item_count' => count($batch['items'] ?? []),
+            ...$this->traceContext(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $batch
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @param  array<string, mixed>  $context
+     */
+    private function sendSlackNotification(array $batch, Collection $items, array $context): void
     {
         if (! config('services.slack.enabled')) {
-            Log::warning('Plex batch notification skipped: Slack is not enabled', [
-                'serverUuid' => $this->serverUuid,
-                'itemCount' => $items->count(),
-            ]);
+            Log::warning('Plex batch notification skipped: Slack is not enabled', $context);
 
             return;
         }
@@ -147,18 +352,13 @@ class ProcessPlexWebhookBatch implements ShouldQueue
         $channel = config('services.slack.notifications.channel');
 
         if (! $channel) {
-            Log::warning('Plex batch notification skipped: channel not configured', [
-                'serverUuid' => $this->serverUuid,
-                'itemCount' => $items->count(),
-            ]);
+            Log::warning('Plex batch notification skipped: channel not configured', $context);
 
             return;
         }
 
         Log::info('Sending Plex batch notification', [
-            'serverUuid' => $this->serverUuid,
-            'serverName' => $batch['server_name'],
-            'itemCount' => $items->count(),
+            ...$context,
             'channel' => $channel,
         ]);
 
@@ -167,5 +367,15 @@ class ProcessPlexWebhookBatch implements ShouldQueue
                 serverName: $batch['server_name'],
                 items: $items,
             ));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function traceContext(): array
+    {
+        $traceId = Compatibility::getTraceIdFromContext();
+
+        return $traceId ? ['trace_id' => $traceId] : [];
     }
 }
