@@ -39,7 +39,7 @@ describe('show availability episode milestones', function () {
             'season' => 3,
             'number' => 5,
             'name' => 'Recent One',
-            'airdate' => now()->subDay()->format('Y-m-d'),
+            'airdate' => now()->subDays(3)->format('Y-m-d'),
             'airtime' => '21:00',
             'runtime' => 45,
         ]);

@@ -294,6 +294,5 @@ new class extends Component {
         @if ($movie->imdb_id)
             <livewire:movies.availability :movie="$movie" lazy />
         @endif
-
     </div>
 </div>

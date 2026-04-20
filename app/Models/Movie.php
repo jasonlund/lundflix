@@ -195,7 +195,7 @@ class Movie extends Model
                 fn (array $rd): array => [...$rd, 'country' => $country['iso_3166_1']],
                 $country['release_dates'],
             ))
-            ->filter(fn (array $rd): bool => ! empty($rd['release_date']))
+            ->filter(fn (array $rd): bool => $rd['release_date'] !== '' && $rd['release_date'] !== '0')
             ->groupBy('type')
             ->map(function (Collection $entries, int $type) use ($originCountries): ?array {
                 $releaseType = TMDBReleaseType::tryFrom($type);
@@ -256,7 +256,7 @@ class Movie extends Model
             ->filter(fn (array $country): bool => $showCountries->contains($country['iso_3166_1']))
             ->map(function (array $country): ?array {
                 $releases = collect($country['release_dates'])
-                    ->filter(fn (array $rd): bool => ! empty($rd['release_date']))
+                    ->filter(fn (array $rd): bool => $rd['release_date'] !== '' && $rd['release_date'] !== '0')
                     ->map(function (array $rd): ?array {
                         $type = TMDBReleaseType::tryFrom($rd['type']);
                         if (! $type) {

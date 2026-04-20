@@ -91,7 +91,6 @@ new class extends Component {
             })
             ->all();
     }
-
 };
 ?>
 
