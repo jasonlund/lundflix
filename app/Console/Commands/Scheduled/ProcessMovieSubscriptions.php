@@ -41,13 +41,13 @@ class ProcessMovieSubscriptions extends Command
                 continue;
             }
 
+            $subscription->markFulfilled();
+
             if (! isset($notified[$movie->id])) {
                 SubscriptionTriggered::dispatch(null, $movie);
                 $notified[$movie->id] = true;
                 $processed++;
             }
-
-            $subscription->markFulfilled();
         }
 
         $this->info("Processed {$processed} movie subscription(s).");

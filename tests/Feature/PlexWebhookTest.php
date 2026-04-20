@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     config([
+        'services.plex.webhook_cache_store' => 'array',
         'services.plex.webhook_secret' => 'test-secret',
         'services.plex.webhook_debounce_seconds' => 30,
         'services.plex.webhook_max_batch_seconds' => 3600,
@@ -179,7 +180,7 @@ it('rejects webhook when addedAt is older than max age', function () {
     Queue::assertNothingPushed();
 });
 
-it('logs a warning when rating key is missing but still batches the payload', function () {
+it('rejects webhook when all reliable identifiers are missing', function () {
     Queue::fake();
     Log::spy();
 
@@ -193,14 +194,10 @@ it('logs a warning when rating key is missing but still batches the payload', fu
         'payload' => $payload,
     ])->assertOk();
 
-    $normalized = app(PlexWebhookNormalizer::class)->normalize(decodePayload($payload));
-    $batch = app(PlexWebhookBatchStore::class)->get($normalized['server_uuid'], $normalized['group_key']);
+    Queue::assertNothingPushed();
 
-    expect($batch)->not->toBeNull();
-
-    Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context) {
-        return $message === 'Plex webhook identifiers degraded'
-            && in_array('missing_rating_key', $context['warnings'], true);
+    Log::shouldHaveReceived('warning')->withArgs(function (string $message) {
+        return $message === 'Plex webhook rejected: missing reliable identifiers';
     });
 });
 

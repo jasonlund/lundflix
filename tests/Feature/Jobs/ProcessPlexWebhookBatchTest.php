@@ -19,6 +19,7 @@ beforeEach(function () {
     config([
         'services.slack.enabled' => true,
         'services.slack.notifications.channel' => 'C12345',
+        'services.plex.webhook_cache_store' => 'array',
         'services.plex.webhook_debounce_seconds' => 30,
         'services.plex.webhook_max_batch_seconds' => 3600,
         'services.plex.webhook_queue' => 'plex-webhooks',
@@ -241,7 +242,7 @@ it('auto-fulfills pending episode request items using grandparent metadata enric
     expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
 });
 
-it('falls back to title matching when the source server is missing', function () {
+it('does not fulfill when the source server is missing', function () {
     Notification::fake();
     Log::spy();
 
@@ -265,11 +266,12 @@ it('falls back to title matching when the source server is missing', function ()
         version: $batch['version'],
     ))->handle(app(PlexWebhookBatchStore::class), app(\App\Services\ThirdParty\PlexService::class));
 
-    expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
+    expect($item->fresh()->status)->toBe(RequestItemStatus::Pending);
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => $message === 'Plex metadata enrichment failed: source server missing');
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => $message === 'Plex webhook movie resolution failed: no external identifiers');
 });
 
-it('logs metadata enrichment failures and falls back to title matching', function () {
+it('does not fulfill when metadata enrichment fails and no external identifiers are available', function () {
     Notification::fake();
     Log::spy();
     Http::fake([
@@ -300,8 +302,9 @@ it('logs metadata enrichment failures and falls back to title matching', functio
         version: $batch['version'],
     ))->handle(app(PlexWebhookBatchStore::class), app(\App\Services\ThirdParty\PlexService::class));
 
-    expect($item->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
+    expect($item->fresh()->status)->toBe(RequestItemStatus::Pending);
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => $message === 'Plex metadata enrichment failed');
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => $message === 'Plex webhook movie resolution failed: no external identifiers');
 });
 
 it('skips notification when slack is disabled', function () {

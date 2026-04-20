@@ -149,12 +149,10 @@ class PlexWebhookBatchStore
 
         $firstReceivedAt = (int) ($receivedAt[0] ?? now()->timestamp);
         $lastReceivedAt = (int) ($receivedAt[count($receivedAt) - 1] ?? $firstReceivedAt);
-        $hardDeadlineAt = $firstReceivedAt + $this->maxBatchSeconds();
 
         $batch['first_received_at'] = $firstReceivedAt;
         $batch['last_received_at'] = $lastReceivedAt;
-        $batch['hard_deadline_at'] = $hardDeadlineAt;
-        $batch['flush_at'] = min($lastReceivedAt + $this->debounceSeconds(), $hardDeadlineAt);
+        $batch['flush_at'] = min($lastReceivedAt + $this->debounceSeconds(), (int) $batch['hard_deadline_at']);
 
         return $batch;
     }
@@ -204,9 +202,7 @@ class PlexWebhookBatchStore
 
     private function repository(): Repository
     {
-        $store = app()->runningUnitTests() ? config('cache.default') : 'redis';
-
         /** @var Repository */
-        return Cache::store($store);
+        return Cache::store((string) config('services.plex.webhook_cache_store', 'redis'));
     }
 }

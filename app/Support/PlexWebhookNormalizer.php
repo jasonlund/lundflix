@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use Illuminate\Support\Str;
-
 class PlexWebhookNormalizer
 {
     /**
@@ -18,9 +16,9 @@ class PlexWebhookNormalizer
      *     item_key: string,
      *     item: array<string, mixed>,
      *     warnings: list<string>
-     * }
+     * }|null
      */
-    public function normalize(array $payload): array
+    public function normalize(array $payload): ?array
     {
         /** @var array<string, mixed> $metadata */
         $metadata = $payload['Metadata'] ?? [];
@@ -58,6 +56,13 @@ class PlexWebhookNormalizer
             'received_at' => $receivedAt,
         ];
 
+        $groupKey = $this->groupKey($item);
+        $itemKey = $this->itemKey($item);
+
+        if ($groupKey === null || $itemKey === null) {
+            return null;
+        }
+
         $warnings = [];
 
         if ($ratingKey === null) {
@@ -71,9 +76,9 @@ class PlexWebhookNormalizer
         return [
             'server_uuid' => $this->stringOrNull($server['uuid'] ?? null) ?? 'unknown',
             'server_name' => $this->stringOrNull($server['title'] ?? null),
-            'group_key' => $this->groupKey($item),
+            'group_key' => $groupKey,
             'group_type' => $mediaType === 'episode' ? 'show' : 'movie',
-            'item_key' => $this->itemKey($item),
+            'item_key' => $itemKey,
             'item' => $item,
             'warnings' => $warnings,
         ];
@@ -82,7 +87,7 @@ class PlexWebhookNormalizer
     /**
      * @param  array<string, mixed>  $item
      */
-    private function groupKey(array $item): string
+    private function groupKey(array $item): ?string
     {
         if ($item['media_type'] === 'episode') {
             if ($item['grandparent_rating_key']) {
@@ -93,7 +98,7 @@ class PlexWebhookNormalizer
                 return 'show:grandparent-key:'.$item['grandparent_key'];
             }
 
-            return 'show:title:'.$this->slug($item['show_title'] ?? $item['title']);
+            return null;
         }
 
         if ($item['rating_key']) {
@@ -104,17 +109,13 @@ class PlexWebhookNormalizer
             return "movie:guid:{$item['guid']}";
         }
 
-        return sprintf(
-            'movie:title:%s:%s',
-            $this->slug($item['title']),
-            $item['year'] ?? 'unknown'
-        );
+        return null;
     }
 
     /**
      * @param  array<string, mixed>  $item
      */
-    private function itemKey(array $item): string
+    private function itemKey(array $item): ?string
     {
         if ($item['rating_key']) {
             return "rating-key:{$item['rating_key']}";
@@ -128,24 +129,7 @@ class PlexWebhookNormalizer
             return "guid:{$item['guid']}";
         }
 
-        if ($item['media_type'] === 'episode') {
-            return sprintf(
-                'episode:%s:%s',
-                $item['season'] ?? 'unknown',
-                $item['episode_number'] ?? 'unknown'
-            );
-        }
-
-        return sprintf(
-            'movie:%s:%s',
-            $this->slug($item['title']),
-            $item['year'] ?? 'unknown'
-        );
-    }
-
-    private function slug(?string $value): string
-    {
-        return Str::slug($value ?? 'unknown') ?: 'unknown';
+        return null;
     }
 
     private function stringOrNull(mixed $value): ?string

@@ -204,10 +204,9 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             }
         }
 
-        return Movie::query()
-            ->where('title', (string) ($item['title'] ?? ''))
-            ->where('year', $item['year'])
-            ->first();
+        Log::warning('Plex webhook movie resolution failed: no external identifiers', $context);
+
+        return null;
     }
 
     /**
@@ -270,9 +269,9 @@ class ProcessPlexWebhookBatch implements ShouldQueue
             }
         }
 
-        return Show::query()
-            ->where('name', (string) ($item['show_title'] ?? ''))
-            ->first();
+        Log::warning('Plex webhook show resolution failed: no external identifiers');
+
+        return null;
     }
 
     /**
@@ -376,9 +375,7 @@ class ProcessPlexWebhookBatch implements ShouldQueue
      */
     private function traceContext(): array
     {
-        $traceId = class_exists(Compatibility::class)
-            ? Compatibility::getTraceIdFromContext()
-            : null;
+        $traceId = Compatibility::getTraceIdFromContext();
 
         return $traceId ? ['trace_id' => $traceId] : [];
     }

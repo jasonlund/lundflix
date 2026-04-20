@@ -46,6 +46,7 @@ return [
         'webhook_max_batch_seconds' => (int) env('PLEX_WEBHOOK_MAX_BATCH_SECONDS', 3600),
         'webhook_added_at_max_age_minutes' => (int) env('PLEX_WEBHOOK_ADDED_AT_MAX_AGE_MINUTES', 15),
         'webhook_queue' => env('PLEX_WEBHOOK_QUEUE', 'plex-webhooks'),
+        'webhook_cache_store' => env('PLEX_WEBHOOK_CACHE_STORE', 'redis'),
     ],
 
     'tmdb' => [

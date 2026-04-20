@@ -8,6 +8,7 @@ beforeEach(function () {
     Cache::flush();
 
     config([
+        'services.plex.webhook_cache_store' => 'array',
         'services.plex.webhook_debounce_seconds' => 30,
         'services.plex.webhook_max_batch_seconds' => 3600,
     ]);
@@ -101,4 +102,44 @@ it('keeps newer items in the batch after older items are finalized', function ()
         ->and($remainingBatch['version'])->toBe($secondBatch['version'])
         ->and($remainingBatch['items'])->toHaveCount(1)
         ->and($remainingBatch['items'])->toHaveKey($secondNormalized['item_key']);
+});
+
+it('preserves the original hard deadline after removing older items', function () {
+    $store = app(PlexWebhookBatchStore::class);
+    $normalizer = app(PlexWebhookNormalizer::class);
+
+    $firstNormalized = $normalizer->normalize(batchPayload('episode', [
+        'title' => 'Episode One',
+        'ratingKey' => 'episode-1',
+        'grandparentRatingKey' => 'show-1',
+        'grandparentTitle' => 'Lost',
+        'parentIndex' => 1,
+        'index' => 1,
+    ]));
+
+    $firstBatch = $store->upsert($firstNormalized);
+    $originalDeadline = $firstBatch['hard_deadline_at'];
+
+    $this->travel(60)->seconds();
+
+    $secondNormalized = $normalizer->normalize(batchPayload('episode', [
+        'title' => 'Episode Two',
+        'ratingKey' => 'episode-2',
+        'grandparentRatingKey' => 'show-1',
+        'grandparentTitle' => 'Lost',
+        'parentIndex' => 1,
+        'index' => 2,
+    ]));
+
+    $secondBatch = $store->upsert($secondNormalized);
+
+    $remainingBatch = $store->finalizeProcessedItems(
+        $firstNormalized['server_uuid'],
+        $firstNormalized['group_key'],
+        1,
+        [$firstNormalized['item_key']],
+    );
+
+    expect($remainingBatch)->not->toBeNull()
+        ->and($remainingBatch['hard_deadline_at'])->toBe($originalDeadline);
 });

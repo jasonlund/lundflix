@@ -63,6 +63,17 @@ class PlexWebhookController extends Controller
         }
 
         $normalized = $normalizer->normalize($payload);
+
+        if ($normalized === null) {
+            Log::warning('Plex webhook rejected: missing reliable identifiers', [
+                'title' => $metadata['title'] ?? 'Unknown',
+                'media_type' => $mediaType,
+                ...$this->traceContext(),
+            ]);
+
+            return response()->json(['status' => 'ok']);
+        }
+
         $warningContext = $this->contextFor($normalized);
 
         if ($normalized['warnings'] !== []) {
