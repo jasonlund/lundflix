@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\ThirdParty;
 
 use App\Models\PlexMediaServer;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -422,12 +424,12 @@ class PlexService
             $headers['X-Plex-Token'] = $token;
         }
 
-        return Http::resilient()->withHeaders($headers)->throw();
+        return $this->withPlexRetry(Http::withHeaders($headers))->throw();
     }
 
     private function serverClient(PlexMediaServer $server): PendingRequest
     {
-        return Http::resilient()->withHeaders([
+        return $this->withPlexRetry(Http::withHeaders([
             'Accept' => 'application/json',
             'X-Plex-Client-Identifier' => $this->clientIdentifier,
             'X-Plex-Product' => $this->productName,
@@ -435,6 +437,16 @@ class PlexService
             'X-Plex-Platform' => PHP_OS_FAMILY,
             'X-Plex-Device-Name' => $this->productName,
             'X-Plex-Token' => $server->access_token,
-        ])->throw();
+        ]))->throw();
+    }
+
+    private function withPlexRetry(PendingRequest $request): PendingRequest
+    {
+        return $request->retry(
+            3,
+            1000,
+            when: fn ($e): bool => $e instanceof ConnectionException
+                || ($e instanceof RequestException && in_array($e->response->status(), [408, 429, 500, 502, 503, 504])),
+        );
     }
 }
