@@ -208,11 +208,7 @@ button[data-flux-control] {
     inset: 0;
     border-radius: inherit;
     background:
-        radial-gradient(
-            140% 115% at 50% 50%,
-            transparent 56%,
-            rgb(0 0 0 / var(--crt-tube-shadow-opacity)) 100%
-        ),
+        radial-gradient(140% 115% at 50% 50%, transparent 56%, rgb(0 0 0 / var(--crt-tube-shadow-opacity)) 100%),
         radial-gradient(120% 90% at 50% -8%, rgb(255 255 255 / 0.03), transparent 42%),
         radial-gradient(120% 90% at 50% 108%, rgb(0 0 0 / 0.12), transparent 42%);
 }
@@ -249,12 +245,7 @@ button[data-flux-control] {
 
 [data-crt-beam] {
     height: var(--crt-beam-height);
-    background-image: linear-gradient(
-        to bottom,
-        rgb(255 255 255 / 0.45),
-        rgb(255 255 255 / 0.14),
-        transparent
-    );
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.14), transparent);
     box-shadow: 0 0 4px rgb(255 255 255 / 0.06);
     opacity: var(--crt-beam-opacity);
 }
