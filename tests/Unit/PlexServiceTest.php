@@ -577,7 +577,7 @@ test('searchShowWithEpisodes returns empty collection when show not found', func
     expect($results)->toBeEmpty();
 });
 
-test('fetchMetadataForWebhookItem returns metadata from the source server', function () {
+test('fetchLibraryMetadata returns metadata from the source server', function () {
     Http::fake([
         'http://plex.example.com:32400/library/metadata/12345' => Http::response([
             'MediaContainer' => [
@@ -599,7 +599,7 @@ test('fetchMetadataForWebhookItem returns metadata from the source server', func
     ]);
 
     $service = new PlexService;
-    $metadata = $service->fetchMetadataForWebhookItem($server, '12345');
+    $metadata = $service->fetchLibraryMetadata($server, '12345');
 
     expect($metadata)->toMatchArray([
         'title' => 'Inception',

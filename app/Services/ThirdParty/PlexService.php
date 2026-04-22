@@ -342,11 +342,55 @@ class PlexService
     }
 
     /**
-     * Fetch canonical metadata for a webhook item directly from the source Plex server.
+     * Fetch recently added items from a Plex server's library.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentlyAdded(PlexMediaServer $server, int $limit = 50): array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return [];
+        }
+
+        $client = $this->serverClient($server);
+        $sections = $client->get($server->uri.'/library/sections')
+            ->json('MediaContainer.Directory') ?? [];
+
+        $items = [];
+
+        foreach ($sections as $section) {
+            $sectionKey = $section['key'] ?? null;
+            $sectionType = $section['type'] ?? null;
+
+            if (! $sectionKey || ! in_array($sectionType, ['movie', 'show'], true)) {
+                continue;
+            }
+
+            $params = [
+                'X-Plex-Container-Start' => 0,
+                'X-Plex-Container-Size' => $limit,
+            ];
+
+            if ($sectionType === 'show') {
+                $params['type'] = 4;
+            }
+
+            $metadata = $client
+                ->get($server->uri."/library/sections/{$sectionKey}/recentlyAdded", $params)
+                ->json('MediaContainer.Metadata') ?? [];
+
+            $items = array_merge($items, $metadata);
+        }
+
+        return $items;
+    }
+
+    /**
+     * Fetch canonical metadata for a library item from the source Plex server.
      *
      * @return array<string, mixed>|null
      */
-    public function fetchMetadataForWebhookItem(PlexMediaServer $server, string $ratingKey): ?array
+    public function fetchLibraryMetadata(PlexMediaServer $server, string $ratingKey): ?array
     {
         if (! $server->uri || ! $server->access_token) {
             return null;
@@ -359,6 +403,26 @@ class PlexService
         $metadata = $response->json('MediaContainer.Metadata.0');
 
         return $metadata;
+    }
+
+    /**
+     * Fetch all episodes for a show directly from the source Plex server.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchEpisodesForShow(PlexMediaServer $server, string $showRatingKey): array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return [];
+        }
+
+        $response = $this->serverClient($server)
+            ->get($server->uri."/library/metadata/{$showRatingKey}/allLeaves");
+
+        /** @var array<int, array<string, mixed>> $episodes */
+        $episodes = $response->json('MediaContainer.Metadata') ?? [];
+
+        return $episodes;
     }
 
     /**
