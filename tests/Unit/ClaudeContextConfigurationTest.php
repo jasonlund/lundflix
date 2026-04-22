@@ -85,7 +85,7 @@ it('blocks stopping when repo changes have not been reverified', function () {
     }
 
     file_put_contents($temporaryFile, 'dirty');
-    @unlink($runtimeDirectory.'/last_edit_epoch');
+    file_put_contents($runtimeDirectory.'/last_edit_epoch', (string) time());
     @unlink($runtimeDirectory.'/last_verification_epoch');
 
     try {
@@ -102,6 +102,7 @@ it('blocks stopping when repo changes have not been reverified', function () {
         expect($output['reason'])->toContain('Run the smallest relevant verification before stopping');
     } finally {
         @unlink($temporaryFile);
+        @unlink($runtimeDirectory.'/last_edit_epoch');
     }
 });
 
