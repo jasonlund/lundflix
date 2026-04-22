@@ -11,6 +11,7 @@ use App\Models\Subscription;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
 class ProcessShowSubscriptions extends Command
 {
@@ -43,7 +44,7 @@ class ProcessShowSubscriptions extends Command
             ->get()
             ->keyBy('id');
 
-        /** @var array<int, array{show: Show, episodes: \Illuminate\Support\Collection<int, Episode>}> */
+        /** @var array<int, array{show: Show, episodes: Collection<int, Episode>}> */
         $showEpisodeUnions = [];
 
         foreach ($subscriptions as $subscription) {

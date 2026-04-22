@@ -103,7 +103,7 @@ class PollPlexLibrary extends Command
             $this->bufferEpisodes($server, (string) $grandparentKey, $showEpisodes);
         }
 
-        $harvested = $this->harvestRipeShows($server, $plex);
+        $harvested = $this->harvestRipeShows($server);
         $readyItems = $readyItems->merge($harvested);
 
         if ($readyItems->isNotEmpty()) {
@@ -225,7 +225,7 @@ class PollPlexLibrary extends Command
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function harvestRipeShows(PlexMediaServer $server, PlexService $plex): Collection
+    private function harvestRipeShows(PlexMediaServer $server): Collection
     {
         $cid = $server->client_identifier;
         $indexKey = "plex:poll:pending-index:{$cid}";
