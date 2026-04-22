@@ -29,6 +29,7 @@ class PlexMediaServerFactory extends Factory
             'owned' => fake()->boolean(),
             'is_online' => true,
             'visible' => false,
+            'poll_recently_added' => false,
             'uri' => 'http://'.$domain.':32400',
             'connections' => [
                 ['uri' => 'http://'.fake()->localIpv4().':32400', 'local' => true],
@@ -43,6 +44,13 @@ class PlexMediaServerFactory extends Factory
             'plex_last_seen_at' => now()->subMinutes(fake()->numberBetween(1, 120)),
             'last_seen_at' => now(),
         ];
+    }
+
+    public function pollRecentlyAdded(): static
+    {
+        return $this->state([
+            'poll_recently_added' => true,
+        ]);
     }
 
     /**

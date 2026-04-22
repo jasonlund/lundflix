@@ -22,6 +22,8 @@ class PlexServersTable
                     ->label('Online')
                     ->boolean(),
                 ToggleColumn::make('visible'),
+                ToggleColumn::make('poll_recently_added')
+                    ->label('Poll Library'),
                 IconColumn::make('owned')
                     ->boolean(),
                 TextColumn::make('uri')

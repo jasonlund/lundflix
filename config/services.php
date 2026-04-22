@@ -41,12 +41,9 @@ return [
         'product_name' => env('PLEX_PRODUCT_NAME', 'lundflix'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
         'seed_token' => env('SEED_PLEX_TOKEN'),
-        'webhook_secret' => env('PLEX_WEBHOOK_SECRET'),
-        'webhook_debounce_seconds' => (int) env('PLEX_WEBHOOK_DEBOUNCE_SECONDS', 30),
-        'webhook_max_batch_seconds' => (int) env('PLEX_WEBHOOK_MAX_BATCH_SECONDS', 3600),
-        'webhook_added_at_max_age_minutes' => (int) env('PLEX_WEBHOOK_ADDED_AT_MAX_AGE_MINUTES', 15),
-        'webhook_queue' => env('PLEX_WEBHOOK_QUEUE', 'plex-webhooks'),
-        'webhook_cache_store' => env('PLEX_WEBHOOK_CACHE_STORE', 'redis'),
+        'poll_initial_lookback_seconds' => (int) env('PLEX_POLL_INITIAL_LOOKBACK_SECONDS', 300),
+        'poll_debounce_seconds' => (int) env('PLEX_POLL_DEBOUNCE_SECONDS', 300),
+        'poll_hard_deadline_seconds' => (int) env('PLEX_POLL_HARD_DEADLINE_SECONDS', 900),
     ],
 
     'tmdb' => [

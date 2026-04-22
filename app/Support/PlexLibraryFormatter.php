@@ -6,10 +6,10 @@ namespace App\Support;
 
 use Illuminate\Support\Collection;
 
-class PlexWebhookFormatter
+class PlexLibraryFormatter
 {
     /**
-     * Format a batch of webhook items into a Slack message.
+     * Format a collection of library items into a Slack message.
      *
      * @param  Collection<int, array<string, mixed>>  $items
      */
@@ -19,7 +19,6 @@ class PlexWebhookFormatter
 
         $movies = $items->where('media_type', 'movie');
         $episodes = $items->where('media_type', 'episode');
-
         foreach ($movies->sortBy('title') as $item) {
             $line = $item['title'];
             if ($item['year']) {

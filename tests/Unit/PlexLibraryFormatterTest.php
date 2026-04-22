@@ -1,9 +1,9 @@
 <?php
 
-use App\Support\PlexWebhookFormatter;
+use App\Support\PlexLibraryFormatter;
 
 beforeEach(function () {
-    $this->formatter = new PlexWebhookFormatter;
+    $this->formatter = new PlexLibraryFormatter;
 });
 
 function movieItem(string $title, ?int $year = 2024): array

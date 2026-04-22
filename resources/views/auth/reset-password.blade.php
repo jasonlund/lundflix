@@ -24,6 +24,11 @@
                         <input type="hidden" name="email" value="{{ $request->email }}" />
 
                         <flux:input label="Email" type="email" :value="$request->email" disabled />
+                        @error('email')
+                            <x-lundbergh-bubble variant="error" contentTag="div">
+                                {!! nl2br(e($message)) !!}
+                            </x-lundbergh-bubble>
+                        @enderror
 
                         <flux:field>
                             <flux:label>New Password</flux:label>

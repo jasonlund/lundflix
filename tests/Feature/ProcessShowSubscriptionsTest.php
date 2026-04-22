@@ -299,3 +299,43 @@ it('does not process Apple TV+ episodes before 6 PM Pacific the day before', fun
 
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
+
+it('includes all new episodes in the notification when subscribers have different processed states', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'The Bear']);
+
+    $subscriptionA = Subscription::factory()->forSubscribable($show)->create(['user_id' => $userA->id]);
+    $subscriptionB = Subscription::factory()->forSubscribable($show)->create(['user_id' => $userB->id]);
+
+    $episode1 = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 3,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    $episode2 = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 3,
+        'number' => 2,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    // User A already processed episode 1 in a prior run
+    $subscriptionA->processedEpisodes()->attach($episode1->id);
+
+    $this->artisan('process:show-subscriptions')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Processed 1 show subscription(s)');
+
+    Event::assertDispatchedTimes(SubscriptionTriggered::class, 1);
+
+    Event::assertDispatched(SubscriptionTriggered::class, function (SubscriptionTriggered $event) use ($episode1, $episode2) {
+        return $event->episodes->pluck('id')->sort()->values()->all() === [$episode1->id, $episode2->id];
+    });
+});

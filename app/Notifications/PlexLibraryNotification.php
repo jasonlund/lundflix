@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Support\PlexWebhookFormatter;
+use App\Support\PlexLibraryFormatter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Slack\BlockKit\Blocks\SectionBlock;
@@ -33,7 +33,7 @@ class PlexLibraryNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        $formatter = new PlexWebhookFormatter;
+        $formatter = new PlexLibraryFormatter;
         $text = $formatter->format($this->serverName, $this->items);
 
         return (new SlackMessage)
