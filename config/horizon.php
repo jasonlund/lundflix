@@ -225,18 +225,6 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
-        'plex-webhooks' => [
-            'connection' => 'redis',
-            'queue' => ['plex-webhooks'],
-            'balance' => 'simple',
-            'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
-            'tries' => 5,
-            'timeout' => 60,
-            'nice' => 0,
-        ],
     ],
 
     'environments' => [
@@ -246,17 +234,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
-            'plex-webhooks' => [
-                'maxProcesses' => 2,
-            ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
-            ],
-            'plex-webhooks' => [
-                'maxProcesses' => 1,
             ],
         ],
     ],

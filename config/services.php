@@ -41,6 +41,7 @@ return [
         'product_name' => env('PLEX_PRODUCT_NAME', 'lundflix'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
         'seed_token' => env('SEED_PLEX_TOKEN'),
+        'poll_initial_lookback_seconds' => (int) env('PLEX_POLL_INITIAL_LOOKBACK_SECONDS', 300),
         'poll_debounce_seconds' => (int) env('PLEX_POLL_DEBOUNCE_SECONDS', 300),
         'poll_hard_deadline_seconds' => (int) env('PLEX_POLL_HARD_DEADLINE_SECONDS', 900),
     ],

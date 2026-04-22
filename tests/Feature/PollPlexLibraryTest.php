@@ -84,14 +84,7 @@ function createPollableServer(array $attributes = []): PlexMediaServer
 
 function flushPollCacheKeys(): void
 {
-    $redis = Cache::store('redis');
-    $prefix = 'plex:poll:';
-
-    foreach (['hwm:', 'last-keys:', 'pending:', 'pending-index:'] as $segment) {
-        foreach ($redis->getStore()->connection()->keys(config('cache.prefix').':'.$prefix.$segment.'*') as $key) {
-            $redis->getStore()->connection()->del($key);
-        }
-    }
+    Cache::flush();
 }
 
 beforeEach(function () {
@@ -169,7 +162,7 @@ it('buffers episodes and does not process them until debounce window', function 
 
     Notification::assertNothingSent();
 
-    $index = Cache::store('redis')->get("plex:poll:pending-index:{$server->client_identifier}");
+    $index = Cache::get("plex:poll:pending-index:{$server->client_identifier}");
     expect($index)->toContain('50');
 });
 
@@ -182,8 +175,8 @@ it('harvests ripe shows after debounce window', function () {
     $cid = $server->client_identifier;
     $pastTime = now()->subMinutes(10)->timestamp;
 
-    Cache::store('redis')->put("plex:poll:pending-index:{$cid}", ['50'], 1800);
-    Cache::store('redis')->put("plex:poll:pending:{$cid}:50", [
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
         'server_name' => $server->name,
         'show_title' => 'Breaking Bad',
         'first_seen_at' => $pastTime,
@@ -217,7 +210,7 @@ it('harvests ripe shows after debounce window', function () {
 
     Notification::assertSentOnDemand(PlexLibraryNotification::class);
 
-    expect(Cache::store('redis')->get("plex:poll:pending-index:{$cid}"))->toBeNull();
+    expect(Cache::get("plex:poll:pending-index:{$cid}"))->toBeNull();
 });
 
 it('does not harvest shows before debounce window', function () {
@@ -225,8 +218,8 @@ it('does not harvest shows before debounce window', function () {
     $cid = $server->client_identifier;
     $recentTime = now()->subSeconds(30)->timestamp;
 
-    Cache::store('redis')->put("plex:poll:pending-index:{$cid}", ['50'], 1800);
-    Cache::store('redis')->put("plex:poll:pending:{$cid}:50", [
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
         'server_name' => $server->name,
         'show_title' => 'Breaking Bad',
         'first_seen_at' => $recentTime,
@@ -251,7 +244,7 @@ it('does not harvest shows before debounce window', function () {
 
     Notification::assertNothingSent();
 
-    expect(Cache::store('redis')->get("plex:poll:pending-index:{$cid}"))->toContain('50');
+    expect(Cache::get("plex:poll:pending-index:{$cid}"))->toContain('50');
 });
 
 it('harvests shows at hard deadline even if still receiving episodes', function () {
@@ -263,8 +256,8 @@ it('harvests shows at hard deadline even if still receiving episodes', function 
     $oldFirstSeen = now()->subMinutes(16)->timestamp;
     $recentLastSeen = now()->subSeconds(30)->timestamp;
 
-    Cache::store('redis')->put("plex:poll:pending-index:{$cid}", ['50'], 1800);
-    Cache::store('redis')->put("plex:poll:pending:{$cid}:50", [
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
         'server_name' => $server->name,
         'show_title' => 'Breaking Bad',
         'first_seen_at' => $oldFirstSeen,
@@ -305,7 +298,7 @@ it('advances high water mark after processing', function () {
 
     $this->artisan('plex:poll-library')->assertSuccessful();
 
-    $hwm = Cache::store('redis')->get("plex:poll:hwm:{$server->client_identifier}");
+    $hwm = Cache::get("plex:poll:hwm:{$server->client_identifier}");
     expect((int) $hwm)->toBe($now);
 });
 
@@ -314,7 +307,7 @@ it('filters out items at or below the high water mark', function () {
     $cid = $server->client_identifier;
     $oldTimestamp = now()->subMinutes(10)->timestamp;
 
-    Cache::store('redis')->forever("plex:poll:hwm:{$cid}", $oldTimestamp);
+    Cache::forever("plex:poll:hwm:{$cid}", $oldTimestamp);
 
     Http::fake(array_merge(
         fakeSectionRoutes($server->uri, movieItems: [
@@ -360,8 +353,8 @@ it('keeps servers fully isolated with separate cache keys', function () {
 
     $this->artisan('plex:poll-library')->assertSuccessful();
 
-    $hwmA = Cache::store('redis')->get("plex:poll:hwm:{$serverA->client_identifier}");
-    $hwmB = Cache::store('redis')->get("plex:poll:hwm:{$serverB->client_identifier}");
+    $hwmA = Cache::get("plex:poll:hwm:{$serverA->client_identifier}");
+    $hwmB = Cache::get("plex:poll:hwm:{$serverB->client_identifier}");
 
     expect((int) $hwmA)->toBe($now);
     expect((int) $hwmB)->toBe($now);
@@ -403,8 +396,8 @@ it('deduplicates items with same addedAt as high water mark using last-keys', fu
     $cid = $server->client_identifier;
     $timestamp = now()->timestamp;
 
-    Cache::store('redis')->forever("plex:poll:hwm:{$cid}", $timestamp);
-    Cache::store('redis')->put("plex:poll:last-keys:{$cid}", ['100'], 120);
+    Cache::forever("plex:poll:hwm:{$cid}", $timestamp);
+    Cache::put("plex:poll:last-keys:{$cid}", ['100'], 120);
 
     Http::fake(array_merge(
         fakeSectionRoutes($server->uri, movieItems: [
@@ -439,6 +432,126 @@ it('does not send notification when no new items', function () {
     Notification::assertNothingSent();
 });
 
+it('merges last-keys across polls instead of overwriting', function () {
+    $server = createPollableServer();
+    $cid = $server->client_identifier;
+    $timestamp = now()->timestamp;
+
+    Cache::forever("plex:poll:hwm:{$cid}", $timestamp);
+    Cache::forever("plex:poll:last-keys:{$cid}", ['100', '101']);
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [
+            plexMovie('Already Seen A', 100, $timestamp),
+            plexMovie('Already Seen B', 101, $timestamp),
+            plexMovie('New At Same Timestamp', 102, $timestamp),
+        ]),
+        [
+            "{$server->uri}/library/metadata/102" => Http::response(
+                fakePlexMetadata(102, ['tmdb://66666'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    $lastKeys = Cache::get("plex:poll:last-keys:{$cid}");
+    expect($lastKeys)->toContain('100', '101', '102');
+});
+
+it('stores last-keys with forever TTL matching the high water mark', function () {
+    $server = createPollableServer();
+    $cid = $server->client_identifier;
+    $now = now()->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [plexMovie('Test Movie', 100, $now)]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['tmdb://99999'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    $lastKeys = Cache::get("plex:poll:last-keys:{$cid}");
+    expect($lastKeys)->toContain('100');
+
+    $this->travel(20)->minutes();
+
+    expect(Cache::get("plex:poll:last-keys:{$cid}"))->not->toBeNull();
+});
+
+it('advances high water mark from harvested episodes', function () {
+    $server = createPollableServer();
+    $cid = $server->client_identifier;
+    $pastTime = now()->subMinutes(10)->timestamp;
+    $episodeAddedAt = now()->subMinutes(8)->timestamp;
+
+    Cache::forever("plex:poll:hwm:{$cid}", $pastTime);
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
+        'server_name' => $server->name,
+        'show_title' => 'Breaking Bad',
+        'first_seen_at' => $pastTime,
+        'last_seen_at' => $pastTime,
+        'items' => [
+            '200' => [
+                'media_type' => 'episode',
+                'title' => 'Pilot',
+                'show_title' => 'Breaking Bad',
+                'season' => 1,
+                'episode_number' => 1,
+                'rating_key' => '200',
+                'grandparent_rating_key' => '50',
+                'added_at' => $episodeAddedAt,
+            ],
+        ],
+    ], 1800);
+
+    Http::fake(fakeSectionRoutes($server->uri));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    $hwm = (int) Cache::get("plex:poll:hwm:{$cid}");
+    expect($hwm)->toBe($episodeAddedAt);
+
+    $lastKeys = Cache::get("plex:poll:last-keys:{$cid}");
+    expect($lastKeys)->toContain('200');
+});
+
+it('uses configurable initial lookback window on first run', function () {
+    config(['services.plex.poll_initial_lookback_seconds' => 600]);
+
+    $server = createPollableServer();
+    $cid = $server->client_identifier;
+    $withinWindow = now()->subSeconds(500)->timestamp;
+    $outsideWindow = now()->subSeconds(700)->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [
+            plexMovie('Recent Movie', 100, $withinWindow),
+            plexMovie('Old Movie', 101, $outsideWindow),
+        ]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['tmdb://99999'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    Notification::assertSentOnDemand(
+        PlexLibraryNotification::class,
+        function (PlexLibraryNotification $notification) {
+            return $notification->items->count() === 1
+                && $notification->items->first()['title'] === 'Recent Movie';
+        }
+    );
+});
+
 it('ignores show and season type items from recentlyAdded', function () {
     $server = createPollableServer();
     $now = now()->timestamp;
@@ -465,4 +578,47 @@ it('ignores show and season type items from recentlyAdded', function () {
                 && $notification->items->first()['title'] === 'Real Movie';
         }
     );
+});
+
+it('skips episodes with null season or episode number', function () {
+    $server = createPollableServer();
+    $show = Show::factory()->create(['tmdb_id' => 1396]);
+    $episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 1, 'number' => 1]);
+    $requestItem = RequestItem::factory()->pending()->forRequestable($episode)->create();
+
+    $cid = $server->client_identifier;
+    $pastTime = now()->subMinutes(10)->timestamp;
+
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
+        'server_name' => $server->name,
+        'show_title' => 'Breaking Bad',
+        'first_seen_at' => $pastTime,
+        'last_seen_at' => $pastTime,
+        'items' => [
+            '200' => [
+                'media_type' => 'episode',
+                'title' => 'Pilot',
+                'show_title' => 'Breaking Bad',
+                'season' => null,
+                'episode_number' => 1,
+                'rating_key' => '200',
+                'grandparent_rating_key' => '50',
+                'added_at' => $pastTime,
+            ],
+        ],
+    ], 1800);
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri),
+        [
+            "{$server->uri}/library/metadata/200" => Http::response(
+                fakePlexMetadata(200, ['tmdb://1396'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    expect($requestItem->fresh()->status)->toBe(RequestItemStatus::Pending);
 });

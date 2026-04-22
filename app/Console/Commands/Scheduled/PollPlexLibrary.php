@@ -59,18 +59,18 @@ class PollPlexLibrary extends Command
         $this->metadataCache = [];
         $cid = $server->client_identifier;
 
-        $cache = Cache::store('redis');
-        $hwm = (int) $cache->get("plex:poll:hwm:{$cid}", 0);
+        $hwm = (int) Cache::get("plex:poll:hwm:{$cid}", 0);
 
         if ($hwm === 0) {
-            $hwm = now()->subMinutes(5)->timestamp;
-            $cache->forever("plex:poll:hwm:{$cid}", $hwm);
+            $lookback = (int) config('services.plex.poll_initial_lookback_seconds');
+            $hwm = now()->subSeconds($lookback)->timestamp;
+            Cache::forever("plex:poll:hwm:{$cid}", $hwm);
         }
 
         $items = $plex->getRecentlyAdded($server);
 
         /** @var array<string> $lastKeys */
-        $lastKeys = $cache->get("plex:poll:last-keys:{$cid}", []);
+        $lastKeys = Cache::get("plex:poll:last-keys:{$cid}", []);
 
         $newItems = collect($items)
             ->filter(function (array $item) use ($hwm, $lastKeys): bool {
@@ -88,12 +88,6 @@ class PollPlexLibrary extends Command
             })
             ->filter(fn (array $item): bool => in_array($item['type'] ?? '', ['movie', 'episode'], true));
 
-        if ($newItems->isNotEmpty()) {
-            $currentKeys = $newItems->map(fn (array $item): string => (string) ($item['ratingKey'] ?? ''))->values()->all();
-            $keysTtl = max((int) config('services.plex.poll_hard_deadline_seconds', 900), 900) + 120;
-            $cache->put("plex:poll:last-keys:{$cid}", $currentKeys, $keysTtl);
-        }
-
         $movies = $newItems->filter(fn (array $item): bool => $item['type'] === 'movie');
         $episodes = $newItems->filter(fn (array $item): bool => $item['type'] === 'episode');
 
@@ -109,16 +103,45 @@ class PollPlexLibrary extends Command
             $this->bufferEpisodes($server, (string) $grandparentKey, $showEpisodes);
         }
 
-        $readyItems = $readyItems->merge($this->harvestRipeShows($server, $plex));
+        $harvested = $this->harvestRipeShows($server, $plex);
+        $readyItems = $readyItems->merge($harvested);
 
         if ($readyItems->isNotEmpty()) {
             $this->fulfillMatchingRequests($server, $readyItems, $plex);
             $this->sendSlackNotification($server, $readyItems);
         }
 
-        if ($newItems->isNotEmpty()) {
-            $maxAddedAt = $newItems->max(fn (array $item): int => $item['addedAt'] ?? 0);
-            $cache->forever("plex:poll:hwm:{$cid}", $maxAddedAt);
+        $maxFromNew = $newItems->max(fn (array $item): int => $item['addedAt'] ?? 0) ?? 0;
+        $maxFromHarvested = $harvested->max(fn (array $item): int => $item['added_at'] ?? 0) ?? 0;
+        $maxAddedAt = max($hwm, $maxFromNew, $maxFromHarvested);
+
+        if ($maxAddedAt > $hwm) {
+            $boundaryKeys = $newItems
+                ->filter(fn (array $item): bool => ($item['addedAt'] ?? 0) === $maxAddedAt)
+                ->map(fn (array $item): string => (string) ($item['ratingKey'] ?? ''))
+                ->merge(
+                    $harvested
+                        ->filter(fn (array $item): bool => ($item['added_at'] ?? 0) === $maxAddedAt)
+                        ->map(fn (array $item): string => (string) ($item['rating_key'] ?? ''))
+                )
+                ->values()
+                ->all();
+
+            Cache::forever("plex:poll:hwm:{$cid}", $maxAddedAt);
+            Cache::forever("plex:poll:last-keys:{$cid}", $boundaryKeys);
+        } elseif ($newItems->isNotEmpty() || $harvested->isNotEmpty()) {
+            $newBoundaryKeys = $newItems
+                ->filter(fn (array $item): bool => ($item['addedAt'] ?? 0) === $hwm)
+                ->map(fn (array $item): string => (string) ($item['ratingKey'] ?? ''))
+                ->merge(
+                    $harvested
+                        ->filter(fn (array $item): bool => ($item['added_at'] ?? 0) === $hwm)
+                        ->map(fn (array $item): string => (string) ($item['rating_key'] ?? ''))
+                )
+                ->values()
+                ->all();
+
+            Cache::forever("plex:poll:last-keys:{$cid}", array_values(array_unique(array_merge($lastKeys, $newBoundaryKeys))));
         }
     }
 
@@ -161,11 +184,10 @@ class PollPlexLibrary extends Command
     private function bufferEpisodes(PlexMediaServer $server, string $grandparentKey, Collection $episodes): void
     {
         $cid = $server->client_identifier;
-        $cache = Cache::store('redis');
         $bufferKey = "plex:poll:pending:{$cid}:{$grandparentKey}";
         $indexKey = "plex:poll:pending-index:{$cid}";
 
-        $existing = $cache->get($bufferKey, []);
+        $existing = Cache::get($bufferKey, []);
         $now = now()->timestamp;
 
         $normalized = $episodes->map(fn (array $ep): array => $this->normalizeEpisode($ep));
@@ -191,12 +213,12 @@ class PollPlexLibrary extends Command
             $buffer['items'] = $newByKey + $buffer['items'];
         }
 
-        $cache->put($bufferKey, $buffer, 1800);
+        Cache::put($bufferKey, $buffer, 1800);
 
-        $index = $cache->get($indexKey, []);
+        $index = Cache::get($indexKey, []);
         if (! in_array($grandparentKey, $index, true)) {
             $index[] = $grandparentKey;
-            $cache->put($indexKey, $index, 1800);
+            Cache::put($indexKey, $index, 1800);
         }
     }
 
@@ -206,14 +228,13 @@ class PollPlexLibrary extends Command
     private function harvestRipeShows(PlexMediaServer $server, PlexService $plex): Collection
     {
         $cid = $server->client_identifier;
-        $cache = Cache::store('redis');
         $indexKey = "plex:poll:pending-index:{$cid}";
-        $debounce = (int) config('services.plex.poll_debounce_seconds', 300);
-        $hardDeadline = (int) config('services.plex.poll_hard_deadline_seconds', 900);
+        $debounce = (int) config('services.plex.poll_debounce_seconds');
+        $hardDeadline = (int) config('services.plex.poll_hard_deadline_seconds');
         $now = now()->timestamp;
 
         /** @var array<int, string> $index */
-        $index = $cache->get($indexKey, []);
+        $index = Cache::get($indexKey, []);
 
         if ($index === []) {
             return collect();
@@ -225,7 +246,7 @@ class PollPlexLibrary extends Command
 
         foreach ($index as $grandparentKey) {
             $bufferKey = "plex:poll:pending:{$cid}:{$grandparentKey}";
-            $buffer = $cache->get($bufferKey);
+            $buffer = Cache::get($bufferKey);
 
             if (! $buffer) {
                 continue;
@@ -238,16 +259,16 @@ class PollPlexLibrary extends Command
                 foreach ($buffer['items'] as $item) {
                     $harvested->push($item);
                 }
-                $cache->forget($bufferKey);
+                Cache::forget($bufferKey);
             } else {
                 $remaining[] = $grandparentKey;
             }
         }
 
         if ($remaining === []) {
-            $cache->forget($indexKey);
+            Cache::forget($indexKey);
         } else {
-            $cache->put($indexKey, $remaining, 1800);
+            Cache::put($indexKey, $remaining, 1800);
         }
 
         return $harvested;
@@ -258,19 +279,28 @@ class PollPlexLibrary extends Command
      */
     private function fulfillMatchingRequests(PlexMediaServer $server, Collection $items, PlexService $plex): void
     {
-        $fulfilled = DB::transaction(function () use ($server, $items, $plex): int {
+        /** @var array<int, array{type: class-string, id: int}> */
+        $resolved = [];
+
+        foreach ($items as $item) {
+            $requestable = $this->resolveRequestable($server, $item, $plex);
+
+            if ($requestable) {
+                $resolved[] = ['type' => $requestable::class, 'id' => $requestable->id];
+            }
+        }
+
+        if ($resolved === []) {
+            return;
+        }
+
+        $fulfilled = DB::transaction(function () use ($resolved): int {
             $count = 0;
 
-            foreach ($items as $item) {
-                $requestable = $this->resolveRequestable($server, $item, $plex);
-
-                if (! $requestable) {
-                    continue;
-                }
-
+            foreach ($resolved as $pair) {
                 $count += RequestItem::pending()
-                    ->where('requestable_type', $requestable::class)
-                    ->where('requestable_id', $requestable->id)
+                    ->where('requestable_type', $pair['type'])
+                    ->where('requestable_id', $pair['id'])
                     ->update([
                         'status' => RequestItemStatus::Fulfilled,
                         'actioned_at' => now(),
@@ -342,6 +372,10 @@ class PollPlexLibrary extends Command
         $show = $this->resolveShow($showIdentifiers);
 
         if (! $show instanceof Show) {
+            return null;
+        }
+
+        if ($item['season'] === null || $item['episode_number'] === null) {
             return null;
         }
 

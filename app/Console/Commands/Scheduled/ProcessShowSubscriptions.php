@@ -43,8 +43,8 @@ class ProcessShowSubscriptions extends Command
             ->get()
             ->keyBy('id');
 
-        $processed = 0;
-        $notified = [];
+        /** @var array<int, array{show: Show, episodes: \Illuminate\Support\Collection<int, Episode>}> */
+        $showEpisodeUnions = [];
 
         foreach ($subscriptions as $subscription) {
             /** @var Show|null $show */
@@ -79,13 +79,24 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            if (! isset($notified[$show->id])) {
-                SubscriptionTriggered::dispatch(null, $show, $newEpisodes);
-                $notified[$show->id] = true;
-                $processed++;
-            }
-
             $subscription->processedEpisodes()->syncWithoutDetaching($newEpisodes->pluck('id'));
+
+            if (! isset($showEpisodeUnions[$show->id])) {
+                $showEpisodeUnions[$show->id] = ['show' => $show, 'episodes' => $newEpisodes];
+            } else {
+                $showEpisodeUnions[$show->id]['episodes'] = $showEpisodeUnions[$show->id]['episodes']
+                    ->merge($newEpisodes)
+                    ->unique('id')
+                    ->sortBy([['season', 'asc'], ['number', 'asc']])
+                    ->values();
+            }
+        }
+
+        $processed = 0;
+
+        foreach ($showEpisodeUnions as $entry) {
+            SubscriptionTriggered::dispatch(null, $entry['show'], $entry['episodes']);
+            $processed++;
         }
 
         $this->info("Processed {$processed} show subscription(s).");

@@ -501,7 +501,7 @@ class PlexService
             'X-Plex-Platform' => PHP_OS_FAMILY,
             'X-Plex-Device-Name' => $this->productName,
             'X-Plex-Token' => $server->access_token,
-        ]))->throw();
+        ])->timeout(15))->throw();
     }
 
     private function withPlexRetry(PendingRequest $request): PendingRequest
