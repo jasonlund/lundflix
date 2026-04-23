@@ -126,41 +126,28 @@ class Formatters
     }
 
     /**
-     * Format a past date as a compact relative time-since string.
-     *
-     * Returns the highest-order unit only, with hours as the smallest granularity.
-     * Examples: "4h", "3d", "3w", "3m"
+     * Format a past date as a compact relative string. Delegates to compactDiff().
      */
     public static function timeSince(Carbon $target): string
     {
-        $now = now();
-
-        $hours = (int) $now->diffInHours($target, absolute: true);
-
-        if ($hours < 24) {
-            return max(1, $hours).'h';
-        }
-
-        $days = (int) $now->diffInDays($target, absolute: true);
-
-        if ($days < 7) {
-            return $days.'d';
-        }
-
-        if ($days < 30) {
-            return ((int) floor($days / 7)).'w';
-        }
-
-        return ((int) floor($days / 30)).'m';
+        return self::compactDiff($target);
     }
 
     /**
-     * Format a future date as a compact relative time-until string.
-     *
-     * Returns the highest-order unit only, with hours as the smallest granularity.
-     * Examples: "4h", "3d", "3w", "3m"
+     * Format a future date as a compact relative string. Delegates to compactDiff().
      */
     public static function timeUntil(Carbon $target): string
+    {
+        return self::compactDiff($target);
+    }
+
+    /**
+     * Compact relative time string using the highest-order unit.
+     *
+     * Sub-hour gaps are floored to "1h" — this is intentional so the UI
+     * never shows "0h" for very recent/imminent events.
+     */
+    private static function compactDiff(Carbon $target): string
     {
         $now = now();
 

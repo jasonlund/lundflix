@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Episode;
 use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
@@ -10,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
@@ -32,9 +34,20 @@ new class extends Component {
         HTML;
     }
 
+    public function boot(): void
+    {
+        $this->show->loadMissing('episodes');
+    }
+
     public function mount(): void
     {
-        // Dispatch availability data immediately after mount
+        $this->dispatch('plex-show-loaded', availability: $this->episodeAvailability());
+    }
+
+    #[On('episodes-loaded')]
+    public function refreshAfterEpisodesLoaded(): void
+    {
+        $this->show->load('episodes');
         $this->dispatch('plex-show-loaded', availability: $this->episodeAvailability());
     }
 
@@ -138,6 +151,90 @@ new class extends Component {
     }
 
     /**
+     * @return array<string, array{label: string, code: string, name: string|null, date: string|null, runtime: string|null}>
+     */
+    #[Computed]
+    public function episodeMilestones(): array
+    {
+        $episodes = $this->show->episodes;
+
+        if ($episodes->isEmpty()) {
+            return [];
+        }
+
+        $milestones = [];
+
+        $pilot = $episodes->sortBy(['season', 'number'])->first();
+        if ($pilot) {
+            $milestones['pilot'] = [
+                'label' => 'Pilot',
+                'code' => strtoupper($pilot->code),
+                'name' => $pilot->name,
+                'date' => $pilot->airdate?->format('M j, Y'),
+                'runtime' => $pilot->runtime ? Formatters::runtime($pilot->runtime) : null,
+            ];
+        }
+
+        $lastAired = $episodes
+            ->filter(
+                fn (Episode $ep): bool => ! empty($ep->airdate) &&
+                    AirDateTime::hasAired($ep->airdate, $ep->airtime, $this->show->web_channel, $this->show->network),
+            )
+            ->sortByDesc(fn (Episode $ep): string => $this->episodeMilestoneSortKey($ep))
+            ->first();
+
+        if ($lastAired && $lastAired->id !== $pilot?->id) {
+            $milestones['last_aired'] = [
+                'label' => 'Last Aired',
+                'code' => strtoupper($lastAired->code),
+                'name' => $lastAired->name,
+                'date' => $lastAired->airdate?->format('M j, Y'),
+                'runtime' => $lastAired->runtime ? Formatters::runtime($lastAired->runtime) : null,
+            ];
+        }
+
+        $nextToAir = $episodes
+            ->filter(
+                fn (Episode $ep): bool => ! empty($ep->airdate) &&
+                    ! AirDateTime::hasAired($ep->airdate, $ep->airtime, $this->show->web_channel, $this->show->network),
+            )
+            ->sortBy(fn (Episode $ep): string => $this->episodeMilestoneSortKey($ep))
+            ->first();
+
+        if ($nextToAir) {
+            $milestones['next_to_air'] = [
+                'label' => 'Next to Air',
+                'code' => strtoupper($nextToAir->code),
+                'name' => $nextToAir->name,
+                'date' => $nextToAir->airdate?->format('M j, Y'),
+                'runtime' => $nextToAir->runtime ? Formatters::runtime($nextToAir->runtime) : null,
+            ];
+        }
+
+        return $milestones;
+    }
+
+    private function episodeMilestoneSortKey(Episode $episode): string
+    {
+        return sprintf(
+            '%010d-%04d-%04d',
+            $this->resolvedEpisodeAirDateTime($episode)->timestamp,
+            $episode->season,
+            $episode->number ?? 0,
+        );
+    }
+
+    private function resolvedEpisodeAirDateTime(Episode $episode): Carbon
+    {
+        return AirDateTime::resolve(
+            $episode->airdate->format('Y-m-d'),
+            $episode->airtime,
+            $this->show->web_channel,
+            $this->show->network,
+        );
+    }
+
+    /**
      * Transform server-centric data to episode-centric lookup.
      *
      * @return array<string, list<array{name: string, clientIdentifier: string, ownerThumb: string|null, isOnline: bool, videoResolution: string|null, duration: int|null, webUrl: string}>>
@@ -187,6 +284,21 @@ new class extends Component {
 
 <div>
     <x-section heading="Availability" collapsible>
+        @if ($show->status)
+            <x-slot:badge>
+                <div class="flex items-center gap-1">
+                    <x-dynamic-component
+                        :component="'flux::icon.' . $show->status->icon()"
+                        variant="micro"
+                        :class="$show->status->iconColorClass()"
+                    />
+                    <span class="{{ $show->status->iconColorClass() }} text-xs">
+                        {{ $show->status->getLabel() }}
+                    </span>
+                </div>
+            </x-slot>
+        @endif
+
         <x-slot:action>
             @if (count($this->serverDisplayData) > 0)
                 <div class="flex items-center gap-1.5 text-sm text-zinc-400">
@@ -258,6 +370,43 @@ new class extends Component {
             </flux:table>
         @else
             <flux:text class="mt-4 text-zinc-500">Not available on any Plex server.</flux:text>
+        @endif
+
+        @if (count($this->episodeMilestones) > 0)
+            <flux:separator class="my-4" />
+            <flux:heading size="xs" class="mb-2 text-zinc-400">Episodes</flux:heading>
+            <flux:table>
+                <flux:table.rows>
+                    @foreach ($this->episodeMilestones as $key => $milestone)
+                        <flux:table.row wire:key="milestone-{{ $key }}">
+                            <flux:table.cell variant="strong">
+                                {{ $milestone['label'] }}
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <span class="text-sm text-zinc-400">{{ $milestone['code'] }}</span>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                {{ $milestone['name'] ?? '' }}
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <span class="text-sm text-zinc-400">
+                                    @if ($milestone['date'])
+                                        {{ $milestone['date'] }}
+                                    @endif
+
+                                    @if ($milestone['date'] && $milestone['runtime'])
+                                        &middot;
+                                    @endif
+
+                                    @if ($milestone['runtime'])
+                                        {{ $milestone['runtime'] }}
+                                    @endif
+                                </span>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
         @endif
     </x-section>
 </div>
