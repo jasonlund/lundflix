@@ -30,12 +30,12 @@
             {{ $actions }}
         </div>
 
-        <div class="truncate text-xs text-zinc-200 sm:text-sm">
+        <div class="truncate text-sm text-zinc-200 sm:text-xs">
             {{ $metadata }}
         </div>
 
         @if (isset($genres) && $genres->isNotEmpty())
-            <div class="flex gap-4 truncate text-xs text-zinc-200 sm:text-sm">
+            <div class="flex gap-4 truncate text-sm text-zinc-200 sm:text-xs">
                 {{ $genres }}
             </div>
         @endif

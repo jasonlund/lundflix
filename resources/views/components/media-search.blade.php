@@ -338,13 +338,13 @@ new class extends Component {
                             <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
                                 {{ $result['title'] }}
                                 @if ($result['originalTitle'])
-                                    <span class="text-[0.6875rem] text-zinc-500">
+                                    <span class="text-xs text-zinc-500">
                                         {{ $result['originalTitle'] }}
                                     </span>
                                 @endif
                             </p>
                             <div
-                                class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-[0.6875rem] text-zinc-500 group-data-active/item:text-zinc-400"
+                                class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-xs text-zinc-500 group-data-active/item:text-zinc-400"
                             >
                                 @if ($result['type'] === 'show')
                                     @if ($result['yearLabel'])

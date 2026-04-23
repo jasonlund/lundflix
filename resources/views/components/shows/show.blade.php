@@ -279,7 +279,7 @@ new class extends Component {
                                 syncing = false
                             })
                         "
-                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2.5 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
                     >
                         <div class="relative flex items-center justify-center">
                             @if ($isSubscribed)
@@ -316,7 +316,7 @@ new class extends Component {
                             ? 'bg-lundflix/20 border-lundflix text-white'
                             : 'border-zinc-600 bg-white/10 text-white'
                     "
-                    class="flex items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                    class="flex items-center gap-1.5 rounded-full border-1 px-4 py-2.5 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
                 >
                     <div class="relative flex items-center justify-center">
                         <span x-show="isFullSeason" x-cloak>
