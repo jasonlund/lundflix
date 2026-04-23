@@ -93,7 +93,7 @@ new class extends Component {
 ?>
 
 <div>
-    <x-section collapsible>
+    <x-section heading="Availability" collapsible>
         <x-slot:badge>
             <div class="flex items-center gap-1.5 text-sm">
                 @php
@@ -223,7 +223,7 @@ new class extends Component {
                 <flux:table.rows>
                     @foreach ($allReleases as $release)
                         @php
-                            $flag = collect(str_split($release['country']))
+                            $flag = collect(str_split(strtoupper($release['country'])))
                                 ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
                                 ->join('');
                         @endphp

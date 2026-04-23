@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Movie;
-use App\Models\Subscription;
 use App\Support\Formatters;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
@@ -17,10 +16,9 @@ new class extends Component {
         $this->movie = $movie;
         $this->isSubscribed =
             auth()->check() &&
-            Subscription::query()
+            $this->movie
+                ->subscriptions()
                 ->where('user_id', auth()->id())
-                ->where('subscribable_type', Movie::class)
-                ->where('subscribable_id', $this->movie->id)
                 ->exists();
     }
 
@@ -38,25 +36,20 @@ new class extends Component {
 
     public function toggleSubscription(): void
     {
-        if (! $this->isSubscribable) {
+        if (! auth()->check() || ! $this->isSubscribable) {
             return;
         }
 
         $userId = auth()->id();
 
         if ($this->isSubscribed) {
-            Subscription::query()
+            $this->movie
+                ->subscriptions()
                 ->where('user_id', $userId)
-                ->where('subscribable_type', Movie::class)
-                ->where('subscribable_id', $this->movie->id)
                 ->delete();
             $this->isSubscribed = false;
         } else {
-            Subscription::create([
-                'user_id' => $userId,
-                'subscribable_type' => Movie::class,
-                'subscribable_id' => $this->movie->id,
-            ]);
+            $this->movie->subscriptions()->firstOrCreate(['user_id' => $userId]);
             $this->isSubscribed = true;
         }
 

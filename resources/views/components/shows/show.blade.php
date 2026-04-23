@@ -2,7 +2,6 @@
 
 use App\Enums\ShowStatus;
 use App\Models\Show;
-use App\Models\Subscription;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
 use App\Support\UserTime;
@@ -24,10 +23,9 @@ new class extends Component {
         $this->totalEpisodeCount = $this->show->episodes->count();
         $this->isSubscribed =
             auth()->check() &&
-            Subscription::query()
+            $this->show
+                ->subscriptions()
                 ->where('user_id', auth()->id())
-                ->where('subscribable_type', Show::class)
-                ->where('subscribable_id', $this->show->id)
                 ->exists();
     }
 
@@ -45,25 +43,20 @@ new class extends Component {
 
     public function toggleSubscription(): void
     {
-        if (! $this->isSubscribable) {
+        if (! auth()->check() || ! $this->isSubscribable) {
             return;
         }
 
         $userId = auth()->id();
 
         if ($this->isSubscribed) {
-            Subscription::query()
+            $this->show
+                ->subscriptions()
                 ->where('user_id', $userId)
-                ->where('subscribable_type', Show::class)
-                ->where('subscribable_id', $this->show->id)
                 ->delete();
             $this->isSubscribed = false;
         } else {
-            Subscription::create([
-                'user_id' => $userId,
-                'subscribable_type' => Show::class,
-                'subscribable_id' => $this->show->id,
-            ]);
+            $this->show->subscriptions()->firstOrCreate(['user_id' => $userId]);
             $this->isSubscribed = true;
         }
 

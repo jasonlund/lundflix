@@ -3,6 +3,7 @@
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -118,5 +119,74 @@ describe('show availability episode milestones', function () {
         Livewire::actingAs($user)
             ->test('shows.availability', ['show' => $show])
             ->assertSee('Running');
+    });
+
+    it('orders same-day milestones by resolved airtime', function () {
+        $this->travelTo(Carbon::create(2026, 4, 20, 3, 0, 0, 'UTC'));
+
+        $user = User::factory()->create();
+        $show = Show::factory()->create([
+            'status' => 'Running',
+            'network' => ['id' => 1, 'name' => 'NBC', 'country' => ['name' => 'United States', 'timezone' => 'America/New_York']],
+        ]);
+
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 1,
+            'number' => 1,
+            'name' => 'Pilot Episode',
+            'airdate' => '2020-01-01',
+            'airtime' => '21:00',
+            'runtime' => 60,
+        ]);
+
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 2,
+            'number' => 1,
+            'name' => 'Past Earlier',
+            'airdate' => '2026-04-19',
+            'airtime' => '20:00',
+            'runtime' => 45,
+        ]);
+
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 2,
+            'number' => 2,
+            'name' => 'Past Later',
+            'airdate' => '2026-04-19',
+            'airtime' => '22:00',
+            'runtime' => 45,
+        ]);
+
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 2,
+            'number' => 4,
+            'name' => 'Future Later',
+            'airdate' => '2026-04-20',
+            'airtime' => '22:00',
+            'runtime' => 45,
+        ]);
+
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 2,
+            'number' => 3,
+            'name' => 'Future Earlier',
+            'airdate' => '2026-04-20',
+            'airtime' => '20:00',
+            'runtime' => 45,
+        ]);
+
+        $show->load('episodes');
+
+        $milestones = Livewire::actingAs($user)
+            ->test('shows.availability', ['show' => $show])
+            ->instance()->episodeMilestones;
+
+        expect($milestones['last_aired']['name'])->toBe('Past Later')
+            ->and($milestones['next_to_air']['name'])->toBe('Future Earlier');
     });
 });

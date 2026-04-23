@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Episode;
 use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
@@ -150,7 +151,7 @@ new class extends Component {
     }
 
     /**
-     * @return array<string, array{label: string, code: string, name: string|null, date: \Illuminate\Support\Carbon|null, runtime: int|null}>
+     * @return array<string, array{label: string, code: string, name: string|null, date: string|null, runtime: string|null}>
      */
     #[Computed]
     public function episodeMilestones(): array
@@ -169,17 +170,17 @@ new class extends Component {
                 'label' => 'Pilot',
                 'code' => strtoupper($pilot->code),
                 'name' => $pilot->name,
-                'date' => $pilot->airdate,
-                'runtime' => $pilot->runtime,
+                'date' => $pilot->airdate?->format('M j, Y'),
+                'runtime' => $pilot->runtime ? Formatters::runtime($pilot->runtime) : null,
             ];
         }
 
         $lastAired = $episodes
             ->filter(
-                fn ($ep): bool => ! empty($ep->airdate) &&
+                fn (Episode $ep): bool => ! empty($ep->airdate) &&
                     AirDateTime::hasAired($ep->airdate, $ep->airtime, $this->show->web_channel, $this->show->network),
             )
-            ->sortByDesc(fn ($ep): string => $ep->airdate->toDateTimeString())
+            ->sortByDesc(fn (Episode $ep): string => $this->episodeMilestoneSortKey($ep))
             ->first();
 
         if ($lastAired && $lastAired->id !== $pilot?->id) {
@@ -187,17 +188,17 @@ new class extends Component {
                 'label' => 'Last Aired',
                 'code' => strtoupper($lastAired->code),
                 'name' => $lastAired->name,
-                'date' => $lastAired->airdate,
-                'runtime' => $lastAired->runtime,
+                'date' => $lastAired->airdate?->format('M j, Y'),
+                'runtime' => $lastAired->runtime ? Formatters::runtime($lastAired->runtime) : null,
             ];
         }
 
         $nextToAir = $episodes
             ->filter(
-                fn ($ep): bool => ! empty($ep->airdate) &&
+                fn (Episode $ep): bool => ! empty($ep->airdate) &&
                     ! AirDateTime::hasAired($ep->airdate, $ep->airtime, $this->show->web_channel, $this->show->network),
             )
-            ->sortBy(fn ($ep): string => $ep->airdate->toDateTimeString())
+            ->sortBy(fn (Episode $ep): string => $this->episodeMilestoneSortKey($ep))
             ->first();
 
         if ($nextToAir) {
@@ -205,12 +206,32 @@ new class extends Component {
                 'label' => 'Next to Air',
                 'code' => strtoupper($nextToAir->code),
                 'name' => $nextToAir->name,
-                'date' => $nextToAir->airdate,
-                'runtime' => $nextToAir->runtime,
+                'date' => $nextToAir->airdate?->format('M j, Y'),
+                'runtime' => $nextToAir->runtime ? Formatters::runtime($nextToAir->runtime) : null,
             ];
         }
 
         return $milestones;
+    }
+
+    private function episodeMilestoneSortKey(Episode $episode): string
+    {
+        return sprintf(
+            '%010d-%04d-%04d',
+            $this->resolvedEpisodeAirDateTime($episode)->timestamp,
+            $episode->season,
+            $episode->number ?? 0,
+        );
+    }
+
+    private function resolvedEpisodeAirDateTime(Episode $episode): Carbon
+    {
+        return AirDateTime::resolve(
+            $episode->airdate->format('Y-m-d'),
+            $episode->airtime,
+            $this->show->web_channel,
+            $this->show->network,
+        );
     }
 
     /**
@@ -370,7 +391,7 @@ new class extends Component {
                             <flux:table.cell>
                                 <span class="text-sm text-zinc-400">
                                     @if ($milestone['date'])
-                                        {{ \Carbon\Carbon::parse($milestone['date'])->format('M j, Y') }}
+                                        {{ $milestone['date'] }}
                                     @endif
 
                                     @if ($milestone['date'] && $milestone['runtime'])
@@ -378,7 +399,7 @@ new class extends Component {
                                     @endif
 
                                     @if ($milestone['runtime'])
-                                        {{ \App\Support\Formatters::runtime($milestone['runtime']) }}
+                                        {{ $milestone['runtime'] }}
                                     @endif
                                 </span>
                             </flux:table.cell>
