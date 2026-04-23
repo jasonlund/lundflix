@@ -58,7 +58,10 @@ it('displays movie title and release year', function () {
 
     Livewire::actingAs($user)
         ->test('movies.show', ['movie' => $movie])
-        ->assertSee('Inception')
+        ->assertSee('Inception');
+
+    Livewire::actingAs($user)
+        ->test('movies.availability', ['movie' => $movie])
         ->assertSee('2010');
 });
 
@@ -171,7 +174,7 @@ it('falls back to year when release date is null', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
+        ->test('movies.availability', ['movie' => $movie])
         ->assertSee('2029');
 });
 
@@ -183,7 +186,7 @@ it('displays status label for released movie', function () {
     ]);
 
     Livewire::actingAs($user)
-        ->test('movies.show', ['movie' => $movie])
+        ->test('movies.availability', ['movie' => $movie])
         ->assertSuccessful()
         ->assertSee($movie->status->getLabel());
 });

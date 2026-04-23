@@ -73,7 +73,7 @@ describe('movie plex availability caching', function () {
         $this->actingAs($user);
 
         // First load - should make HTTP requests
-        Livewire::test('movies.plex-availability', ['movie' => $movie])
+        Livewire::test('movies.availability', ['movie' => $movie])
             ->assertSee('Test Server');
 
         // Verify cache was populated
@@ -104,7 +104,7 @@ describe('movie plex availability caching', function () {
         $this->actingAs($user);
 
         // Should use cached data without making HTTP requests
-        Livewire::test('movies.plex-availability', ['movie' => $movie])
+        Livewire::test('movies.availability', ['movie' => $movie])
             ->assertSee('Cached Server');
 
         // Verify no HTTP requests were made
@@ -138,13 +138,13 @@ describe('movie plex availability caching', function () {
 
         // User 1 should see their cached data
         $this->actingAs($user1);
-        Livewire::test('movies.plex-availability', ['movie' => $movie])
+        Livewire::test('movies.availability', ['movie' => $movie])
             ->assertSee('User 1 Server')
             ->assertDontSee('User 2 Server');
 
         // User 2 should see their cached data
         $this->actingAs($user2);
-        Livewire::test('movies.plex-availability', ['movie' => $movie])
+        Livewire::test('movies.availability', ['movie' => $movie])
             ->assertSee('User 2 Server')
             ->assertDontSee('User 1 Server');
     });
@@ -155,7 +155,7 @@ describe('movie plex availability caching', function () {
 
         $this->actingAs($user);
 
-        Livewire::test('movies.plex-availability', ['movie' => $movie])
+        Livewire::test('movies.availability', ['movie' => $movie])
             ->assertSee('Not available on any Plex server.');
 
         Http::assertNothingSent();
@@ -216,7 +216,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        Livewire::test('shows.plex-availability', ['show' => $show])
+        Livewire::test('shows.availability', ['show' => $show])
             ->assertSuccessful()
             ->assertSeeHtml('server-test');
 
@@ -249,7 +249,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        Livewire::test('shows.plex-availability', ['show' => $show])
+        Livewire::test('shows.availability', ['show' => $show])
             ->assertSuccessful()
             ->assertSeeHtml('cached-server');
 
@@ -262,7 +262,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        Livewire::test('shows.plex-availability', ['show' => $show])
+        Livewire::test('shows.availability', ['show' => $show])
             ->assertSee('Availability')
             ->assertDontSeeHtml('flux:avatar');
 
@@ -294,7 +294,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
 
         $component->assertDispatched('plex-show-loaded');
 
@@ -348,7 +348,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $availability = $component->instance()->episodeAvailability();
 
         expect($availability['S01E01'])->toHaveCount(1)
@@ -386,7 +386,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $displayData = $component->instance()->serverDisplayData;
 
         expect($displayData[0]['hasAllAired'])->toBeTrue()
@@ -423,7 +423,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $displayData = $component->instance()->serverDisplayData;
 
         expect($displayData[0]['hasAllAired'])->toBeFalse()
@@ -463,7 +463,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $displayData = $component->instance()->serverDisplayData;
 
         expect($displayData[0]['hasAllAired'])->toBeFalse()
@@ -496,7 +496,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $displayData = $component->instance()->serverDisplayData;
 
         expect($displayData[0]['ownerThumb'])->toBe('https://plex.tv/users/123/avatar');
@@ -520,7 +520,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
 
         expect($component->instance()->serverDisplayData)->toBeEmpty();
         $component->assertDontSeeHtml('data-flux-avatar');
@@ -549,7 +549,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
 
         expect($component->instance()->serverDisplayData)->toBeEmpty();
         $component->assertDontSeeHtml('data-flux-avatar');
@@ -587,7 +587,7 @@ describe('show plex availability caching', function () {
 
         $this->actingAs($user);
 
-        $component = Livewire::test('shows.plex-availability', ['show' => $show]);
+        $component = Livewire::test('shows.availability', ['show' => $show]);
         $displayData = $component->instance()->serverDisplayData;
 
         expect($displayData[0]['hasAllAired'])->toBeTrue()

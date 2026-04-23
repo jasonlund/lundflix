@@ -11,7 +11,13 @@
                 @click="open = !open"
                 class="-m-3 flex w-[calc(100%+1.5rem)] cursor-pointer items-center justify-between p-3"
             >
-                <flux:heading size="sm">{{ $heading }}</flux:heading>
+                <div class="flex items-center gap-2">
+                    @if ($heading)
+                        <flux:heading size="sm">{{ $heading }}</flux:heading>
+                    @endif
+
+                    {{ $badge ?? '' }}
+                </div>
 
                 <div class="flex items-center gap-3">
                     {{ $action ?? '' }}
@@ -29,7 +35,13 @@
         </div>
     @else
         <div class="flex items-center justify-between">
-            <flux:heading size="sm">{{ $heading }}</flux:heading>
+            <div class="flex items-center gap-2">
+                @if ($heading)
+                    <flux:heading size="sm">{{ $heading }}</flux:heading>
+                @endif
+
+                {{ $badge ?? '' }}
+            </div>
 
             {{ $action ?? '' }}
         </div>
