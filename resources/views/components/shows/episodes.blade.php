@@ -307,7 +307,7 @@ new class extends Component {
                     :icon="$seasonSortDesc ? 'bars-arrow-down' : 'bars-arrow-up'"
                     wire:click="$toggle('seasonSortDesc')"
                 />
-            </x-slot:action>
+            </x-slot>
         @endif
 
         <div class="mt-2 space-y-2">
