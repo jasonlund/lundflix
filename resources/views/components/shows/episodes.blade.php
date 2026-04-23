@@ -22,6 +22,8 @@ new class extends Component {
     /** @var Collection<int, mixed> */
     public $episodes;
 
+    public bool $seasonSortDesc = true;
+
     public ?string $error = null;
 
     /** @var array<string, list<array{name: string, clientIdentifier: string, ownerThumb: string|null, isOnline: bool, videoResolution: string|null, duration: int|null, webUrl: string}>> */
@@ -149,7 +151,7 @@ new class extends Component {
 
         return $episodes
             ->groupBy(fn ($ep) => is_array($ep) ? $ep['season'] : $ep->season)
-            ->sortKeys()
+            ->when($this->seasonSortDesc, fn ($c) => $c->sortKeysDesc(), fn ($c) => $c->sortKeys())
             ->map(
                 fn ($episodes, $seasonNumber) => [
                     'number' => $seasonNumber,
@@ -172,8 +174,9 @@ new class extends Component {
     public function expandedSeason(): int|string
     {
         $expandedSeason = null;
+        $seasons = $this->seasons->sortBy('number');
 
-        foreach ($this->seasons as $season) {
+        foreach ($seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
                 $airtime = is_array($episode) ? $episode['airtime'] ?? null : $episode->airtime;
@@ -296,6 +299,17 @@ new class extends Component {
     }"
 >
     <x-section heading="Episodes">
+        @if ($this->seasons->count() > 1)
+            <x-slot:action>
+                <flux:button
+                    size="xs"
+                    variant="ghost"
+                    :icon="$seasonSortDesc ? 'bars-arrow-down' : 'bars-arrow-up'"
+                    wire:click="$toggle('seasonSortDesc')"
+                />
+            </x-slot>
+        @endif
+
         <div class="mt-2 space-y-2">
             @forelse ($this->seasons as $season)
                 @if (! $loop->first)
