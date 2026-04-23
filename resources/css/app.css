@@ -181,30 +181,85 @@ button[data-flux-control] {
     filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5)) drop-shadow(0 1px 4px rgb(0 0 0 / 0.3));
 }
 
-@utility scanlines {
+[data-crt] {
+    --crt-overlay-opacity: 0.06;
+    --crt-flicker-duration: 50ms;
+    --crt-row-step: 1px;
+    --crt-column-step: 2px;
+    --crt-row-shadow-opacity: 0.28;
+    --crt-rgb-red-opacity: 0.075;
+    --crt-rgb-green-opacity: 0.035;
+    --crt-rgb-blue-opacity: 0.075;
+    --crt-beam-opacity: 0.42;
+    --crt-beam-duration: 32s;
+    --crt-beam-height: 1px;
+    --crt-tube-shadow-opacity: 0.1;
+    isolation: isolate;
+    contain: paint;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+}
+
+[data-crt]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
     background:
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.06));
+        radial-gradient(140% 115% at 50% 50%, transparent 56%, rgb(0 0 0 / var(--crt-tube-shadow-opacity)) 100%),
+        radial-gradient(120% 90% at 50% -8%, rgb(255 255 255 / 0.03), transparent 42%),
+        radial-gradient(120% 90% at 50% 108%, rgb(0 0 0 / 0.12), transparent 42%);
+}
+
+[data-crt-layer] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform, opacity;
+}
+
+[data-crt-layer='flicker'] {
+    background-color: rgb(23 23 23 / var(--crt-overlay-opacity));
+    animation: crt-flicker var(--crt-flicker-duration) linear infinite;
+}
+
+[data-crt-layer='scanlines'] {
+    background-image:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgb(0 0 0 / var(--crt-row-shadow-opacity)) 50%),
+        linear-gradient(
+            90deg,
+            rgb(255 0 0 / var(--crt-rgb-red-opacity)),
+            rgb(0 255 0 / var(--crt-rgb-green-opacity)),
+            rgb(0 0 255 / var(--crt-rgb-blue-opacity))
+        );
     background-size:
-        100% 1px,
-        2px 100%;
+        100% var(--crt-row-step),
+        var(--crt-column-step) 100%;
 }
 
-@utility scanline {
-    animation: scanline 20s linear infinite;
+[data-crt-layer='beam'] {
+    animation: crt-beam var(--crt-beam-duration) linear infinite;
 }
 
-@keyframes scanline {
+[data-crt-beam] {
+    height: var(--crt-beam-height);
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.14), transparent);
+    box-shadow: 0 0 4px rgb(255 255 255 / 0.06);
+    opacity: var(--crt-beam-opacity);
+}
+
+@keyframes crt-beam {
     0% {
-        transform: translateY(100%);
+        transform: translate3d(0, 100%, 0);
+    }
+    100% {
+        transform: translate3d(0, 0, 0);
     }
 }
 
-@utility flicker {
-    animation: flicker 0.05s infinite linear;
-}
-
-@keyframes flicker {
+@keyframes crt-flicker {
     0% {
         opacity: 0;
     }
@@ -237,6 +292,22 @@ button[data-flux-control] {
     }
     100% {
         opacity: 0.9;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    [data-crt] {
+        --crt-overlay-opacity: 0.03;
+        --crt-flicker-duration: 120ms;
+        --crt-row-step: 2px;
+        --crt-column-step: 4px;
+        --crt-row-shadow-opacity: 0.16;
+        --crt-rgb-red-opacity: 0.035;
+        --crt-rgb-green-opacity: 0.018;
+        --crt-rgb-blue-opacity: 0.035;
+        --crt-beam-opacity: 0.24;
+        --crt-beam-duration: 42s;
+        --crt-tube-shadow-opacity: 0.08;
     }
 }
 

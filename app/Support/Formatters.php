@@ -131,13 +131,9 @@ class Formatters
      * Returns the highest-order unit only, with hours as the smallest granularity.
      * Examples: "4h", "3d", "3w", "3m"
      */
-    public static function timeSince(Carbon $date, ?string $airtime = null): string
+    public static function timeSince(Carbon $target): string
     {
-        $target = $airtime
-            ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
-            : $date->copy()->startOfDay();
-
-        $now = now(UserTime::timezone());
+        $now = now();
 
         $hours = (int) $now->diffInHours($target, absolute: true);
 
@@ -164,13 +160,9 @@ class Formatters
      * Returns the highest-order unit only, with hours as the smallest granularity.
      * Examples: "4h", "3d", "3w", "3m"
      */
-    public static function timeUntil(Carbon $date, ?string $airtime = null): string
+    public static function timeUntil(Carbon $target): string
     {
-        $target = $airtime
-            ? Carbon::parse($date->format('Y-m-d').' '.$airtime)
-            : $date->copy()->startOfDay();
-
-        $now = now(UserTime::timezone());
+        $now = now();
 
         $hours = (int) $now->diffInHours($target, absolute: true);
 

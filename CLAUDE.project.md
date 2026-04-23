@@ -19,6 +19,24 @@
 - If a change depends on new environment variables, update `.env.example`.
 - The app is served by Laravel Herd. Do not try to bootstrap another local server.
 - Before merging a branch, rebase it onto `main`. If conflicts appear, stop and show them to the user instead of auto-resolving.
+- When creating a new tracked error-video asset from source footage, use `ffmpeg` directly and export the canonical profile: `vp9`, `yuv420p`, `768x432`, `30fps`, video only. Example:
+
+  ```bash
+  ffmpeg -y \
+    -ss 00:21:47.000 \
+    -to 00:21:51.500 \
+    -i /path/to/source.mp4 \
+    -map 0:v:0 \
+    -an -sn -dn \
+    -vf "scale=768:432:flags=lanczos,format=yuv420p" \
+    -r 30 \
+    -c:v libvpx-vp9 \
+    -b:v 0 \
+    -crf 36 \
+    resources/images/errors/403_the_white_lotus.webm
+  ```
+
+- For a timestamp span, use `-ss <start>` and `-to <end>` with absolute timestamps from the source file. Example: `-ss 00:21:47.000 -to 00:21:51.500` means “start at 21:47.000 and stop at 21:51.500.” Do not treat `-to` as a duration. Use `-t` only when you intentionally want a duration-based clip instead of a start/end timestamp span.
 
 ## Backend Conventions
 

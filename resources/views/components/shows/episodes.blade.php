@@ -56,6 +56,7 @@ new class extends Component {
                         'name' => $ep->name,
                         'type' => $ep->type ?? 'regular',
                         'airdate' => $ep->airdate?->format('Y-m-d'),
+                        'airtime' => $ep->airtime ?? null,
                     ],
             );
 
@@ -115,6 +116,7 @@ new class extends Component {
                         'name' => $ep['name'] ?? '',
                         'type' => $ep['type'] ?? 'regular',
                         'airdate' => $ep['airdate'] ?? null,
+                        'airtime' => $ep['airtime'] ?? null,
                         'runtime' => $ep['runtime'] ?? null,
                     ]
                     : [
@@ -125,6 +127,7 @@ new class extends Component {
                         'name' => $ep->name,
                         'type' => $ep->type ?? 'regular',
                         'airdate' => $ep->airdate?->format('Y-m-d'),
+                        'airtime' => $ep->airtime ?? null,
                         'runtime' => $ep->runtime,
                     ],
             )
@@ -173,9 +176,10 @@ new class extends Component {
         foreach ($this->seasons as $season) {
             foreach ($season['episodes'] as $episode) {
                 $airdate = is_array($episode) ? $episode['airdate'] ?? null : $episode->airdate;
+                $airtime = is_array($episode) ? $episode['airtime'] ?? null : $episode->airtime;
                 if (
                     ! empty($airdate) &&
-                    AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network)
+                    AirDateTime::hasAired($airdate, $airtime, $this->show->web_channel, $this->show->network)
                 ) {
                     $expandedSeason = $season['number'];
 
@@ -195,7 +199,9 @@ new class extends Component {
             return false;
         }
 
-        return AirDateTime::hasAired($airdate, null, $this->show->web_channel, $this->show->network);
+        $airtime = is_array($episode) ? $episode['airtime'] ?? null : $episode->airtime;
+
+        return AirDateTime::hasAired($airdate, $airtime, $this->show->web_channel, $this->show->network);
     }
 
     public function pad(int $number): string
@@ -361,7 +367,7 @@ new class extends Component {
                                                                 &middot;
                                                             @endif
 
-                                                            {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $this->show->schedule['time'] ?? null, $this->show->web_channel, $this->show->network)) }}
+                                                            {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $episode['airtime'] ?? null, $this->show->web_channel, $this->show->network)) }}
                                                         @endif
                                                     </span>
                                                 </div>

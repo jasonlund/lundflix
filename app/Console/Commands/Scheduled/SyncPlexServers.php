@@ -25,9 +25,8 @@ class SyncPlexServers extends Command
         }
 
         $resources = $plex->getUserResources($adminToken);
-        $servers = $resources
-            ->filter(fn (array $r): bool => ($r['provides'] ?? '') === 'server')
-            ->filter(fn (array $r): bool => ! empty($r['accessToken']));
+        $servers = $resources->filter(fn (array $r): bool => ($r['provides'] ?? '') === 'server')
+            ->filter(fn (array $r): bool => filled($r['accessToken'] ?? null));
 
         $adminThumb = $plex->getUserInfo($adminToken)['thumb'];
         $friendThumbs = $plex->getFriends($adminToken)->pluck('thumb', 'id');

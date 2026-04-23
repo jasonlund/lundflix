@@ -37,13 +37,13 @@ return [
     ],
 
     'plex' => [
-        'client_identifier' => env('PLEX_CLIENT_IDENTIFIER').'-'.env('APP_ENV', 'production'),
-        'product_name' => env('PLEX_PRODUCT_NAME', 'Lund'),
+        'client_identifier' => env('PLEX_CLIENT_IDENTIFIER'),
+        'product_name' => env('PLEX_PRODUCT_NAME', 'lundflix'),
         'server_identifier' => env('PLEX_SERVER_IDENTIFIER'),
         'seed_token' => env('SEED_PLEX_TOKEN'),
-        'webhook_secret' => env('PLEX_WEBHOOK_SECRET'),
-        'webhook_debounce_seconds' => (int) env('PLEX_WEBHOOK_DEBOUNCE_SECONDS', 30),
-        'webhook_added_at_max_age_minutes' => (int) env('PLEX_WEBHOOK_ADDED_AT_MAX_AGE_MINUTES', 15),
+        'poll_initial_lookback_seconds' => (int) env('PLEX_POLL_INITIAL_LOOKBACK_SECONDS', 300),
+        'poll_debounce_seconds' => (int) env('PLEX_POLL_DEBOUNCE_SECONDS', 300),
+        'poll_hard_deadline_seconds' => (int) env('PLEX_POLL_HARD_DEADLINE_SECONDS', 900),
     ],
 
     'tmdb' => [

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\ThirdParty;
 
+use App\Models\PlexMediaServer;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -341,6 +344,133 @@ class PlexService
     }
 
     /**
+     * Fetch recently added items from a Plex server's library.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentlyAdded(PlexMediaServer $server, int $limit = 50): array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return [];
+        }
+
+        $client = $this->serverClient($server);
+        $sections = $client->get($server->uri.'/library/sections')
+            ->json('MediaContainer.Directory') ?? [];
+
+        $items = [];
+
+        foreach ($sections as $section) {
+            $sectionKey = $section['key'] ?? null;
+            $sectionType = $section['type'] ?? null;
+
+            if (! $sectionKey || ! in_array($sectionType, ['movie', 'show'], true)) {
+                continue;
+            }
+
+            $params = [
+                'X-Plex-Container-Start' => 0,
+                'X-Plex-Container-Size' => $limit,
+            ];
+
+            if ($sectionType === 'show') {
+                $params['type'] = 4;
+            }
+
+            $metadata = $client
+                ->get($server->uri."/library/sections/{$sectionKey}/recentlyAdded", $params)
+                ->json('MediaContainer.Metadata') ?? [];
+
+            $items = array_merge($items, $metadata);
+        }
+
+        return $items;
+    }
+
+    /**
+     * Fetch canonical metadata for a library item from the source Plex server.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fetchLibraryMetadata(PlexMediaServer $server, string $ratingKey): ?array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return null;
+        }
+
+        $response = $this->serverClient($server)
+            ->get($server->uri."/library/metadata/{$ratingKey}");
+
+        /** @var array<string, mixed>|null $metadata */
+        $metadata = $response->json('MediaContainer.Metadata.0');
+
+        return $metadata;
+    }
+
+    /**
+     * Fetch all episodes for a show directly from the source Plex server.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchEpisodesForShow(PlexMediaServer $server, string $showRatingKey): array
+    {
+        if (! $server->uri || ! $server->access_token) {
+            return [];
+        }
+
+        $response = $this->serverClient($server)
+            ->get($server->uri."/library/metadata/{$showRatingKey}/allLeaves");
+
+        /** @var array<int, array<string, mixed>> $episodes */
+        $episodes = $response->json('MediaContainer.Metadata') ?? [];
+
+        return $episodes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, int|string>
+     */
+    public function extractExternalIdentifiers(array $metadata): array
+    {
+        /** @var Collection<int, string> $guids */
+        $guids = collect($metadata['Guid'] ?? [])
+            ->pluck('id')
+            ->filter(fn (mixed $guid): bool => is_string($guid) && $guid !== '')
+            ->values();
+
+        foreach (['guid', 'parentGuid', 'grandparentGuid'] as $field) {
+            $guid = $metadata[$field] ?? null;
+
+            if (is_string($guid) && $guid !== '') {
+                $guids->push($guid);
+            }
+        }
+
+        $identifiers = [];
+
+        foreach ($guids->unique() as $guid) {
+            if (str_starts_with($guid, 'imdb://')) {
+                $identifiers['imdb'] = substr($guid, strlen('imdb://'));
+            }
+
+            if (str_starts_with($guid, 'tmdb://')) {
+                $identifiers['tmdb'] = (int) substr($guid, strlen('tmdb://'));
+            }
+
+            if (str_starts_with($guid, 'tvdb://')) {
+                $identifiers['tvdb'] = (int) substr($guid, strlen('tvdb://'));
+            }
+
+            if (str_starts_with($guid, 'plex://')) {
+                $identifiers['plex'] = $guid;
+            }
+        }
+
+        return $identifiers;
+    }
+
+    /**
      * Create an HTTP client with the required Plex headers.
      */
     private function client(?string $token = null): PendingRequest
@@ -358,6 +488,29 @@ class PlexService
             $headers['X-Plex-Token'] = $token;
         }
 
-        return Http::resilient()->withHeaders($headers)->throw();
+        return $this->withPlexRetry(Http::withHeaders($headers))->throw();
+    }
+
+    private function serverClient(PlexMediaServer $server): PendingRequest
+    {
+        return $this->withPlexRetry(Http::withHeaders([
+            'Accept' => 'application/json',
+            'X-Plex-Client-Identifier' => $this->clientIdentifier,
+            'X-Plex-Product' => $this->productName,
+            'X-Plex-Version' => '1.0.0',
+            'X-Plex-Platform' => PHP_OS_FAMILY,
+            'X-Plex-Device-Name' => $this->productName,
+            'X-Plex-Token' => $server->access_token,
+        ])->timeout(15))->throw();
+    }
+
+    private function withPlexRetry(PendingRequest $request): PendingRequest
+    {
+        return $request->retry(
+            3,
+            1000,
+            when: fn ($e): bool => $e instanceof ConnectionException
+                || ($e instanceof RequestException && in_array($e->response->status(), [408, 429, 500, 502, 503, 504])),
+        );
     }
 }

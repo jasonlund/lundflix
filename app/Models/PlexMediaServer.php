@@ -37,6 +37,7 @@ class PlexMediaServer extends Model
             'owned' => 'boolean',
             'is_online' => 'boolean',
             'visible' => 'boolean',
+            'poll_recently_added' => 'boolean',
             'connections' => 'array',
             'last_seen_at' => 'datetime',
             'plex_last_seen_at' => 'datetime',

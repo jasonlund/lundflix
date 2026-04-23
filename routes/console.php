@@ -10,6 +10,7 @@ Artisan::command('inspire', function (): void {
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('plex:sync-servers')->everyFifteenMinutes();
+Schedule::command('plex:poll-library')->everyMinute()->withoutOverlapping();
 
 Schedule::command('process:show-availability')->everyFiveMinutes()
     ->then(fn () => Artisan::call('process:show-subscriptions'));

@@ -3,6 +3,7 @@
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Support\AirDateTime;
 use App\Support\Formatters;
 use App\Support\UserTime;
 use Carbon\Carbon;
@@ -180,7 +181,13 @@ new class extends Component {
         $subtitle = Formatters::formatRun($firstGroup);
 
         $firstEpisode = $firstGroup->first();
-        $detail = Formatters::timeUntil($firstEpisode->airdate, $firstEpisode->airtime);
+        $resolved = AirDateTime::resolve(
+            $firstEpisode->airdate->format('Y-m-d'),
+            $firstEpisode->airtime,
+            $show->web_channel,
+            $show->network,
+        );
+        $detail = Formatters::timeUntil($resolved);
 
         return [
             'title' => $show->name,
@@ -225,7 +232,14 @@ new class extends Component {
         return [
             'title' => $show->name,
             'subtitle' => Formatters::formatRun([$episode]),
-            'detail' => Formatters::timeSince($episode->airdate, $episode->airtime),
+            'detail' => Formatters::timeSince(
+                AirDateTime::resolve(
+                    $episode->airdate->format('Y-m-d'),
+                    $episode->airtime,
+                    $show->web_channel,
+                    $show->network,
+                ),
+            ),
             'type' => 'show',
             'sort_date' => $episode->airdate,
         ];

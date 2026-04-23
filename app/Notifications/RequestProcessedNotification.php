@@ -40,26 +40,7 @@ class RequestProcessedNotification extends Notification
                 $block->text(__('lundbergh.notification.request_processed'));
             });
 
-        $statusGroups = [
-            [RequestItemStatus::Fulfilled, 'Fulfilled'],
-            [RequestItemStatus::Rejected, 'Rejected'],
-            [RequestItemStatus::NotFound, 'Not Found'],
-        ];
-
-        foreach ($statusGroups as [$status, $label]) {
-            /** @var Collection<int, Movie|Episode> $requestables */
-            $requestables = $this->request->items
-                ->where('status', $status)
-                ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
-                ->filter();
-
-            if ($requestables->isEmpty()) {
-                continue;
-            }
-
-            $grouped = app(CartService::class)->groupItems($requestables);
-            $lines = $this->formatGroupedItems($grouped);
-
+        foreach ($this->groupedByStatus() as [$label, $lines]) {
             $message->sectionBlock(function (SectionBlock $block) use ($label, $lines): void {
                 $block->text("*{$label}:*\n".implode("\n", $lines))->markdown();
             });
@@ -72,11 +53,25 @@ class RequestProcessedNotification extends Notification
     {
         $sections = [];
 
+        foreach ($this->groupedByStatus() as [$label, $lines]) {
+            $sections[] = "*{$label}:*\n".implode("\n", $lines);
+        }
+
+        return implode("\n\n", $sections);
+    }
+
+    /**
+     * @return list<array{0: string, 1: array<int, string>}>
+     */
+    private function groupedByStatus(): array
+    {
         $statusGroups = [
             [RequestItemStatus::Fulfilled, 'Fulfilled'],
             [RequestItemStatus::Rejected, 'Rejected'],
             [RequestItemStatus::NotFound, 'Not Found'],
         ];
+
+        $result = [];
 
         foreach ($statusGroups as [$status, $label]) {
             /** @var Collection<int, Movie|Episode> $requestables */
@@ -90,12 +85,10 @@ class RequestProcessedNotification extends Notification
             }
 
             $grouped = app(CartService::class)->groupItems($requestables);
-            $lines = $this->formatGroupedItems($grouped);
-
-            $sections[] = "*{$label}:*\n".implode("\n", $lines);
+            $result[] = [$label, $this->formatGroupedItems($grouped)];
         }
 
-        return implode("\n\n", $sections);
+        return $result;
     }
 
     /**

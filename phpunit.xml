@@ -32,5 +32,8 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="SCOUT_DRIVER" value="collection"/>
+        <env name="SLACK_ENABLED" value="false"/>
+        <env name="SLACK_BOT_USER_OAUTH_TOKEN" value=""/>
+        <env name="SLACK_BOT_USER_DEFAULT_CHANNEL" value=""/>
     </php>
 </phpunit>

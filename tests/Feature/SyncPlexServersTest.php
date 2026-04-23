@@ -160,7 +160,7 @@ it('handles missing plex resource fields gracefully', function () {
         ->and($server->plex_last_seen_at)->toBeNull();
 });
 
-it('skips servers without an access token', function () {
+it('skips servers with null access tokens', function () {
     Http::fake([
         'plex.tv/api/v2/user' => Http::response([
             'id' => 217658,
@@ -171,7 +171,18 @@ it('skips servers without an access token', function () {
         ]),
         'clients.plex.tv/api/v2/resources*' => Http::response([
             [
-                'name' => 'Valid Server',
+                'name' => 'Home',
+                'clientIdentifier' => 'server-null-token',
+                'accessToken' => null,
+                'provides' => 'server',
+                'owned' => true,
+                'presence' => false,
+                'connections' => [
+                    ['uri' => 'https://192.168.4.109:32400', 'local' => true],
+                ],
+            ],
+            [
+                'name' => 'lundflix',
                 'clientIdentifier' => 'server-valid',
                 'accessToken' => 'token-valid',
                 'provides' => 'server',
@@ -181,24 +192,14 @@ it('skips servers without an access token', function () {
                     ['uri' => 'http://valid.example.com:32400', 'local' => false],
                 ],
             ],
-            [
-                'name' => 'No Token Server',
-                'clientIdentifier' => 'server-no-token',
-                'provides' => 'server',
-                'owned' => false,
-                'presence' => true,
-                'connections' => [
-                    ['uri' => 'http://notoken.example.com:32400', 'local' => false],
-                ],
-            ],
         ]),
         'clients.plex.tv/api/v2/friends*' => Http::response([]),
     ]);
 
     $this->artisan('plex:sync-servers')->assertSuccessful();
 
-    expect(PlexMediaServer::where('client_identifier', 'server-valid')->exists())->toBeTrue()
-        ->and(PlexMediaServer::where('client_identifier', 'server-no-token')->exists())->toBeFalse();
+    expect(PlexMediaServer::where('client_identifier', 'server-null-token')->exists())->toBeFalse()
+        ->and(PlexMediaServer::where('client_identifier', 'server-valid')->exists())->toBeTrue();
 });
 
 it('updates plex resource fields on subsequent syncs', function () {
