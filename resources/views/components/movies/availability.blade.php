@@ -16,12 +16,10 @@ new class extends Component {
     {
         return <<<'HTML'
         <div>
-            <flux:card class="overflow-hidden p-3">
-                <div class="flex w-full items-center justify-between">
-                    <flux:heading size="sm">Availability</flux:heading>
-                    <div class="flex items-center gap-3">
+            <flux:card class="cursor-wait overflow-hidden p-3">
+                <div class="flex w-full items-center">
+                    <div class="flex items-center gap-2">
                         <flux:icon.loading class="size-4 text-zinc-400" />
-                        <flux:icon.chevron-down class="size-4 text-zinc-400" />
                     </div>
                 </div>
             </flux:card>
@@ -95,10 +93,26 @@ new class extends Component {
 ?>
 
 <div>
-    <x-section heading="Availability" collapsible>
-        @if ($movie->status)
-            <x-slot:badge>
-                <div class="flex items-center gap-1">
+    <x-section collapsible>
+        <x-slot:badge>
+            <div class="flex items-center gap-1.5 text-sm">
+                @php
+                    $releaseYear = $movie->release_date?->year ?? $movie->year;
+                    $hasPrevious = false;
+                @endphp
+
+                @if ($releaseYear)
+                    <span class="text-zinc-300">{{ $releaseYear }}</span>
+                    @php
+                        $hasPrevious = true;
+                    @endphp
+                @endif
+
+                @if ($movie->status)
+                    @if ($hasPrevious)
+                        <span class="text-zinc-500">&middot;</span>
+                    @endif
+
                     <x-dynamic-component
                         :component="'flux::icon.' . $movie->status->icon()"
                         variant="micro"
@@ -107,36 +121,41 @@ new class extends Component {
                     <span class="{{ $movie->status->iconColorClass() }} text-xs">
                         {{ $movie->status->getLabel() }}
                     </span>
-                </div>
-            </x-slot>
-        @endif
+                    @php
+                        $hasPrevious = true;
+                    @endphp
+                @endif
 
-        <x-slot:action>
-            @if (count($this->serverDisplayData) > 0)
-                <div class="flex items-center gap-1.5 text-sm text-zinc-400">
-                    <flux:icon.check class="size-4" />
-                    @foreach ($this->serverDisplayData as $server)
-                        @if (! $loop->first)
-                            <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                        @endif
+                @if ($hasPrevious)
+                    <span class="text-zinc-500">&middot;</span>
+                @endif
 
-                        <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
-                            <flux:avatar
-                                size="xs"
-                                circle
-                                :src="$server['ownerThumb']"
-                                :name="$server['name']"
-                                :tooltip="$server['tooltip']"
-                            />
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="flex items-center gap-1.5 text-zinc-400">
-                    <flux:icon.x-mark class="size-4" />
-                    <span class="text-sm font-semibold">Unavailable</span>
-                </div>
-            @endif
+                @if (count($this->serverDisplayData) > 0)
+                    <div class="flex items-center gap-1.5 text-zinc-400">
+                        <x-plex-icon class="size-4" />
+                        @foreach ($this->serverDisplayData as $server)
+                            @if (! $loop->first)
+                                <span class="text-zinc-500">&middot;</span>
+                            @endif
+
+                            <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
+                                <flux:avatar
+                                    size="xs"
+                                    circle
+                                    :src="$server['ownerThumb']"
+                                    :name="$server['name']"
+                                    :tooltip="$server['tooltip']"
+                                />
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="flex items-center gap-1.5 text-zinc-400">
+                        <x-plex-icon class="size-4" />
+                        <span class="text-sm font-semibold">Unavailable</span>
+                    </div>
+                @endif
+            </div>
         </x-slot>
 
         @if (count($this->serverDisplayData) > 0)
@@ -192,47 +211,53 @@ new class extends Component {
         @endif
 
         @if ($this->releaseData->isNotEmpty())
-            @foreach ($this->releaseData as $countryGroup)
-                <flux:separator class="my-4" />
-                <flux:heading size="xs" class="mb-2 text-zinc-400">
-                    {{ $countryGroup['countryName'] }}
-                </flux:heading>
-                <flux:table>
-                    <flux:table.rows>
-                        @foreach ($countryGroup['releases'] as $release)
-                            <flux:table.row
-                                wire:key="release-{{ $countryGroup['country'] }}-{{ $release['type']->value }}"
-                            >
-                                <flux:table.cell variant="strong">
-                                    {{ $release['type']->label() }}
-                                </flux:table.cell>
-                                <flux:table.cell>
-                                    {{ $release['date']->format('M j, Y') }}
-                                </flux:table.cell>
-                                <flux:table.cell>
-                                    <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
-                                        @if ($release['certification'])
-                                            <flux:badge size="sm" class="bg-white/10 backdrop-blur-sm">
-                                                {{ $release['certification'] }}
-                                            </flux:badge>
-                                        @endif
+            @php
+                $allReleases = $this->releaseData
+                    ->flatMap(fn ($group) => collect($group['releases'])->map(fn ($release) => array_merge($release, ['country' => $group['country']])))
+                    ->sortBy('date')
+                    ->values();
+            @endphp
 
-                                        @if ($release['note'])
-                                            <span class="text-zinc-500">{{ $release['note'] }}</span>
-                                        @endif
+            <flux:separator class="my-4" />
+            <flux:table>
+                <flux:table.rows>
+                    @foreach ($allReleases as $release)
+                        @php
+                            $flag = collect(str_split($release['country']))
+                                ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
+                                ->join('');
+                        @endphp
 
-                                        @if (! empty($release['descriptors']))
-                                            <span class="text-zinc-500">
-                                                {{ implode(', ', $release['descriptors']) }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </flux:table.cell>
-                            </flux:table.row>
-                        @endforeach
-                    </flux:table.rows>
-                </flux:table>
-            @endforeach
+                        <flux:table.row wire:key="release-{{ $release['country'] }}-{{ $release['type']->value }}">
+                            <flux:table.cell variant="strong">
+                                {{ $flag }} {{ $release['type']->label() }}
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                {{ $release['date']->format('M j, Y') }}
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                                    @if ($release['certification'])
+                                        <flux:badge size="sm" class="bg-white/10 backdrop-blur-sm">
+                                            {{ $release['certification'] }}
+                                        </flux:badge>
+                                    @endif
+
+                                    @if ($release['note'])
+                                        <span class="text-zinc-500">{{ $release['note'] }}</span>
+                                    @endif
+
+                                    @if (! empty($release['descriptors']))
+                                        <span class="text-zinc-500">
+                                            {{ implode(', ', $release['descriptors']) }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
         @endif
     </x-section>
 </div>

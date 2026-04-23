@@ -160,6 +160,47 @@ it('handles missing plex resource fields gracefully', function () {
         ->and($server->plex_last_seen_at)->toBeNull();
 });
 
+it('skips servers without an access token', function () {
+    Http::fake([
+        'plex.tv/api/v2/user' => Http::response([
+            'id' => 217658,
+            'uuid' => '6e1e991aa79f07da',
+            'username' => 'jasonlund',
+            'email' => 'jasonlund@gmail.com',
+            'thumb' => 'https://plex.tv/users/6e1e991aa79f07da/avatar?c=1771730971',
+        ]),
+        'clients.plex.tv/api/v2/resources*' => Http::response([
+            [
+                'name' => 'Valid Server',
+                'clientIdentifier' => 'server-valid',
+                'accessToken' => 'token-valid',
+                'provides' => 'server',
+                'owned' => true,
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'http://valid.example.com:32400', 'local' => false],
+                ],
+            ],
+            [
+                'name' => 'No Token Server',
+                'clientIdentifier' => 'server-no-token',
+                'provides' => 'server',
+                'owned' => false,
+                'presence' => true,
+                'connections' => [
+                    ['uri' => 'http://notoken.example.com:32400', 'local' => false],
+                ],
+            ],
+        ]),
+        'clients.plex.tv/api/v2/friends*' => Http::response([]),
+    ]);
+
+    $this->artisan('plex:sync-servers')->assertSuccessful();
+
+    expect(PlexMediaServer::where('client_identifier', 'server-valid')->exists())->toBeTrue()
+        ->and(PlexMediaServer::where('client_identifier', 'server-no-token')->exists())->toBeFalse();
+});
+
 it('updates plex resource fields on subsequent syncs', function () {
     PlexMediaServer::factory()->create([
         'client_identifier' => 'server-update',

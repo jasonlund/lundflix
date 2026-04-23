@@ -5,6 +5,7 @@ use App\Models\Movie;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -376,4 +377,26 @@ it('sorts recent subscriptions by most recent first', function () {
 
     expect($rows[0]['title'])->toBe('Newer Movie (2026)')
         ->and($rows[1]['title'])->toBe('Older Movie (2026)');
+});
+
+it('includes today\'s episodes when UTC date is ahead of user timezone', function () {
+    $this->travelTo(Carbon::create(2026, 4, 20, 1, 0, 0, 'UTC'));
+
+    $user = User::factory()->create(['timezone' => 'America/Chicago']);
+    $show = Show::factory()->create(['name' => 'Late Night Show']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => '2026-04-19',
+        'airtime' => '22:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('Late Night Show')
+        ->and($rows->first()['subtitle'])->toBe('S01E01')
+        ->and($rows->first()['detail'])->not->toBe('Unknown');
 });

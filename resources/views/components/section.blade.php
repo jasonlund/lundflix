@@ -12,7 +12,10 @@
                 class="-m-3 flex w-[calc(100%+1.5rem)] cursor-pointer items-center justify-between p-3"
             >
                 <div class="flex items-center gap-2">
-                    <flux:heading size="sm">{{ $heading }}</flux:heading>
+                    @if ($heading)
+                        <flux:heading size="sm">{{ $heading }}</flux:heading>
+                    @endif
+
                     {{ $badge ?? '' }}
                 </div>
 
@@ -33,7 +36,10 @@
     @else
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <flux:heading size="sm">{{ $heading }}</flux:heading>
+                @if ($heading)
+                    <flux:heading size="sm">{{ $heading }}</flux:heading>
+                @endif
+
                 {{ $badge ?? '' }}
             </div>
 

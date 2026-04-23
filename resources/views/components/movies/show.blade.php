@@ -219,31 +219,6 @@ new class extends Component {
                 $hasPrevious = false;
             @endphp
 
-            @if ($this->releaseYear())
-                <span>{{ $this->releaseYear() }}</span>
-                @php
-                    $hasPrevious = true;
-                @endphp
-            @endif
-
-            @if ($movie->status)
-                @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                @endif
-
-                <x-dynamic-component
-                    :component="'flux::icon.' . $movie->status->icon()"
-                    variant="mini"
-                    class="{{ $movie->status->iconColorClass() }} mb-px inline size-3.5 sm:size-4"
-                />
-                <span class="{{ $movie->status->iconColorClass() }}">
-                    {{ $movie->status->getLabel() }}
-                </span>
-                @php
-                    $hasPrevious = true;
-                @endphp
-            @endif
-
             @if ($movie->original_language)
                 @if ($hasPrevious)
                     <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>

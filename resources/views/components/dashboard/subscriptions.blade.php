@@ -4,6 +4,7 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -71,7 +72,7 @@ new class extends Component {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '>=', today())
+                                ->where('airdate', '>=', today(UserTime::timezone()))
                                 ->orderBy('airdate')
                                 ->limit(3),
                         ],
@@ -113,7 +114,7 @@ new class extends Component {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '<', today())
+                                ->where('airdate', '<', today(UserTime::timezone()))
                                 ->orderByDesc('airdate')
                                 ->limit(1),
                         ],
