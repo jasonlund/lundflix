@@ -86,12 +86,6 @@ new class extends Component {
     }
 
     #[Computed]
-    public function yearLabel(): ?string
-    {
-        return Formatters::yearLabel($this->show);
-    }
-
-    #[Computed]
     public function runtime(): ?string
     {
         return Formatters::runtimeFor($this->show);

@@ -298,7 +298,7 @@ new class extends Component {
 
                 @if ($show->status)
                     @if ($hasPrevious)
-                        <span class="text-zinc-500">&middot;</span>
+                        <x-middot />
                     @endif
 
                     <x-dynamic-component
@@ -315,7 +315,7 @@ new class extends Component {
                 @endif
 
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&middot;</span>
+                    <x-middot />
                 @endif
 
                 @if (count($this->serverDisplayData) > 0)
@@ -323,7 +323,7 @@ new class extends Component {
                         <x-plex-icon class="size-4" />
                         @foreach ($this->serverDisplayData as $server)
                             @if (! $loop->first)
-                                <span class="text-zinc-500">&middot;</span>
+                                <x-middot />
                             @endif
 
                             <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
@@ -414,7 +414,7 @@ new class extends Component {
                                     @endif
 
                                     @if ($milestone['date'] && $milestone['runtime'])
-                                        &middot;
+                                        <x-middot />
                                     @endif
 
                                     @if ($milestone['runtime'])

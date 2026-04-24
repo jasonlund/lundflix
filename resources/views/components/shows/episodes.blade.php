@@ -364,7 +364,7 @@ new class extends Component {
 
                                                         @if ($episode['airdate'])
                                                             @if ($episode['runtime'] ?? null)
-                                                                &middot;
+                                                                <x-middot />
                                                             @endif
 
                                                             {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $episode['airtime'] ?? null, $this->show->web_channel, $this->show->network)) }}
