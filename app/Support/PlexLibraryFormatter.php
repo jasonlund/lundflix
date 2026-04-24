@@ -13,9 +13,9 @@ class PlexLibraryFormatter
      *
      * @param  Collection<int, array<string, mixed>>  $items
      */
-    public function format(?string $serverName, Collection $items): string
+    public function format(Collection $items): string
     {
-        $lines = ['*New on '.($serverName ?? 'Plex').':*'];
+        $lines = [];
 
         $movies = $items->where('media_type', 'movie');
         $episodes = $items->where('media_type', 'episode');

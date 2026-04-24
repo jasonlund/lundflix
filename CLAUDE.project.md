@@ -50,7 +50,7 @@
 ## UI Conventions
 
 - Brand the app as `lundflix`.
-- Conversational user-facing copy uses Lundberghese strings from `lang/en/lundbergh.php`. Short labels, Filament admin text, and standard HTTP error pages are exempt.
+- Conversational user-facing copy uses Lundberghese strings from `lang/en/lundbergh.php`. Short labels, Filament admin text, standard HTTP error pages, and Slack notifications are exempt.
 - Dark mode is permanent. Use dark colors directly and do not add `dark:` classes.
 - Never use inline `style` attributes.
 - Do not add emojis to files unless the user requests it. Exceptions: the app footer emoji in `resources/views/components/layouts/app.blade.php` is intentional branding, and regional flag emojis generated from country codes in `resources/views/components/movies/availability.blade.php` are allowed for release metadata.

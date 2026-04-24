@@ -33,20 +33,13 @@ class RequestProcessedNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        $message = (new SlackMessage)
-            ->text($this->formatItems())
-            ->headerBlock('📤 Request Processed')
-            ->sectionBlock(function (SectionBlock $block): void {
-                $block->text(__('lundbergh.notification.request_processed'));
-            });
+        $items = $this->formatItems();
 
-        foreach ($this->groupedByStatus() as [$label, $lines]) {
-            $message->sectionBlock(function (SectionBlock $block) use ($label, $lines): void {
-                $block->text("*{$label}:*\n".implode("\n", $lines))->markdown();
+        return (new SlackMessage)
+            ->text($items)
+            ->sectionBlock(function (SectionBlock $block) use ($items): void {
+                $block->text("*📤 Request Processed*\n\n{$items}")->markdown();
             });
-        }
-
-        return $message;
     }
 
     private function formatItems(): string
