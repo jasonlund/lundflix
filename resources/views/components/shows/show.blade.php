@@ -86,12 +86,6 @@ new class extends Component {
     }
 
     #[Computed]
-    public function yearLabel(): ?string
-    {
-        return Formatters::yearLabel($this->show);
-    }
-
-    #[Computed]
     public function runtime(): ?string
     {
         return Formatters::runtimeFor($this->show);
@@ -272,17 +266,19 @@ new class extends Component {
                                 syncing = false
                             })
                         "
-                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                        aria-pressed="{{ $isSubscribed ? 'true' : 'false' }}"
+                        aria-label="{{ $isSubscribed ? 'Unsubscribe from ' . $show->name : 'Subscribe to ' . $show->name }}"
+                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} focus-visible:ring-lundflix flex cursor-pointer items-center gap-2 rounded-full border-1 px-5 py-3 text-sm font-medium backdrop-blur-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
                     >
                         <div class="relative flex items-center justify-center">
                             @if ($isSubscribed)
-                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
                             @else
-                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
                             @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-5 sm:size-4" />
                         </div>
-                        <span x-bind:class="syncing && 'opacity-0'">
+                        <span x-bind:class="syncing && 'opacity-0'" aria-live="polite" x-bind:aria-busy="syncing">
                             {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
                         </span>
                     </button>
@@ -309,20 +305,22 @@ new class extends Component {
                             ? 'bg-lundflix/20 border-lundflix text-white'
                             : 'border-zinc-600 bg-white/10 text-white'
                     "
-                    class="flex items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                    class="flex cursor-default items-center gap-2 rounded-full border-1 px-5 py-3 text-sm font-medium backdrop-blur-sm transition sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
+                    role="status"
+                    x-bind:aria-label="count > 0 ? count + ' episodes in cart' : 'No episodes in cart'"
                 >
                     <div class="relative flex items-center justify-center">
                         <span x-show="isFullSeason" x-cloak>
-                            <flux:icon.check class="size-4 sm:size-5" />
+                            <flux:icon.check class="size-5 sm:size-4" />
                         </span>
                         <span
                             x-show="count > 0 && ! isFullSeason"
                             x-cloak
                             x-text="count"
-                            class="text-sm font-bold tabular-nums sm:text-base"
+                            class="text-base font-bold tabular-nums sm:text-sm"
                         ></span>
                         <span x-show="count === 0">
-                            <flux:icon.minus class="size-4 sm:size-5" />
+                            <flux:icon.minus class="size-5 sm:size-4" />
                         </span>
                     </div>
                     <span>Cart</span>
@@ -335,34 +333,9 @@ new class extends Component {
                 $hasPrevious = false;
             @endphp
 
-            @if ($this->yearLabel())
-                <span>{{ $this->yearLabel() }}</span>
-                @php
-                    $hasPrevious = true;
-                @endphp
-            @endif
-
-            @if ($show->status)
-                @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                @endif
-
-                <x-dynamic-component
-                    :component="'flux::icon.' . $show->status->icon()"
-                    variant="mini"
-                    class="{{ $show->status->iconColorClass() }} mb-px inline size-3.5 sm:size-4"
-                />
-                <span class="{{ $show->status->iconColorClass() }}">
-                    {{ $show->status->getLabel() }}
-                </span>
-                @php
-                    $hasPrevious = true;
-                @endphp
-            @endif
-
             @if ($this->isScheduleVisible())
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $this->scheduleLabel() }}</span>
@@ -373,7 +346,7 @@ new class extends Component {
 
             @foreach ($this->networkInfoItems() as $info)
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 @if ($info['logoUrl'])
@@ -394,7 +367,7 @@ new class extends Component {
 
             @if ($this->runtime())
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $this->runtime() }}</span>
@@ -405,7 +378,7 @@ new class extends Component {
 
             @if ($this->contentRating())
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $this->contentRating() }}</span>
@@ -419,6 +392,7 @@ new class extends Component {
                         <x-dynamic-component
                             :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
                             variant="mini"
+                            aria-hidden="true"
                         />
                         {{ \App\Enums\Genre::labelFor($genre) }}
                     </span>

@@ -3,9 +3,9 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen overflow-x-hidden bg-zinc-950">
+    <body class="min-h-dvh bg-zinc-950 antialiased">
         <div
-            class="relative min-h-screen overflow-x-clip bg-zinc-900 md:mx-auto md:max-w-screen-md md:overflow-x-visible md:border-t md:border-zinc-800/70"
+            class="relative isolate min-h-dvh overflow-x-clip bg-zinc-900 md:mx-auto md:max-w-screen-md md:overflow-x-visible md:border-t md:border-zinc-800/70"
         >
             <div
                 class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
@@ -18,10 +18,10 @@
                     "
                     class="h-full w-full object-cover"
                 />
-                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent to-black/70"></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
+                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-b from-transparent to-black/70"></div>
+                <div class="absolute inset-0 bg-linear-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
                 <div
-                    class="absolute inset-0 bg-gradient-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
+                    class="absolute inset-0 bg-linear-to-r from-zinc-950/25 via-transparent via-20% to-transparent"
                 ></div>
                 <x-crt-effects />
             </div>
@@ -38,7 +38,7 @@
                 class="pointer-events-none absolute inset-y-0 right-0 z-[15] hidden w-px bg-zinc-800/70 md:block"
             ></div>
 
-            <div class="relative z-20 min-h-screen">
+            <div class="relative z-20 min-h-dvh">
                 <flux:header
                     x-data="{ scrolled: false }"
                     x-init="scrolled = window.scrollY > $el.offsetHeight / 2"
@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <div class="z-50">
+        <div class="fixed z-50">
             @persist('toast')
                 <flux:toast.group>
                     <flux:toast />

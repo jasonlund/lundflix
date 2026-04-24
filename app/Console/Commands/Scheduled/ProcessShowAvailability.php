@@ -7,13 +7,13 @@ namespace App\Console\Commands\Scheduled;
 use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
-use App\Enums\ReleaseQuality;
 use App\Events\MediaAvailable;
-use App\Exceptions\PreDBRateLimitExceededException;
+use App\Exceptions\IptorrentsAuthException;
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
-use App\Services\PreDBService;
+use App\Services\IptorrentsService;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -24,14 +24,14 @@ class ProcessShowAvailability extends Command
 {
     protected $signature = 'process:show-availability';
 
-    protected $description = 'Poll PreDB for subscribed shows and create requests once aired episodes have a quality release';
+    protected $description = 'Poll IPTorrents for subscribed shows and create requests once aired episodes have a torrent';
 
     private const LOOKBACK_HOURS = 24;
 
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly PreDBService $predb,
+        private readonly IptorrentsService $ipt,
     ) {
         parent::__construct();
     }
@@ -135,12 +135,31 @@ class ProcessShowAvailability extends Command
                     ->values();
 
                 try {
-                    $showAvailable[$show->id] = $this->predb->findAvailableEpisodes($show, $allCandidates);
-                } catch (PreDBRateLimitExceededException) {
-                    $this->warn('PreDB rate limit reached, stopping.');
+                    $available = collect();
+                    $groups = $allCandidates->groupBy(
+                        fn (Episode $e): string => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
+                    );
+
+                    foreach ($groups as $episodes) {
+                        $probe = $episodes->sortBy('number')->first();
+                        $result = $this->ipt->searchEpisode($probe);
+
+                        if ($result !== null) {
+                            foreach ($episodes as $episode) {
+                                $available->push($episode);
+                            }
+                        }
+                    }
+
+                    $showAvailable[$show->id] = $available->isEmpty() ? null : $available;
+                } catch (IptorrentsRateLimitExceededException) {
+                    $this->warn('IPTorrents rate limit reached, stopping.');
+                    break;
+                } catch (IptorrentsAuthException $e) {
+                    $this->warn($e->getMessage());
                     break;
                 } catch (\Throwable $e) {
-                    Log::warning('PreDB availability check failed', [
+                    Log::warning('IPTorrents availability check failed', [
                         'show_id' => $show->id,
                         'error' => $e->getMessage(),
                     ]);
@@ -188,12 +207,7 @@ class ProcessShowAvailability extends Command
                 ->sortBy([['season', 'asc'], ['number', 'asc']])
                 ->values();
 
-            $bestQuality = $episodes
-                ->map(fn (Episode $e) => $e->predb_quality ?? null)
-                ->filter()
-                ->reduce(fn (?ReleaseQuality $carry, ReleaseQuality $q): ReleaseQuality => ! $carry instanceof ReleaseQuality || $q->value > $carry->value ? $q : $carry);
-
-            MediaAvailable::dispatch(null, $show, $episodes, $bestQuality);
+            MediaAvailable::dispatch(null, $show, $episodes);
         }
 
         $this->info("Processed {$processed} show availability check(s).");

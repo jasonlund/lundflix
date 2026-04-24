@@ -37,6 +37,6 @@ class SendMediaAvailableNotification implements ShouldQueue
         }
 
         Notification::route('slack', $channel)
-            ->notify(new MediaAvailableNotification($event->media, $event->episodes, $event->quality));
+            ->notify(new MediaAvailableNotification($event->media, $event->episodes));
     }
 }

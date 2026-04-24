@@ -6,20 +6,21 @@
 
 <div class="relative overflow-hidden">
     <div class="relative flex flex-col items-center gap-2 py-5 text-white sm:py-6">
-        <div class="max-w-4xl self-start">
+        <div class="min-h-28 max-w-4xl self-start sm:min-h-40">
             <x-artwork
                 :model="$model"
                 type="logo"
                 :alt="$title . ' logo'"
                 :fallback="false"
-                class="h-28 drop-shadow sm:h-40"
+                class="h-20 max-w-[80vw] drop-shadow sm:h-28"
             />
         </div>
 
-        <div class="{{ $logoUrl ? '' : 'flex h-36 items-end sm:h-48' }}">
+        <div>
             <flux:heading
                 size="xl"
-                class="{{ $logoUrl ? 'truncate' : 'line-clamp-2 text-3xl' }} font-serif tracking-wide"
+                level="1"
+                class="{{ $logoUrl ? 'truncate' : 'line-clamp-2 text-3xl text-balance' }} font-serif tracking-wide"
             >
                 {{ $title }}
             </flux:heading>
@@ -30,12 +31,12 @@
             {{ $actions }}
         </div>
 
-        <div class="truncate text-xs text-zinc-200 sm:text-sm">
+        <div class="flex flex-wrap items-center text-sm text-zinc-200 sm:text-xs">
             {{ $metadata }}
         </div>
 
         @if (isset($genres) && $genres->isNotEmpty())
-            <div class="flex gap-4 truncate text-xs text-zinc-200 sm:text-sm">
+            <div class="flex flex-wrap gap-4 text-sm text-zinc-200 sm:text-xs">
                 {{ $genres }}
             </div>
         @endif

@@ -52,7 +52,7 @@
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--color-zinc-800, currentColor);
     }
 }
 
@@ -61,7 +61,7 @@
 }
 
 [data-flux-field] [data-flux-label] {
-    @apply mb-0 leading-tight;
+    @apply mb-0 leading-5;
 }
 
 input:focus[data-flux-control],
@@ -69,10 +69,6 @@ textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
     @apply ring-accent ring-offset-accent-foreground ring-2 ring-offset-2 outline-hidden;
 }
-
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */
 
 ui-toast-group {
     @apply mx-auto w-full max-w-screen-lg;

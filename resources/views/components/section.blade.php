@@ -8,7 +8,9 @@
     @if ($collapsible)
         <div x-data="{ open: {{ $expanded ? 'true' : 'false' }} }">
             <button
+                type="button"
                 @click="open = !open"
+                x-bind:aria-expanded="open"
                 class="-m-3 flex w-[calc(100%+1.5rem)] cursor-pointer items-center justify-between p-3"
             >
                 <div class="flex items-center gap-2">

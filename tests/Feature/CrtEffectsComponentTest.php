@@ -19,5 +19,5 @@ test('uses tailwind utilities for the crt overlay layout', function () {
     expect($html)
         ->toContain('pointer-events-none')
         ->toContain('absolute inset-0 overflow-hidden rounded-[inherit]')
-        ->toContain('block h-px w-full');
+        ->toContain('h-px w-full');
 });

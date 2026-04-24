@@ -180,7 +180,7 @@ new class extends Component {
                                 <button
                                     wire:click="submit"
                                     wire:loading.attr="disabled"
-                                    class="bg-lundflix/70 hover:bg-lundflix/80 border-lundflix flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-white transition disabled:opacity-50"
+                                    class="bg-lundflix/70 hover:bg-lundflix/80 border-lundflix flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium text-white transition disabled:opacity-50"
                                 >
                                     <flux:icon.loading wire:loading wire:target="submit" class="size-4" />
                                     <span wire:loading.remove wire:target="submit">Submit Request</span>
@@ -216,12 +216,12 @@ new class extends Component {
                                 </div>
 
                                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                                    <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
+                                    <p class="truncate font-serif text-base leading-6 tracking-wide text-white">
                                         {{ $movie->title }}
                                     </p>
                                     @if ($movie->release_date)
                                         <div
-                                            class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-[0.6875rem] text-zinc-400 group-data-active/item:text-zinc-300"
+                                            class="flex min-w-0 items-center gap-x-[3px] overflow-hidden text-xs text-zinc-400 group-data-active/item:text-zinc-300"
                                         >
                                             <span class="shrink-0 font-mono">
                                                 {{ $movie->release_date->format('Y') }}
@@ -263,7 +263,7 @@ new class extends Component {
                                 </div>
 
                                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                                    <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
+                                    <p class="truncate font-serif text-base leading-6 tracking-wide text-white">
                                         {{ $showGroup['show']->name }}
                                     </p>
                                     <div class="flex flex-wrap gap-1">

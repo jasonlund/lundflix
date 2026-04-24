@@ -73,20 +73,6 @@ new class extends Component {
     }
 
     #[Computed]
-    public function releaseYear(): ?string
-    {
-        if ($this->movie->release_date) {
-            return (string) $this->movie->release_date->year;
-        }
-
-        if ($this->movie->year) {
-            return (string) $this->movie->year;
-        }
-
-        return null;
-    }
-
-    #[Computed]
     public function logoUrl(): ?string
     {
         return $this->movie->artUrl('logo');
@@ -139,17 +125,19 @@ new class extends Component {
                                 syncing = false
                             })
                         "
-                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                        aria-pressed="{{ $isSubscribed ? 'true' : 'false' }}"
+                        aria-label="{{ $isSubscribed ? 'Unsubscribe from ' . $movie->title : 'Subscribe to ' . $movie->title }}"
+                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} focus-visible:ring-lundflix flex cursor-pointer items-center gap-2 rounded-full border-1 px-5 py-3 text-sm font-medium backdrop-blur-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
                     >
                         <div class="relative flex items-center justify-center">
                             @if ($isSubscribed)
-                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
                             @else
-                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-4 sm:size-5" />
+                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
                             @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-4 sm:size-5" />
+                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-5 sm:size-4" />
                         </div>
-                        <span x-bind:class="syncing && 'opacity-0'">
+                        <span x-bind:class="syncing && 'opacity-0'" aria-live="polite" x-bind:aria-busy="syncing">
                             {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
                         </span>
                     </button>
@@ -169,12 +157,14 @@ new class extends Component {
             >
                 @if ($this->isCartDisabled)
                     <flux:tooltip content="Not yet released">
-                        <div
-                            class="flex items-center gap-1.5 rounded-full border-1 border-zinc-600 bg-white/10 px-4 py-2 text-xs font-medium text-white/50 backdrop-blur-sm sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                        <button
+                            disabled
+                            aria-disabled="true"
+                            class="flex cursor-not-allowed items-center gap-2 rounded-full border-1 border-zinc-600 bg-white/10 px-5 py-3 text-sm font-medium text-white/50 backdrop-blur-sm sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
                         >
-                            <flux:icon.plus class="size-4 sm:size-5" />
+                            <flux:icon.plus class="size-5 sm:size-4" />
                             <span>Cart</span>
-                        </div>
+                        </button>
                     </flux:tooltip>
                 @else
                     <flux:tooltip x-bind:content="inCart ? 'Remove from Cart' : 'Add to Cart'">
@@ -190,14 +180,15 @@ new class extends Component {
                                     ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white'
                                     : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20'
                             "
-                            class="flex cursor-pointer items-center gap-1.5 rounded-full border-1 px-4 py-2 text-xs font-medium backdrop-blur-sm transition sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
+                            x-bind:aria-label="inCart ? 'Remove from Cart' : 'Add to Cart'"
+                            class="focus-visible:ring-lundflix flex cursor-pointer items-center gap-2 rounded-full border-1 px-5 py-3 text-sm font-medium backdrop-blur-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
                         >
                             <div class="relative flex items-center justify-center">
                                 <span x-show="inCart" x-cloak>
-                                    <flux:icon.check class="size-4 sm:size-5" />
+                                    <flux:icon.check class="size-5 sm:size-4" />
                                 </span>
                                 <span x-show="!inCart">
-                                    <flux:icon.plus class="size-4 sm:size-5" />
+                                    <flux:icon.plus class="size-5 sm:size-4" />
                                 </span>
                             </div>
                             <span>Cart</span>
@@ -214,7 +205,7 @@ new class extends Component {
 
             @if ($movie->original_language)
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $movie->original_language->getLabel() }}</span>
@@ -225,7 +216,7 @@ new class extends Component {
 
             @if ($this->formattedRuntime())
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $this->formattedRuntime() }}</span>
@@ -236,7 +227,7 @@ new class extends Component {
 
             @if ($this->contentRating())
                 @if ($hasPrevious)
-                    <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
+                    <x-middot />
                 @endif
 
                 <span>{{ $this->contentRating() }}</span>
@@ -250,6 +241,7 @@ new class extends Component {
                         <x-dynamic-component
                             :component="'flux::icon.' . \App\Enums\Genre::iconFor($genre)"
                             variant="mini"
+                            aria-hidden="true"
                         />
                         {{ \App\Enums\Genre::labelFor($genre) }}
                     </span>

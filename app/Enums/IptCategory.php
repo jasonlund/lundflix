@@ -115,13 +115,13 @@ enum IptCategory: int implements HasLabel
     /** @return list<int> */
     public static function defaultMovieValues(): array
     {
-        return [self::MovieX265->value];
+        return [self::MovieX265->value, self::MovieWebDl->value, self::MovieBdRip->value];
     }
 
     /** @return list<int> */
     public static function defaultTvValues(): array
     {
-        return [self::TvPacks->value, self::TvX265->value];
+        return [self::TvX264->value, self::TvX265->value];
     }
 
     /**
