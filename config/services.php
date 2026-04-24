@@ -57,4 +57,8 @@ return [
         'base_url' => env('PREDB_BASE_URL', 'https://api.predb.net'),
     ],
 
+    'iptorrents' => [
+        'base_url' => env('IPT_BASE_URL', 'https://iptorrents.com'),
+    ],
+
 ];

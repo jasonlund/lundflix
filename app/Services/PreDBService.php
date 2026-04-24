@@ -207,7 +207,7 @@ class PreDBService
                     return false;
                 }
 
-                $episode->predb_quality = $qualityByCode[$code];
+                $episode->ipt_quality = $qualityByCode[$code];
 
                 return true;
             })

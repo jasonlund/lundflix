@@ -7,6 +7,7 @@ use App\Models\RequestItem;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\IptorrentsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -17,42 +18,30 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Http::preventStrayRequests();
-    RateLimiter::clear('predb-api');
+    RateLimiter::clear('iptorrents');
 });
 
-function fakeShowPredb(array $releaseNames): void
+function fakeEpisodeTorrentResult(string $name): array
 {
-    $data = array_map(fn (string $name, int $i) => [
-        'id' => $i + 1,
-        'pretime' => now()->timestamp,
-        'release' => $name,
-        'section' => 'X264',
-        'files' => 1,
-        'size' => 1.0,
-        'status' => 0,
-        'reason' => '',
-        'group' => 'GROUP',
-        'genre' => '',
-        'url' => '/rls/'.$name,
-    ], $releaseNames, array_keys($releaseNames));
-
-    Http::fake([
-        'api.predb.net*' => Http::response([
-            'status' => 'success',
-            'message' => '',
-            'data' => $data,
-            'results' => count($data),
-            'time' => 0.05,
-        ]),
-    ]);
+    return [
+        'torrent_id' => 1,
+        'name' => $name,
+        'size' => '500 MB',
+        'seeders' => 30,
+        'leechers' => 3,
+        'snatches' => 80,
+        'uploaded' => '2024-01-01',
+        'download_url' => 'https://iptorrents.com/download.php/1/file.torrent',
+    ];
 }
 
-it('creates a request for episodes matching available S##E## releases', function () {
+it('creates a request for episodes with available torrents', function () {
     Event::fake([MediaAvailable::class]);
 
-    fakeShowPredb([
-        'Severance.S02E01.1080p.WEB-DL.x264-GROUP',
-    ]);
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisode')
+        ->once()
+        ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Severance']);
@@ -69,7 +58,7 @@ it('creates a request for episodes matching available S##E## releases', function
         'show_id' => $show->id,
         'season' => 2,
         'number' => 2,
-        'airdate' => today('America/New_York'),
+        'airdate' => today('America/New_York')->addWeek(),
         'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
     ]);
 
@@ -84,9 +73,8 @@ it('creates a request for episodes matching available S##E## releases', function
 it('does not request an episode already in subscription_episode', function () {
     Event::fake([MediaAvailable::class]);
 
-    fakeShowPredb([
-        'Lost.S01E01.1080p.WEB-DL.x264-GROUP',
-    ]);
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchEpisode');
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Lost']);
@@ -110,14 +98,15 @@ it('does not request an episode already in subscription_episode', function () {
     $this->artisan('process:show-availability')->assertSuccessful();
 
     expect(Request::count())->toBe(0);
-    Http::assertNothingSent();
 
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('skips episodes that aired more than 24 hours ago', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchEpisode');
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Old Show']);
@@ -133,16 +122,16 @@ it('skips episodes that aired more than 24 hours ago', function () {
 
     $this->artisan('process:show-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('dedupes API calls across multiple subscriptions on the same show', function () {
     Event::fake([MediaAvailable::class]);
 
-    fakeShowPredb([
-        'Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP',
-    ]);
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisode')
+        ->once()
+        ->andReturn(fakeEpisodeTorrentResult('Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP'));
 
     $show = Show::factory()->create(['name' => 'Game Of Thrones']);
 
@@ -162,7 +151,6 @@ it('dedupes API calls across multiple subscriptions on the same show', function 
 
     $this->artisan('process:show-availability')->assertSuccessful();
 
-    Http::assertSentCount(1);
     expect(Request::count())->toBe(3);
 
     Event::assertDispatchedTimes(MediaAvailable::class, 1);
@@ -171,9 +159,10 @@ it('dedupes API calls across multiple subscriptions on the same show', function 
 it('marks newly requested episodes in the pivot table', function () {
     Event::fake([MediaAvailable::class]);
 
-    fakeShowPredb([
-        'The.Wire.S01E01.1080p.WEB-DL.x264-GROUP',
-    ]);
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisode')
+        ->once()
+        ->andReturn(fakeEpisodeTorrentResult('The.Wire.S01E01.1080p.WEB-DL.x264-GROUP'));
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'The Wire']);
@@ -192,12 +181,11 @@ it('marks newly requested episodes in the pivot table', function () {
     expect($sub->fresh()->processedEpisodes->pluck('id')->all())->toBe([$episode->id]);
 });
 
-it('bails early when the PreDB rate limit is reached', function () {
+it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
 
-    foreach (range(1, 28) as $_) {
-        RateLimiter::hit('predb-api', 60);
+    foreach (range(1, 10) as $_) {
+        RateLimiter::hit('iptorrents', 60);
     }
 
     $user = User::factory()->create();
@@ -214,6 +202,38 @@ it('bails early when the PreDB rate limit is reached', function () {
 
     $this->artisan('process:show-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
+});
+
+it('groups batch-premiere episodes and only searches the first by number', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $airtime = now('America/New_York')->subHours(2)->format('H:i');
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisode')
+        ->once()
+        ->withArgs(fn (Episode $e) => $e->season === 1 && $e->number === 1)
+        ->andReturn(fakeEpisodeTorrentResult('Stranger.Things.S01E01.1080p.WEB-DL.x264-GROUP'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Stranger Things']);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    foreach (range(1, 4) as $num) {
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 1,
+            'number' => $num,
+            'airdate' => today('America/New_York'),
+            'airtime' => $airtime,
+        ]);
+    }
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(4);
+
+    Event::assertDispatched(MediaAvailable::class);
 });

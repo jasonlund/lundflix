@@ -10,10 +10,11 @@ use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Enums\ReleaseQuality;
 use App\Events\MediaAvailable;
-use App\Exceptions\PreDBRateLimitExceededException;
+use App\Exceptions\IptorrentsAuthException;
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Movie;
 use App\Models\Subscription;
-use App\Services\PreDBService;
+use App\Services\IptorrentsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -21,14 +22,14 @@ class ProcessMovieAvailability extends Command
 {
     protected $signature = 'process:movie-availability';
 
-    protected $description = 'Poll PreDB for subscribed movies and create requests once a quality release exists';
+    protected $description = 'Poll IPTorrents for subscribed movies and create requests once a torrent exists';
 
     private const LOOKBACK_DAYS = 3;
 
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly PreDBService $predb,
+        private readonly IptorrentsService $ipt,
     ) {
         parent::__construct();
     }
@@ -75,12 +76,18 @@ class ProcessMovieAvailability extends Command
 
             if (! array_key_exists($movieId, $checked)) {
                 try {
-                    $checked[$movieId] = $this->predb->highestQuality($movie) ?? false;
-                } catch (PreDBRateLimitExceededException) {
-                    $this->warn('PreDB rate limit reached, stopping.');
+                    $result = $this->ipt->searchMovie($movie);
+                    $checked[$movieId] = $result
+                        ? (ReleaseQuality::fromReleaseName($result['name']) ?? false)
+                        : false;
+                } catch (IptorrentsRateLimitExceededException) {
+                    $this->warn('IPTorrents rate limit reached, stopping.');
+                    break;
+                } catch (IptorrentsAuthException $e) {
+                    $this->warn($e->getMessage());
                     break;
                 } catch (\Throwable $e) {
-                    Log::warning('PreDB availability check failed', [
+                    Log::warning('IPTorrents availability check failed', [
                         'movie_id' => $movie->id,
                         'error' => $e->getMessage(),
                     ]);

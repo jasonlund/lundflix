@@ -6,6 +6,7 @@ use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\IptorrentsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
@@ -15,46 +16,28 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Http::preventStrayRequests();
-    RateLimiter::clear('predb-api');
+    RateLimiter::clear('iptorrents');
 });
 
-function fakeMoviePredbOk(string $name = 'The.Film.2024.1080p.WEB-DL.x264-GROUP'): void
+function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'): array
 {
-    Http::fake([
-        'api.predb.net*' => Http::response([
-            'status' => 'success',
-            'message' => '',
-            'data' => [[
-                'id' => 1,
-                'pretime' => now()->timestamp,
-                'release' => $name,
-                'section' => 'X264',
-                'files' => 1,
-                'size' => 1.0,
-                'status' => 0,
-                'reason' => '',
-                'group' => 'GROUP',
-                'genre' => '',
-                'url' => '/rls/'.$name,
-            ]],
-            'results' => 1,
-            'time' => 0.05,
-        ]),
-    ]);
+    return [
+        'torrent_id' => 1,
+        'name' => $name,
+        'size' => '1.5 GB',
+        'seeders' => 50,
+        'leechers' => 5,
+        'snatches' => 100,
+        'uploaded' => '2024-01-01',
+        'download_url' => 'https://iptorrents.com/download.php/1/file.torrent',
+    ];
 }
 
-function fakeMoviePredbEmpty(): void
-{
-    Http::fake([
-        'api.predb.net*' => Http::response([
-            'status' => 'success', 'message' => '', 'data' => [], 'results' => 0, 'time' => 0.01,
-        ]),
-    ]);
-}
-
-it('creates a request, dispatches MediaAvailable, and fulfills the subscription when PreDB has a quality release', function () {
+it('creates a request, dispatches MediaAvailable, and fulfills the subscription when IPTorrents has a torrent', function () {
     Event::fake([MediaAvailable::class]);
-    fakeMoviePredbOk('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP');
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'));
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -75,9 +58,11 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     Event::assertDispatched(MediaAvailable::class);
 });
 
-it('does nothing when PreDB returns no quality release', function () {
+it('does nothing when IPTorrents returns no results', function () {
     Event::fake([MediaAvailable::class]);
-    fakeMoviePredbEmpty();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchMovie')->once()->andReturnNull();
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -98,7 +83,9 @@ it('does nothing when PreDB returns no quality release', function () {
 
 it('skips movies whose digital release is older than the 3-day window', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchMovie');
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -111,14 +98,15 @@ it('skips movies whose digital release is older than the 3-day window', function
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     expect(Request::count())->toBe(0);
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('skips movies whose digital release is in the future', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchMovie');
 
     $movie = Movie::factory()->create([
         'title' => 'Upcoming',
@@ -130,13 +118,14 @@ it('skips movies whose digital release is in the future', function () {
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('skips unreleased movies', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchMovie');
 
     $movie = Movie::factory()->create([
         'title' => 'Not Yet',
@@ -148,13 +137,14 @@ it('skips unreleased movies', function () {
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('skips subscriptions already fulfilled', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchMovie');
 
     $movie = Movie::factory()->create([
         'digital_release_date' => today(),
@@ -164,13 +154,14 @@ it('skips subscriptions already fulfilled', function () {
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
 it('dedupes API calls when multiple users subscribe to the same movie', function () {
     Event::fake([MediaAvailable::class]);
-    fakeMoviePredbOk('Popular.Film.2024.1080p.WEB-DL.x264-GROUP');
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Popular.Film.2024.1080p.WEB-DL.x264-GROUP'));
 
     $movie = Movie::factory()->create([
         'title' => 'Popular Film',
@@ -187,18 +178,16 @@ it('dedupes API calls when multiple users subscribe to the same movie', function
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertSentCount(1);
     expect(Request::count())->toBe(3);
 
     Event::assertDispatchedTimes(MediaAvailable::class, 1);
 });
 
-it('bails early when the PreDB rate limit is reached', function () {
+it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
-    Http::fake();
 
-    foreach (range(1, 28) as $_) {
-        RateLimiter::hit('predb-api', 60);
+    foreach (range(1, 10) as $_) {
+        RateLimiter::hit('iptorrents', 60);
     }
 
     $movie = Movie::factory()->create([
@@ -209,6 +198,5 @@ it('bails early when the PreDB rate limit is reached', function () {
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    Http::assertNothingSent();
     Event::assertNotDispatched(MediaAvailable::class);
 });
