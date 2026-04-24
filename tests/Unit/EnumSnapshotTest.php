@@ -8,7 +8,6 @@ use App\Enums\Language;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Enums\NetworkLogo;
-use App\Enums\ReleaseQuality;
 use App\Enums\RequestItemStatus;
 use App\Enums\RequestStatus;
 use App\Enums\ShowStatus;
@@ -116,14 +115,6 @@ it('snapshots ShowStatus display values', function () {
 it('snapshots StreamingLogo display values', function () {
     $values = collect(StreamingLogo::cases())->mapWithKeys(fn (StreamingLogo $e) => [
         $e->name => ['file' => $e->file(), 'source' => $e->source()],
-    ])->all();
-
-    expect($values)->toMatchSnapshot();
-});
-
-it('snapshots ReleaseQuality display values', function () {
-    $values = collect(ReleaseQuality::cases())->mapWithKeys(fn (ReleaseQuality $e) => [
-        $e->name => ['label' => $e->getLabel()],
     ])->all();
 
     expect($values)->toMatchSnapshot();

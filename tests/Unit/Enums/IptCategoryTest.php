@@ -46,12 +46,16 @@ it('generates options array from cases', function () {
 });
 
 it('returns default movie values', function () {
-    expect(IptCategory::defaultMovieValues())->toBe([IptCategory::MovieX265->value]);
+    expect(IptCategory::defaultMovieValues())->toBe([
+        IptCategory::MovieX265->value,
+        IptCategory::MovieWebDl->value,
+        IptCategory::MovieBdRip->value,
+    ]);
 });
 
 it('returns default TV values', function () {
     expect(IptCategory::defaultTvValues())->toBe([
-        IptCategory::TvPacks->value,
+        IptCategory::TvX264->value,
         IptCategory::TvX265->value,
     ]);
 });

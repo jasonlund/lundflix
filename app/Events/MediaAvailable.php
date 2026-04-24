@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use App\Enums\ReleaseQuality;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Request;
@@ -25,6 +24,5 @@ class MediaAvailable implements ShouldDispatchAfterCommit
         public ?Request $request,
         public Movie|Show $media,
         public ?Collection $episodes = null,
-        public ?ReleaseQuality $quality = null,
     ) {}
 }
