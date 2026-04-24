@@ -55,7 +55,32 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     expect(RequestItem::first()->requestable_id)->toBe($movie->id);
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
-    Event::assertDispatched(MediaAvailable::class);
+    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->quality === \App\Enums\ReleaseQuality::WEBDL);
+});
+
+it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.x265'));
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'Dune Part Two',
+        'year' => 2024,
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    $sub = Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(1);
+    expect(RequestItem::first()->requestable_id)->toBe($movie->id);
+    expect($sub->fresh()->fulfilled_at)->not->toBeNull();
+
+    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->quality === null);
 });
 
 it('does nothing when IPTorrents returns no results', function () {

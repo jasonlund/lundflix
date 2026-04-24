@@ -64,9 +64,9 @@ class ProcessMovieAvailability extends Command
 
         $byMovie = $subscriptions->groupBy('subscribable_id');
 
-        /** @var array<int, ReleaseQuality|false> $checked */
+        /** @var array<int, ReleaseQuality|false|null> $checked */
         $checked = [];
-        /** @var array<int, array{movie: Movie, quality: ReleaseQuality}> $toDispatch */
+        /** @var array<int, array{movie: Movie, quality: ?ReleaseQuality}> $toDispatch */
         $toDispatch = [];
         $processed = 0;
 
@@ -78,7 +78,7 @@ class ProcessMovieAvailability extends Command
                 try {
                     $result = $this->ipt->searchMovie($movie);
                     $checked[$movieId] = $result
-                        ? (ReleaseQuality::fromReleaseName($result['name']) ?? false)
+                        ? ReleaseQuality::fromReleaseName($result['name'])
                         : false;
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');

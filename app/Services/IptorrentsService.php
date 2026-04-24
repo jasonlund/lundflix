@@ -54,21 +54,18 @@ class IptorrentsService
             IptCategory::from(...),
             IptCategory::defaultMovieValues(),
         );
-        $allCategories = IptCategory::movieCases();
 
         $queries = [];
 
         if ($movie->imdb_id) {
-            $queries[] = [$movie->imdb_id, $defaultCategories];
-            $queries[] = [$movie->imdb_id, $allCategories];
+            $queries[] = $movie->imdb_id;
         }
 
         $titleQuery = $movie->title.($movie->year ? ' '.$movie->year : '');
-        $queries[] = [$titleQuery, $defaultCategories];
-        $queries[] = [$titleQuery, $allCategories];
+        $queries[] = $titleQuery;
 
-        foreach ($queries as [$query, $categories]) {
-            $results = $this->search($query, $categories);
+        foreach ($queries as $query) {
+            $results = $this->search($query, $defaultCategories);
 
             if ($results->isNotEmpty()) {
                 return $results->first();

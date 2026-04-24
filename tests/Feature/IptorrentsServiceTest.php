@@ -258,33 +258,11 @@ describe('searchMovie', function () {
             && str_contains($request->url(), '100='));
     });
 
-    it('falls back to IMDB ID with all movie categories', function () {
-        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 600, name: 'Test.Movie.2024.720p.BDRip', seeders: 50),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchMovie($movie);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(600);
-
-        Http::assertSentCount(2);
-    });
-
     it('falls back to title and year with default categories', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
 
         Http::fake([
             'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
                 ->push(fakeIptSearchHtml([]))
                 ->push(fakeIptSearchHtml([
                     fakeIptTorrentRow(torrentId: 700, name: 'Test.Movie.2024.1080p.x265', seeders: 30),
@@ -298,16 +276,15 @@ describe('searchMovie', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(700);
 
-        Http::assertSentCount(3);
+        Http::assertSentCount(2);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'q=Test+Movie+2024'));
     });
 
-    it('falls back to title and year with all movie categories', function () {
+    it('does not broaden beyond the allowed movie categories', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
 
         Http::fake([
             'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
                 ->push(fakeIptSearchHtml([]))
                 ->push(fakeIptSearchHtml([]))
                 ->push(fakeIptSearchHtml([
@@ -318,11 +295,9 @@ describe('searchMovie', function () {
         $service = new IptorrentsService;
         $result = $service->searchMovie($movie);
 
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(800);
+        expect($result)->toBeNull();
 
-        Http::assertSentCount(4);
+        Http::assertSentCount(2);
     });
 
     it('skips IMDB steps when movie has no IMDB ID', function () {
@@ -356,7 +331,7 @@ describe('searchMovie', function () {
         $result = $service->searchMovie($movie);
 
         expect($result)->toBeNull();
-        Http::assertSentCount(4);
+        Http::assertSentCount(2);
     });
 });
 
