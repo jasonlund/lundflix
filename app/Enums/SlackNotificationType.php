@@ -30,6 +30,15 @@ enum SlackNotificationType: string implements HasLabel
         };
     }
 
+    public function channel(): ?string
+    {
+        return match ($this) {
+            self::PlexLibrary => config('services.slack.notifications.library_channel')
+                ?: config('services.slack.notifications.channel'),
+            default => config('services.slack.notifications.channel'),
+        };
+    }
+
     /**
      * @param  class-string  $notificationClass
      */

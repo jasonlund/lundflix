@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\RequestStatus;
+use App\Enums\SlackNotificationType;
 use App\Models\Episode;
 use App\Models\Request;
 use App\Notifications\RequestProcessedNotification;
@@ -49,7 +50,7 @@ class SendRequestFulfilledNotification extends Command
             return Command::FAILURE;
         }
 
-        $channel = config('services.slack.notifications.channel');
+        $channel = SlackNotificationType::RequestProcessed->channel();
 
         if (! $channel) {
             $this->error('Slack channel not configured.');

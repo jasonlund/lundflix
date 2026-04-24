@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Enums\SlackNotificationType;
 use App\Events\SubscriptionTriggered;
 use App\Notifications\SubscriptionMediaNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +26,7 @@ class SendSubscriptionNotification implements ShouldQueue
             return;
         }
 
-        $channel = config('services.slack.notifications.channel');
+        $channel = SlackNotificationType::SubscriptionMedia->channel();
 
         if (! $channel) {
             Log::warning('Slack notification skipped: channel not configured', [

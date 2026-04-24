@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Scheduled;
 
 use App\Enums\RequestItemStatus;
+use App\Enums\SlackNotificationType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\PlexMediaServer;
@@ -465,7 +466,7 @@ class PollPlexLibrary extends Command
             return;
         }
 
-        $channel = config('services.slack.notifications.channel');
+        $channel = SlackNotificationType::PlexLibrary->channel();
 
         if (! $channel) {
             return;
