@@ -9,9 +9,10 @@ use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
 use App\Notifications\SubscriptionMediaNotification;
+use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum SlackNotificationType: string implements HasLabel
+enum SlackNotificationType: string implements HasColor, HasLabel
 {
     case RequestItems = 'request_items';
     case RequestProcessed = 'request_processed';
@@ -27,6 +28,17 @@ enum SlackNotificationType: string implements HasLabel
             self::MediaAvailable => 'Available',
             self::SubscriptionMedia => 'New Release',
             self::PlexLibrary => 'Added to Library',
+        };
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::RequestItems => 'info',
+            self::RequestProcessed => 'success',
+            self::MediaAvailable => 'success',
+            self::SubscriptionMedia => 'warning',
+            self::PlexLibrary => 'gray',
         };
     }
 

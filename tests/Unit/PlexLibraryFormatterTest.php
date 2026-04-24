@@ -6,7 +6,7 @@ beforeEach(function () {
     $this->formatter = new PlexLibraryFormatter;
 });
 
-function movieItem(string $title, ?int $year = 2024): array
+function movieItem(string $title, ?int $year = 2024, ?string $url = null): array
 {
     return [
         'media_type' => 'movie',
@@ -15,11 +15,18 @@ function movieItem(string $title, ?int $year = 2024): array
         'show_title' => null,
         'season' => null,
         'episode_number' => null,
+        'url' => $url,
+        'show_url' => null,
     ];
 }
 
-function episodeItem(string $showTitle, int $season, int $episodeNumber, string $title = 'Episode'): array
-{
+function episodeItem(
+    string $showTitle,
+    int $season,
+    int $episodeNumber,
+    string $title = 'Episode',
+    ?string $showUrl = null,
+): array {
     return [
         'media_type' => 'episode',
         'title' => $title,
@@ -27,6 +34,7 @@ function episodeItem(string $showTitle, int $season, int $episodeNumber, string 
         'show_title' => $showTitle,
         'season' => $season,
         'episode_number' => $episodeNumber,
+        'show_url' => $showUrl,
     ];
 }
 
@@ -111,4 +119,30 @@ it('formats mixed movies and episodes', function () {
     ]));
 
     expect($result)->toBe("Inception (2010)\nBreaking Bad S01E01-E02");
+});
+
+it('formats linked movies when a canonical url is available', function () {
+    $result = $this->formatter->formatLinked(collect([
+        movieItem('Inception', 2010, 'https://lundflix.test/movies/inception'),
+    ]));
+
+    expect($result)->toBe('<https://lundflix.test/movies/inception|Inception (2010)>');
+});
+
+it('formats linked single episodes with an episode fragment', function () {
+    $result = $this->formatter->formatLinked(collect([
+        episodeItem('Breaking Bad', 1, 5, 'Gray Matter', 'https://lundflix.test/shows/breaking-bad'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad <https://lundflix.test/shows/breaking-bad#episode-s01e05|S01E05>');
+});
+
+it('links grouped episode runs to the season fragment', function () {
+    $result = $this->formatter->formatLinked(collect([
+        episodeItem('Breaking Bad', 1, 1, showUrl: 'https://lundflix.test/shows/breaking-bad'),
+        episodeItem('Breaking Bad', 1, 2, showUrl: 'https://lundflix.test/shows/breaking-bad'),
+        episodeItem('Breaking Bad', 1, 3, showUrl: 'https://lundflix.test/shows/breaking-bad'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad <https://lundflix.test/shows/breaking-bad#season-s01|S01E01-E03>');
 });

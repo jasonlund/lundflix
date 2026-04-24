@@ -22,7 +22,7 @@ it('updates a slack message via the API', function () {
         'content' => 'old content',
     ]);
 
-    $newContent = '*📝 New Request*\n\nUpdated content';
+    $newContent = "*📝 New Request*\n\nUpdated content";
 
     (new SlackService)->updateMessage($message, $newContent);
 
@@ -31,7 +31,8 @@ it('updates a slack message via the API', function () {
             && $request['channel'] === 'C0123456789'
             && $request['ts'] === '1234567890.123456'
             && $request['blocks'][0]['type'] === 'section'
-            && $request['blocks'][0]['text']['text'] === '*📝 New Request*\n\nUpdated content'
+            && $request['blocks'][0]['text']['text'] === "*📝 New Request*\n\nUpdated content"
+            && $request['text'] === "📝 New Request\n\nUpdated content"
             && $request->hasHeader('Authorization', 'Bearer xoxb-test-token');
     });
 

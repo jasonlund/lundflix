@@ -16,17 +16,6 @@ use Filament\Tables\Table;
 
 class SlackMessagesTable
 {
-    /** @var array<string, string> */
-    private const SLACK_EMOJI = [
-        ':large_green_circle:' => '🟢',
-        ':memo:' => '📝',
-        ':outbox_tray:' => '📤',
-        ':clapper:' => '🎬',
-        ':ballot_box_with_check:' => '☑️',
-        ':tv:' => '📺',
-        ':white_check_mark:' => '✅',
-    ];
-
     public static function configure(Table $table): Table
     {
         return $table
@@ -100,9 +89,26 @@ class SlackMessagesTable
 
     private static function formatSlackContent(string $content): string
     {
-        $content = str_replace(array_keys(self::SLACK_EMOJI), array_values(self::SLACK_EMOJI), $content);
+        $anchors = [];
+
+        $content = preg_replace_callback(
+            '/<((?:https?:\/\/|mailto:)[^>|]+)\|([^>]+)>/',
+            function (array $matches) use (&$anchors): string {
+                $placeholder = '__SLACK_LINK_'.count($anchors).'__';
+                $anchors[$placeholder] = sprintf(
+                    '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                    e($matches[1]),
+                    e($matches[2]),
+                );
+
+                return $placeholder;
+            },
+            $content,
+        ) ?? $content;
+
         $content = e($content);
         $content = preg_replace('/\*([^*]+)\*/', '<strong>$1</strong>', $content) ?? $content;
+        $content = str_replace(array_keys($anchors), array_values($anchors), $content);
 
         return nl2br($content);
     }

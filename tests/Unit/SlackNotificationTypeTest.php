@@ -25,6 +25,10 @@ it('has labels for all cases', function (SlackNotificationType $type) {
     expect($type->getLabel())->toBeString()->not->toBeEmpty();
 })->with(SlackNotificationType::cases());
 
+it('has colors for all cases', function (SlackNotificationType $type) {
+    expect($type->getColor())->toBeString()->not->toBeEmpty();
+})->with(SlackNotificationType::cases());
+
 it('returns the library channel for PlexLibrary when configured', function () {
     config([
         'services.slack.notifications.channel' => 'C-default',

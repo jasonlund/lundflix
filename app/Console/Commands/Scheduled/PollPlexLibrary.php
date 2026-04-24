@@ -109,6 +109,7 @@ class PollPlexLibrary extends Command
 
         if ($readyItems->isNotEmpty()) {
             $this->fulfillMatchingRequests($server, $readyItems, $plex);
+            $readyItems = $this->enrichNotificationItems($server, $readyItems, $plex);
             $this->sendSlackNotification($server, $readyItems);
         }
 
@@ -359,18 +360,7 @@ class PollPlexLibrary extends Command
      */
     private function resolveEpisode(PlexMediaServer $server, array $item, PlexService $plex): ?Episode
     {
-        $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
-        $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
-
-        if (! $this->hasShowIdentifiers($showIdentifiers) && isset($item['grandparent_rating_key'])) {
-            $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex);
-
-            if ($showMetadata) {
-                $showIdentifiers = $plex->extractExternalIdentifiers($showMetadata);
-            }
-        }
-
-        $show = $this->resolveShow($showIdentifiers);
+        $show = $this->resolveShowForEpisode($server, $item, $plex);
 
         if (! $show instanceof Show) {
             return null;
@@ -385,6 +375,25 @@ class PollPlexLibrary extends Command
             ->where('season', $item['season'])
             ->where('number', $item['episode_number'])
             ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function resolveShowForEpisode(PlexMediaServer $server, array $item, PlexService $plex): ?Show
+    {
+        $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
+        $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
+
+        if (! $this->hasShowIdentifiers($showIdentifiers) && isset($item['grandparent_rating_key'])) {
+            $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex);
+
+            if ($showMetadata) {
+                $showIdentifiers = $plex->extractExternalIdentifiers($showMetadata);
+            }
+        }
+
+        return $this->resolveShow($showIdentifiers);
     }
 
     /**
@@ -455,6 +464,53 @@ class PollPlexLibrary extends Command
     private function hasShowIdentifiers(array $identifiers): bool
     {
         return isset($identifiers['tmdb']) || isset($identifiers['imdb']) || isset($identifiers['tvdb']);
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function enrichNotificationItems(PlexMediaServer $server, Collection $items, PlexService $plex): Collection
+    {
+        return $items
+            ->map(function (array $item) use ($server, $plex): array {
+                return match ($item['media_type'] ?? null) {
+                    'movie' => $this->enrichMovieNotificationItem($server, $item, $plex),
+                    'episode' => $this->enrichEpisodeNotificationItem($server, $item, $plex),
+                    default => $item,
+                };
+            })
+            ->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function enrichMovieNotificationItem(PlexMediaServer $server, array $item, PlexService $plex): array
+    {
+        $movie = $this->resolveMovie($server, $item, $plex);
+
+        if ($movie instanceof Movie) {
+            $item['url'] = route('movies.show', $movie);
+        }
+
+        return $item;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function enrichEpisodeNotificationItem(PlexMediaServer $server, array $item, PlexService $plex): array
+    {
+        $show = $this->resolveShowForEpisode($server, $item, $plex);
+
+        if ($show instanceof Show) {
+            $item['show_url'] = route('shows.show', $show);
+        }
+
+        return $item;
     }
 
     /**

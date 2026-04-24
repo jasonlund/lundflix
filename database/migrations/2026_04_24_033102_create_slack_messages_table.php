@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamp('sent_at');
             $table->timestamps();
 
-            $table->index(['channel', 'message_ts']);
+            $table->unique(['channel', 'message_ts']);
         });
     }
 

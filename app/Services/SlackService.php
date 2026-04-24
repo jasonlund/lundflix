@@ -27,7 +27,7 @@ class SlackService
             'channel' => $message->channel,
             'ts' => $message->message_ts,
             'blocks' => $blocks,
-            'text' => strip_tags($content),
+            'text' => preg_replace('/\*([^*]+)\*/', '$1', $content),
         ]);
 
         if ($response->json('ok') !== true) {
