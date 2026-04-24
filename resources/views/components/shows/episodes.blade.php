@@ -345,7 +345,7 @@ new class extends Component {
                                                         ></div>
                                                     @endif
                                                     <span class="min-w-0 truncate">
-                                                        <span class="font-mono">
+                                                        <span class="font-mono text-zinc-400">
                                                             <span class="hidden sm:inline">
                                                                 {{ \App\Models\Episode::displayCode($episode) }}
                                                             </span>

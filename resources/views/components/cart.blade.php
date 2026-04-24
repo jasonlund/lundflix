@@ -216,7 +216,7 @@ new class extends Component {
                                 </div>
 
                                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                                    <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
+                                    <p class="truncate font-serif text-base leading-6 tracking-wide text-white">
                                         {{ $movie->title }}
                                     </p>
                                     @if ($movie->release_date)
@@ -263,7 +263,7 @@ new class extends Component {
                                 </div>
 
                                 <div class="flex min-w-0 flex-1 flex-col gap-1">
-                                    <p class="truncate font-serif text-base leading-snug tracking-wide text-white">
+                                    <p class="truncate font-serif text-base leading-6 tracking-wide text-white">
                                         {{ $showGroup['show']->name }}
                                     </p>
                                     <div class="flex flex-wrap gap-1">

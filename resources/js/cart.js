@@ -8,7 +8,9 @@ document.addEventListener('alpine:init', () => {
                 const saved = JSON.parse(localStorage.getItem('lundflix_cart') ?? '{}')
                 this.movies = saved.movies ?? []
                 this.episodes = saved.episodes ?? []
-            } catch {}
+            } catch {
+                localStorage.removeItem('lundflix_cart')
+            }
 
             // Listen for cart-submitted event from Livewire submit
             Livewire.on('cart-submitted', () => this.clear())

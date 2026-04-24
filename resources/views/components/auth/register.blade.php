@@ -92,16 +92,10 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
 };
 ?>
 
-<div class="flex min-h-screen items-center justify-center">
+<div class="flex min-h-dvh items-center justify-center">
     <div class="w-full max-w-md">
         <flux:card class="relative overflow-hidden">
-            <div class="pointer-events-none absolute inset-0 overflow-hidden">
-                <img src="{{ Vite::image('default-background.svg') }}" class="h-full w-full object-cover" />
-                <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-b from-transparent to-black/70"></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/60 to-zinc-950/10"></div>
-                <div class="absolute inset-0 bg-black/25"></div>
-                <x-crt-effects />
-            </div>
+            <x-auth-card-background />
 
             <div class="relative">
                 <flux:heading size="lg">Complete Registration</flux:heading>

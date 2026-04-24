@@ -4,10 +4,10 @@
     <head>
         @include('partials.head', ['title' => $message])
     </head>
-    <body class="flex min-h-screen items-center justify-center bg-zinc-950">
+    <body class="flex min-h-dvh items-center justify-center bg-zinc-950">
         <div class="px-6 text-center">
             <x-error-video :src="$src" :url="$url" :caption="$caption" />
-            <p class="text-3xl text-zinc-400">
+            <p class="text-3xl text-balance text-zinc-400">
                 <span class="font-mono font-semibold text-white">{{ $status }}</span>
                 <span class="mx-2 text-zinc-600">&middot;</span>
                 <span class="font-serif">{{ $message }}</span>

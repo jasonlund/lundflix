@@ -14,7 +14,7 @@
         default => 'aspect-[1000/562]',
     };
     $name = $model->name ?? ($model->title ?? '');
-    $fallbackTextClass = $size ? 'line-clamp-2 text-sm leading-tight' : 'truncate text-5xl';
+    $fallbackTextClass = $size ? 'line-clamp-2 text-sm leading-5' : 'truncate text-5xl';
 @endphp
 
 @if ($url)
