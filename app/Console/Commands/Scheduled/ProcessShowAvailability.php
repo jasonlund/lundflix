@@ -138,7 +138,7 @@ class ProcessShowAvailability extends Command
                 try {
                     $available = collect();
                     $groups = $allCandidates->groupBy(
-                        fn (Episode $e) => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
+                        fn (Episode $e): string => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
                     );
 
                     foreach ($groups as $episodes) {

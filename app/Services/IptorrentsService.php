@@ -51,7 +51,7 @@ class IptorrentsService
     public function searchMovie(Movie $movie): ?array
     {
         $defaultCategories = array_map(
-            fn (int $v) => IptCategory::from($v),
+            IptCategory::from(...),
             IptCategory::defaultMovieValues(),
         );
         $allCategories = IptCategory::movieCases();
@@ -86,7 +86,7 @@ class IptorrentsService
         $episode->loadMissing('show');
 
         $defaultCategories = array_map(
-            fn (int $v) => IptCategory::from($v),
+            IptCategory::from(...),
             IptCategory::defaultTvValues(),
         );
         $allCategories = IptCategory::tvCases();
