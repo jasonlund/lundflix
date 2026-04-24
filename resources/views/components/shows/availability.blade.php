@@ -21,12 +21,10 @@ new class extends Component {
     {
         return <<<'HTML'
         <div>
-            <flux:card class="overflow-hidden p-3">
-                <div class="flex w-full items-center justify-between">
-                    <flux:heading size="sm">Availability</flux:heading>
-                    <div class="flex items-center gap-3">
+            <flux:card class="cursor-wait overflow-hidden p-3">
+                <div class="flex w-full items-center">
+                    <div class="flex items-center gap-2">
                         <flux:icon.loading class="size-4 text-zinc-400" />
-                        <flux:icon.chevron-down class="size-4 text-zinc-400" />
                     </div>
                 </div>
             </flux:card>
@@ -284,9 +282,25 @@ new class extends Component {
 
 <div>
     <x-section heading="Availability" collapsible>
-        @if ($show->status)
-            <x-slot:badge>
-                <div class="flex items-center gap-1">
+        <x-slot:badge>
+            <div class="flex items-center gap-1.5 text-sm">
+                @php
+                    $yearLabel = Formatters::yearLabel($show);
+                    $hasPrevious = false;
+                @endphp
+
+                @if ($yearLabel)
+                    <span class="text-zinc-300">{{ $yearLabel }}</span>
+                    @php
+                        $hasPrevious = true;
+                    @endphp
+                @endif
+
+                @if ($show->status)
+                    @if ($hasPrevious)
+                        <x-middot />
+                    @endif
+
                     <x-dynamic-component
                         :component="'flux::icon.' . $show->status->icon()"
                         variant="micro"
@@ -295,37 +309,42 @@ new class extends Component {
                     <span class="{{ $show->status->iconColorClass() }} text-xs">
                         {{ $show->status->getLabel() }}
                     </span>
-                </div>
-            </x-slot>
-        @endif
+                    @php
+                        $hasPrevious = true;
+                    @endphp
+                @endif
 
-        <x-slot:action>
-            @if (count($this->serverDisplayData) > 0)
-                <div class="flex items-center gap-1.5 text-sm text-zinc-400">
-                    <flux:icon.check class="size-4" />
-                    @foreach ($this->serverDisplayData as $server)
-                        @if (! $loop->first)
-                            <span class="text-zinc-500">&nbsp;&middot;&nbsp;</span>
-                        @endif
+                @if ($hasPrevious)
+                    <x-middot />
+                @endif
 
-                        <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
-                            <flux:avatar
-                                size="xs"
-                                circle
-                                :src="$server['ownerThumb']"
-                                :name="$server['name']"
-                                :tooltip="$server['tooltip']"
-                            />
-                            <span>{{ $server['episodeCount'] }}</span>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="flex items-center gap-1.5 text-zinc-400">
-                    <flux:icon.x-mark class="size-4" />
-                    <span class="text-sm font-semibold">Unavailable</span>
-                </div>
-            @endif
+                @if (count($this->serverDisplayData) > 0)
+                    <div class="flex items-center gap-1.5 text-zinc-400">
+                        <x-plex-icon class="size-4" />
+                        @foreach ($this->serverDisplayData as $server)
+                            @if (! $loop->first)
+                                <x-middot />
+                            @endif
+
+                            <div class="flex items-center gap-1.5" wire:key="server-{{ $server['clientIdentifier'] }}">
+                                <flux:avatar
+                                    size="xs"
+                                    circle
+                                    :src="$server['ownerThumb']"
+                                    :name="$server['name']"
+                                    :tooltip="$server['tooltip']"
+                                />
+                                <span>{{ $server['episodeCount'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="flex items-center gap-1.5 text-zinc-400">
+                        <x-plex-icon class="size-4" />
+                        <span class="text-sm font-semibold">Unavailable</span>
+                    </div>
+                @endif
+            </div>
         </x-slot>
 
         @if (count($this->serverDisplayData) > 0)
@@ -395,7 +414,7 @@ new class extends Component {
                                     @endif
 
                                     @if ($milestone['date'] && $milestone['runtime'])
-                                        &middot;
+                                        <x-middot />
                                     @endif
 
                                     @if ($milestone['runtime'])

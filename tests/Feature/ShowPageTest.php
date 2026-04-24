@@ -72,9 +72,11 @@ it('displays show details', function () {
 
     Livewire::test('shows.show', ['show' => $show])
         ->assertSee('Breaking Bad')
-        ->assertSee('Ended')
         ->assertSee('1h')
         ->assertSeeHtml('class="relative overflow-hidden"');
+
+    Livewire::test('shows.availability', ['show' => $show])
+        ->assertSee('Ended');
 });
 
 it('displays approximate runtime when only average_runtime is set', function () {

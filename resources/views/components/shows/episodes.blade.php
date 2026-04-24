@@ -359,7 +359,7 @@ new class extends Component {
                                                         ></div>
                                                     @endif
                                                     <span class="min-w-0 truncate">
-                                                        <span class="font-mono">
+                                                        <span class="font-mono text-zinc-400">
                                                             <span class="hidden sm:inline">
                                                                 {{ \App\Models\Episode::displayCode($episode) }}
                                                             </span>
@@ -378,7 +378,7 @@ new class extends Component {
 
                                                         @if ($episode['airdate'])
                                                             @if ($episode['runtime'] ?? null)
-                                                                &middot;
+                                                                <x-middot />
                                                             @endif
 
                                                             {{ UserTime::format(AirDateTime::resolve($episode['airdate'], $episode['airtime'] ?? null, $this->show->web_channel, $this->show->network)) }}
