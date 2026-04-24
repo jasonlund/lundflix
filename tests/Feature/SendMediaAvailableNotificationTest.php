@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ReleaseQuality;
 use App\Events\MediaAvailable;
 use App\Models\Episode;
 use App\Models\Movie;
@@ -22,10 +21,10 @@ it('sends a slack notification when a movie becomes available', function () {
     $movie = Movie::factory()->create(['title' => 'Inception', 'year' => 2010]);
     $request = Request::factory()->create();
 
-    MediaAvailable::dispatch($request, $movie, null, ReleaseQuality::WEBDL);
+    MediaAvailable::dispatch($request, $movie);
 
     Notification::assertSentOnDemand(MediaAvailableNotification::class, function (MediaAvailableNotification $notification) use ($movie) {
-        return $notification->media->is($movie) && $notification->quality === ReleaseQuality::WEBDL;
+        return $notification->media->is($movie);
     });
 });
 
@@ -41,7 +40,7 @@ it('sends a slack notification when show episodes become available', function ()
     ]);
     $request = Request::factory()->create();
 
-    MediaAvailable::dispatch($request, $show, collect([$episode]), ReleaseQuality::WEBDL);
+    MediaAvailable::dispatch($request, $show, collect([$episode]));
 
     Notification::assertSentOnDemand(MediaAvailableNotification::class);
 });
@@ -53,7 +52,7 @@ it('skips notification when Slack is disabled', function () {
     $movie = Movie::factory()->create();
     $request = Request::factory()->create();
 
-    MediaAvailable::dispatch($request, $movie, null, null);
+    MediaAvailable::dispatch($request, $movie);
 
     Notification::assertNothingSent();
 });
@@ -65,7 +64,7 @@ it('skips notification when no channel is configured', function () {
     $movie = Movie::factory()->create();
     $request = Request::factory()->create();
 
-    MediaAvailable::dispatch($request, $movie, null, null);
+    MediaAvailable::dispatch($request, $movie);
 
     Notification::assertNothingSent();
 });

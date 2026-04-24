@@ -7,7 +7,6 @@ namespace App\Console\Commands\Scheduled;
 use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
-use App\Enums\ReleaseQuality;
 use App\Events\MediaAvailable;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
@@ -146,10 +145,7 @@ class ProcessShowAvailability extends Command
                         $result = $this->ipt->searchEpisode($probe);
 
                         if ($result !== null) {
-                            $quality = ReleaseQuality::fromReleaseName($result['name']);
-
                             foreach ($episodes as $episode) {
-                                $episode->ipt_quality = $quality;
                                 $available->push($episode);
                             }
                         }
@@ -211,12 +207,7 @@ class ProcessShowAvailability extends Command
                 ->sortBy([['season', 'asc'], ['number', 'asc']])
                 ->values();
 
-            $bestQuality = $episodes
-                ->map(fn (Episode $e) => $e->ipt_quality ?? null)
-                ->filter()
-                ->reduce(fn (?ReleaseQuality $carry, ReleaseQuality $q): ReleaseQuality => ! $carry instanceof ReleaseQuality || $q->value > $carry->value ? $q : $carry);
-
-            MediaAvailable::dispatch(null, $show, $episodes, $bestQuality);
+            MediaAvailable::dispatch(null, $show, $episodes);
         }
 
         $this->info("Processed {$processed} show availability check(s).");

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Enums\ReleaseQuality;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
@@ -26,7 +25,6 @@ class MediaAvailableNotification extends Notification
     public function __construct(
         public Movie|Show $media,
         public ?Collection $episodes = null,
-        public ?ReleaseQuality $quality = null,
     ) {}
 
     /**
@@ -56,18 +54,14 @@ class MediaAvailableNotification extends Notification
             $title .= " ({$movie->year})";
         }
 
-        $detail = $this->quality instanceof ReleaseQuality
-            ? $title.' — '.$this->quality->getLabel()
-            : $title;
-
         return (new SlackMessage)
-            ->text($detail)
+            ->text($title)
             ->headerBlock('🟢 Available')
             ->sectionBlock(function (SectionBlock $block): void {
                 $block->text(__('lundbergh.notification.movie_available'));
             })
-            ->sectionBlock(function (SectionBlock $block) use ($detail): void {
-                $block->text($detail)->markdown();
+            ->sectionBlock(function (SectionBlock $block) use ($title): void {
+                $block->text($title)->markdown();
             });
     }
 
@@ -96,10 +90,6 @@ class MediaAvailableNotification extends Notification
         }
 
         $detail = $show->name.' '.implode(', ', $parts);
-
-        if ($this->quality instanceof ReleaseQuality) {
-            $detail .= ' — '.$this->quality->getLabel();
-        }
 
         return (new SlackMessage)
             ->text($detail)

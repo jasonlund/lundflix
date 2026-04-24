@@ -8,7 +8,6 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
-use App\Enums\ReleaseQuality;
 use App\Events\MediaAvailable;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
@@ -64,9 +63,9 @@ class ProcessMovieAvailability extends Command
 
         $byMovie = $subscriptions->groupBy('subscribable_id');
 
-        /** @var array<int, ReleaseQuality|false|null> $checked */
+        /** @var array<int, bool> $checked */
         $checked = [];
-        /** @var array<int, array{movie: Movie, quality: ?ReleaseQuality}> $toDispatch */
+        /** @var array<int, Movie> $toDispatch */
         $toDispatch = [];
         $processed = 0;
 
@@ -76,10 +75,7 @@ class ProcessMovieAvailability extends Command
 
             if (! array_key_exists($movieId, $checked)) {
                 try {
-                    $result = $this->ipt->searchMovie($movie);
-                    $checked[$movieId] = $result
-                        ? ReleaseQuality::fromReleaseName($result['name'])
-                        : false;
+                    $checked[$movieId] = $this->ipt->searchMovie($movie) !== null;
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');
                     break;
@@ -95,9 +91,7 @@ class ProcessMovieAvailability extends Command
                 }
             }
 
-            $quality = $checked[$movieId];
-
-            if ($quality === false) {
+            if (! $checked[$movieId]) {
                 continue;
             }
 
@@ -112,11 +106,11 @@ class ProcessMovieAvailability extends Command
                 $processed++;
             }
 
-            $toDispatch[$movieId] = ['movie' => $movie, 'quality' => $quality];
+            $toDispatch[$movieId] = $movie;
         }
 
-        foreach ($toDispatch as $entry) {
-            MediaAvailable::dispatch(null, $entry['movie'], null, $entry['quality']);
+        foreach ($toDispatch as $movie) {
+            MediaAvailable::dispatch(null, $movie);
         }
 
         $this->info("Processed {$processed} movie availability check(s).");

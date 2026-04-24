@@ -6,7 +6,6 @@ namespace App\Models;
 
 use App\Enums\EpisodeType;
 use App\Enums\MediaType;
-use App\Enums\ReleaseQuality;
 use App\Support\EpisodeCode;
 use Database\Factories\EpisodeFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -16,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property EpisodeType $type
- * @property ReleaseQuality|null $ipt_quality Transient attribute set by ProcessShowAvailability command.
  */
 class Episode extends Model
 {

@@ -55,7 +55,7 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     expect(RequestItem::first()->requestable_id)->toBe($movie->id);
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
-    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->quality === \App\Enums\ReleaseQuality::WEBDL);
+    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->media->is($movie));
 });
 
 it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {
@@ -80,7 +80,7 @@ it('creates a request when IPTorrents finds a codec-only torrent in an allowed c
     expect(RequestItem::first()->requestable_id)->toBe($movie->id);
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
-    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->quality === null);
+    Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->media->is($movie));
 });
 
 it('does nothing when IPTorrents returns no results', function () {
