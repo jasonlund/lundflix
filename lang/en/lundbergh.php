@@ -21,6 +21,7 @@ return [
         'plex_redirect' => "Mmm yeah… so you're gonna be redirected to plex.tv to authenticate your account and verify your access for registration.\n\nYeah… if you don't already have access to the lundflix server, I'm gonna need you to go ahead and not waste everyone's time here. That'd be great.",
         'plex_password_reset' => "Yeah… so, you forgot your password. That's… not great.\n\nI'm gonna need you to go ahead and sign in with Plex to verify your identity. Once we confirm you are who you say you are, you can set a new password. That'd be great.",
         'password_reset_verified' => "Mmkay… so, we've confirmed you are who you say you are. Go ahead and set a new password below. And make sure it's something you'll actually remember this time. That'd be great.",
+        'profile_password_hint' => "Yeah… so, if you need to change your password, I'm gonna need you to go ahead and log out, then use the Forgot Password option on the login page. That'd be great.",
     ],
     'cart' => [
         'checkout_hint' => "Yeah… so, go ahead and hit Submit Request when you're ready. And make sure you use the new cover sheet on that. That'd be great.",
@@ -46,6 +47,7 @@ return [
         'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
         'subscribed' => "Yeah… so, you're now subscribed to :title. We'll keep you in the loop. That'd be great.",
         'unsubscribed' => "Mmm yeah… you've been unsubscribed from :title. So… yeah.",
+        'profile_updated' => "Mmkay… your profile has been updated. That'd be great.",
     ],
     'tooltip' => [
         'subscribe' => 'Yeah… go ahead and subscribe to this.',
