@@ -385,15 +385,17 @@ class PollPlexLibrary extends Command
         $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
         $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
 
-        if (! $this->hasShowIdentifiers($showIdentifiers) && isset($item['grandparent_rating_key'])) {
+        $show = $this->resolveShow($showIdentifiers);
+
+        if (! $show && isset($item['grandparent_rating_key'])) {
             $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex);
 
             if ($showMetadata) {
-                $showIdentifiers = $plex->extractExternalIdentifiers($showMetadata);
+                $show = $this->resolveShow($plex->extractExternalIdentifiers($showMetadata));
             }
         }
 
-        return $this->resolveShow($showIdentifiers);
+        return $show;
     }
 
     /**
@@ -456,14 +458,6 @@ class PollPlexLibrary extends Command
         }
 
         return $this->metadataCache[$cacheKey];
-    }
-
-    /**
-     * @param  array<string, mixed>  $identifiers
-     */
-    private function hasShowIdentifiers(array $identifiers): bool
-    {
-        return isset($identifiers['tmdb']) || isset($identifiers['imdb']) || isset($identifiers['tvdb']);
     }
 
     /**

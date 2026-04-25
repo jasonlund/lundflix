@@ -200,7 +200,10 @@ it('harvests ripe shows after debounce window', function () {
         fakeSectionRoutes($server->uri),
         [
             "{$server->uri}/library/metadata/200" => Http::response(
-                fakePlexMetadata(200, ['tmdb://1396'])
+                fakePlexMetadata(200, ['tmdb://62085'])
+            ),
+            "{$server->uri}/library/metadata/50" => Http::response(
+                fakePlexMetadata(50, ['tmdb://1396'])
             ),
         ],
     ));
@@ -675,7 +678,10 @@ it('skips episodes with null season or episode number', function () {
         fakeSectionRoutes($server->uri),
         [
             "{$server->uri}/library/metadata/200" => Http::response(
-                fakePlexMetadata(200, ['tmdb://1396'])
+                fakePlexMetadata(200, ['tmdb://62085'])
+            ),
+            "{$server->uri}/library/metadata/50" => Http::response(
+                fakePlexMetadata(50, ['tmdb://1396'])
             ),
         ],
     ));
