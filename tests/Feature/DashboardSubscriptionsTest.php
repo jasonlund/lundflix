@@ -400,3 +400,92 @@ it('includes today\'s episodes when UTC date is ahead of user timezone', functio
         ->and($rows->first()['subtitle'])->toBe('S01E01')
         ->and($rows->first()['detail'])->not->toBe('Unknown');
 });
+
+it('excludes Apple TV+ episodes from upcoming when they have already aired via override', function () {
+    // Apple TV+ drops at 6 PM PT the day before the stored airdate.
+    // Travel to 8 PM PT on April 22 — episode with airdate April 23 has already aired.
+    $this->travelTo(Carbon::parse('2026-04-22 20:00', 'America/Los_Angeles')->utc());
+
+    $user = User::factory()->create(['timezone' => 'America/Chicago']);
+    $show = Show::factory()->appleTvPlus()->create(['name' => 'For All Mankind']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 5,
+        'number' => 5,
+        'airdate' => '2026-04-23',
+        'airtime' => null,
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['detail'])->toBe('Unknown');
+});
+
+it('shows Apple TV+ episode in recent view after it has aired via override', function () {
+    // April 23 noon CT = April 23 17:00 UTC.
+    // Apple TV+ episode with airdate April 23 dropped at 6 PM PT on April 22 (01:00 UTC April 23).
+    $this->travelTo(Carbon::parse('2026-04-23 12:00', 'America/Chicago')->utc());
+
+    $user = User::factory()->create(['timezone' => 'America/Chicago']);
+    $show = Show::factory()->appleTvPlus()->create(['name' => 'For All Mankind']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 5,
+        'number' => 5,
+        'airdate' => '2026-04-23',
+        'airtime' => null,
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('For All Mankind')
+        ->and($rows->first()['subtitle'])->toBe('S05E05')
+        ->and($rows->first()['detail'])->toBe('16h');
+});
+
+it('keeps non-override episodes with future airtime in upcoming view', function () {
+    $this->travelTo(now()->startOfDay()->addHours(12));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'NBC Show']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today(),
+        'airtime' => '21:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('NBC Show')
+        ->and($rows->first()['detail'])->not->toBe('Unknown');
+});
+
+it('excludes non-override episodes with future airtime from recent view', function () {
+    $this->travelTo(now()->startOfDay()->addHours(12));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'NBC Show']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today(),
+        'airtime' => '21:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
