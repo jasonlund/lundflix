@@ -231,6 +231,8 @@ new class extends Component {
                     this.seasonSelections[s].push(e.code.toUpperCase())
                 }
             })
+
+            this.$nextTick(() => this.handleHashNavigation())
         },
         get selected() {
             return Object.values(this.seasonSelections).flat()
@@ -239,6 +241,61 @@ new class extends Component {
             if (! this.seasonSelections[num]) {
                 this.seasonSelections[num] = []
             }
+        },
+        async handleHashNavigation() {
+            const hash = window.location.hash.replace(/^#/, '')
+
+            if (! hash) {
+                return
+            }
+
+            const target = document.getElementById(hash)
+
+            if (! target) {
+                return
+            }
+
+            const seasonContainer = target.matches('[data-season-anchor]')
+                ? target
+                : target.closest('[data-season-anchor]')
+
+            if (seasonContainer) {
+                await this.openSeason(seasonContainer)
+            }
+
+            requestAnimationFrame(() => {
+                target.scrollIntoView({ block: 'center' })
+                target.focus({ preventScroll: true })
+            })
+        },
+        async openSeason(seasonContainer) {
+            const accordionItem = seasonContainer.querySelector('[data-flux-accordion-item]')
+            const heading = seasonContainer.querySelector('[data-flux-accordion-heading]')
+
+            if (! accordionItem || ! heading || accordionItem.hasAttribute('data-open')) {
+                return
+            }
+
+            await new Promise((resolve) => {
+                const observer = new MutationObserver(() => {
+                    if (accordionItem.hasAttribute('data-open')) {
+                        observer.disconnect()
+                        resolve()
+                    }
+                })
+
+                observer.observe(accordionItem, {
+                    attributes: true,
+                    attributeFilter: ['data-open'],
+                })
+
+                heading.click()
+
+                setTimeout(() => {
+                    observer.disconnect()
+                    resolve()
+                }, 300)
+            })
         },
         scheduleSync() {
             clearTimeout(this.syncTimeout)
@@ -297,6 +354,12 @@ new class extends Component {
             )
         },
     }"
+    x-init="
+        const handleHashChange = () => handleHashNavigation()
+        window.addEventListener('hashchange', handleHashChange)
+
+        return () => window.removeEventListener('hashchange', handleHashChange)
+    "
 >
     <x-section heading="Episodes">
         @if ($this->seasons->count() > 1)
@@ -316,7 +379,14 @@ new class extends Component {
                     <flux:separator />
                 @endif
 
-                <div x-init="initSeason('{{ $season['number'] }}')" wire:key="season-{{ $season['number'] }}">
+                <div
+                    id="season-s{{ $this->pad($season['number']) }}"
+                    tabindex="-1"
+                    class="scroll-mt-24"
+                    x-init="initSeason('{{ $season['number'] }}')"
+                    data-season-anchor
+                    wire:key="season-{{ $season['number'] }}"
+                >
                     <flux:checkbox.group
                         x-model="seasonSelections['{{ $season['number'] }}']"
                         @change="scheduleSync()"
@@ -345,8 +415,13 @@ new class extends Component {
                                     <div class="space-y-1">
                                         @foreach ($season['episodes'] as $episode)
                                             <div
+                                                id="episode-{{ strtolower(\App\Models\Episode::displayCode($episode)) }}"
+                                                tabindex="-1"
                                                 wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
-                                                @class(['flex items-center', 'cursor-not-allowed opacity-50' => ! $this->hasAired($episode)])
+                                                @class([
+                                                    'flex items-center scroll-mt-24',
+                                                    'cursor-not-allowed opacity-50' => ! $this->hasAired($episode),
+                                                ])
                                             >
                                                 <div class="flex min-w-0 flex-1 items-center gap-2">
                                                     @if ($this->hasAired($episode))

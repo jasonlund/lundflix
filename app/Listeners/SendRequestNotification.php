@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Enums\SlackNotificationType;
 use App\Events\RequestSubmitted;
 use App\Models\Episode;
 use App\Notifications\RequestItemsNotification;
@@ -26,7 +27,7 @@ class SendRequestNotification implements ShouldQueue
             return;
         }
 
-        $channel = config('services.slack.notifications.channel');
+        $channel = SlackNotificationType::RequestItems->channel();
 
         if (! $channel) {
             Log::warning('Slack notification skipped: channel not configured', [
