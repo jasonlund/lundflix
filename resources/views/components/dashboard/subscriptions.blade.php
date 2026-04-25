@@ -164,9 +164,7 @@ new class extends Component {
     private function buildUpcomingShowRow(Show $show): array
     {
         $episodes = $show->episodes->reject(
-            fn (Episode $ep) => AirDateTime::hasAired(
-                $ep->airdate, $ep->airtime, $show->web_channel, $show->network
-            )
+            fn (Episode $ep) => AirDateTime::hasAired($ep->airdate, $ep->airtime, $show->web_channel, $show->network),
         );
 
         if ($episodes->isEmpty()) {
@@ -228,9 +226,14 @@ new class extends Component {
     private function buildRecentShowRow(Show $show): ?array
     {
         $episode = $show->episodes
-            ->filter(fn (Episode $ep) => AirDateTime::hasAired(
-                $ep->airdate, $ep->airtime, $show->web_channel, $show->network
-            ))
+            ->filter(
+                fn (Episode $ep) => AirDateTime::hasAired(
+                    $ep->airdate,
+                    $ep->airtime,
+                    $show->web_channel,
+                    $show->network,
+                ),
+            )
             ->first();
 
         if (! $episode) {
