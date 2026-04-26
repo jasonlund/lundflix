@@ -48,6 +48,6 @@ changed_summary="$(printf '%s\n' "$changed_files" | head -n 6 | tr '\n' '; ' | s
 cat <<JSON
 {
   "decision": "block",
-  "reason": "Run verification before stopping. Recent changes: $changed_summary"
+  "reason": "Run the smallest relevant verification before stopping. Recent changes: $changed_summary"
 }
 JSON

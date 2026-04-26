@@ -7,7 +7,6 @@ use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
-use App\Notifications\RequestProcessedNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
