@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 it('loads the authenticated user data on mount', function () {
@@ -27,7 +28,8 @@ it('updates user name and timezone', function () {
         ->test('profile-form')
         ->set('name', 'New Name')
         ->set('timezone', 'Europe/London')
-        ->call('save');
+        ->call('save')
+        ->assertDispatched('profile-updated');
 
     $user->refresh();
 
@@ -70,12 +72,33 @@ it('does not update email', function () {
 
     Livewire::actingAs($user)
         ->test('profile-form')
-        ->set('email', 'changed@example.com')
-        ->call('save');
+        ->set('email', 'changed@example.com');
+})->throws(CannotUpdateLockedPropertyException::class);
 
-    $user->refresh();
+it('resets dirty state and validation on cancel', function () {
+    $user = User::factory()->create([
+        'name' => 'Original Name',
+        'timezone' => 'America/Chicago',
+    ]);
 
-    expect($user->email)->toBe('original@example.com');
+    Livewire::actingAs($user)
+        ->test('profile-form')
+        ->set('name', 'Unsaved Name')
+        ->set('timezone', 'Europe/London')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    Livewire::actingAs($user)
+        ->test('profile-form')
+        ->set('name', '')
+        ->call('save')
+        ->assertHasErrors(['name'])
+        ->set('name', 'Dirty Name')
+        ->set('timezone', 'Asia/Tokyo')
+        ->call('cancel')
+        ->assertHasNoErrors()
+        ->assertSet('name', 'Unsaved Name')
+        ->assertSet('timezone', 'Europe/London');
 });
 
 it('is present on authenticated pages', function () {

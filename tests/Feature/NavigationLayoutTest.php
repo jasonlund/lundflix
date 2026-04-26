@@ -11,6 +11,7 @@ it('renders mobile-friendly navigation labels', function () {
         ->assertSeeHtml('src="'.Vite::image('default-background.svg').'"')
         ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Search</span>')
         ->assertSee('Logout')
+        ->assertSeeHtml('data-flux-avatar')
         ->assertSeeHtml('text-lundflix')
         ->assertDontSee('[&>div.text-xs]:hidden');
 });

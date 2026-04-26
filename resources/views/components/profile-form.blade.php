@@ -1,6 +1,8 @@
 <?php
 
 use Flux\Flux;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -11,6 +13,7 @@ new class extends Component {
     #[Validate('required|timezone:all')]
     public string $timezone = '';
 
+    #[Locked]
     public string $email = '';
 
     public function mount(): void
@@ -25,6 +28,7 @@ new class extends Component {
     /**
      * @return array<string, string>
      */
+    #[Computed]
     public function timezoneOptions(): array
     {
         $zones = [
@@ -85,6 +89,19 @@ new class extends Component {
         return array_map(fn ($item) => $item['label'], $options);
     }
 
+    public function cancel(): void
+    {
+        $user = auth()->user();
+
+        $this->name = $user->name;
+        $this->timezone = $user->timezone;
+        $this->email = $user->email;
+
+        $this->resetValidation();
+
+        $this->modal('profile')->close();
+    }
+
     public function save(): void
     {
         $validated = $this->validate();
@@ -97,6 +114,8 @@ new class extends Component {
             ]);
 
         $this->modal('profile')->close();
+
+        $this->dispatch('profile-updated');
 
         Flux::toast(text: __('lundbergh.toast.profile_updated'), variant: 'success');
     }
@@ -119,7 +138,7 @@ new class extends Component {
             <flux:field>
                 <flux:label>Timezone</flux:label>
                 <flux:select variant="listbox" searchable wire:model="timezone" placeholder="Select timezone...">
-                    @foreach ($this->timezoneOptions() as $value => $label)
+                    @foreach ($this->timezoneOptions as $value => $label)
                         <flux:select.option :$value>{{ $label }}</flux:select.option>
                     @endforeach
                 </flux:select>
@@ -130,6 +149,7 @@ new class extends Component {
 
             <div class="flex">
                 <flux:spacer />
+                <flux:button wire:click="cancel">Cancel</flux:button>
                 <flux:button type="submit" variant="primary">Save</flux:button>
             </div>
         </form>
