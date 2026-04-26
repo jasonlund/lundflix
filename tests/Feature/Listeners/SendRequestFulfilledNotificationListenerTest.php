@@ -26,7 +26,7 @@ it('implements ShouldQueue', function () {
         ->toImplement(ShouldQueue::class);
 });
 
-it('sends slack notification when slack is enabled and channel is configured', function () {
+it('is silenced and does not send even when slack is enabled', function () {
     Notification::fake();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
 
@@ -37,10 +37,10 @@ it('sends slack notification when slack is enabled and channel is configured', f
     $listener = new SendRequestFulfilledNotification;
     $listener->handle(new RequestFulfilled($request));
 
-    Notification::assertSentOnDemand(RequestProcessedNotification::class);
+    Notification::assertNothingSent();
 });
 
-it('sends notification with episodes', function () {
+it('is silenced even with episode items', function () {
     Notification::fake();
     config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
 
@@ -57,7 +57,7 @@ it('sends notification with episodes', function () {
     $listener = new SendRequestFulfilledNotification;
     $listener->handle(new RequestFulfilled($request));
 
-    Notification::assertSentOnDemand(RequestProcessedNotification::class);
+    Notification::assertNothingSent();
 });
 
 it('does not send notification when slack is disabled', function () {

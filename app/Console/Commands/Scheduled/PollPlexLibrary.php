@@ -29,6 +29,12 @@ class PollPlexLibrary extends Command
     /** @var array<string, array<string, mixed>|null> */
     private array $metadataCache = [];
 
+    /** @var array<string, Movie|null> */
+    private array $resolvedMovies = [];
+
+    /** @var array<string, Show|null> */
+    private array $resolvedShows = [];
+
     public function handle(PlexService $plex): int
     {
         $servers = PlexMediaServer::query()
@@ -58,6 +64,8 @@ class PollPlexLibrary extends Command
     private function pollServer(PlexMediaServer $server, PlexService $plex): void
     {
         $this->metadataCache = [];
+        $this->resolvedMovies = [];
+        $this->resolvedShows = [];
         $cid = $server->client_identifier;
 
         $hwm = (int) Cache::get("plex:poll:hwm:{$cid}", 0);
@@ -337,22 +345,26 @@ class PollPlexLibrary extends Command
      */
     private function resolveMovie(PlexMediaServer $server, array $item, PlexService $plex): ?Movie
     {
-        $metadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
+        $ratingKey = $item['rating_key'] ?? '';
+
+        if (array_key_exists($ratingKey, $this->resolvedMovies)) {
+            return $this->resolvedMovies[$ratingKey];
+        }
+
+        $metadata = $this->fetchMetadata($server, $ratingKey ?: null, $plex);
         $identifiers = $metadata ? $plex->extractExternalIdentifiers($metadata) : [];
+
+        $movie = null;
 
         if (isset($identifiers['tmdb'])) {
             $movie = Movie::query()->where('tmdb_id', (int) $identifiers['tmdb'])->first();
-
-            if ($movie) {
-                return $movie;
-            }
         }
 
-        if (isset($identifiers['imdb'])) {
-            return Movie::query()->where('imdb_id', $identifiers['imdb'])->first();
+        if (! $movie && isset($identifiers['imdb'])) {
+            $movie = Movie::query()->where('imdb_id', $identifiers['imdb'])->first();
         }
 
-        return null;
+        return $this->resolvedMovies[$ratingKey] = $movie;
     }
 
     /**
@@ -382,7 +394,13 @@ class PollPlexLibrary extends Command
      */
     private function resolveShowForEpisode(PlexMediaServer $server, array $item, PlexService $plex): ?Show
     {
-        $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
+        $ratingKey = $item['rating_key'] ?? '';
+
+        if (array_key_exists($ratingKey, $this->resolvedShows)) {
+            return $this->resolvedShows[$ratingKey];
+        }
+
+        $episodeMetadata = $this->fetchMetadata($server, $ratingKey ?: null, $plex);
         $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
 
         $show = $this->resolveShow($showIdentifiers);
@@ -395,7 +413,7 @@ class PollPlexLibrary extends Command
             }
         }
 
-        return $show;
+        return $this->resolvedShows[$ratingKey] = $show;
     }
 
     /**

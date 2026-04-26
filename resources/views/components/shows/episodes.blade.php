@@ -269,33 +269,23 @@ new class extends Component {
             })
         },
         async openSeason(seasonContainer) {
-            const accordionItem = seasonContainer.querySelector('[data-flux-accordion-item]')
-            const heading = seasonContainer.querySelector('[data-flux-accordion-heading]')
+            const accordionItem = seasonContainer.querySelector(
+                '[data-flux-accordion-item]',
+            )
+            const button = seasonContainer.querySelector(
+                '[data-flux-accordion-heading] button',
+            )
 
-            if (! accordionItem || ! heading || accordionItem.hasAttribute('data-open')) {
+            if (
+                ! accordionItem ||
+                ! button ||
+                accordionItem.hasAttribute('data-open')
+            ) {
                 return
             }
 
-            await new Promise((resolve) => {
-                const observer = new MutationObserver(() => {
-                    if (accordionItem.hasAttribute('data-open')) {
-                        observer.disconnect()
-                        resolve()
-                    }
-                })
-
-                observer.observe(accordionItem, {
-                    attributes: true,
-                    attributeFilter: ['data-open'],
-                })
-
-                heading.click()
-
-                setTimeout(() => {
-                    observer.disconnect()
-                    resolve()
-                }, 300)
-            })
+            button.click()
+            await new Promise((resolve) => requestAnimationFrame(resolve))
         },
         scheduleSync() {
             clearTimeout(this.syncTimeout)
@@ -355,7 +345,7 @@ new class extends Component {
         },
     }"
     x-init="
-        const handleHashChange = () => handleHashNavigation()
+        const handleHashChange = () => this.handleHashNavigation()
         window.addEventListener('hashchange', handleHashChange)
 
         return () => window.removeEventListener('hashchange', handleHashChange)
@@ -418,10 +408,7 @@ new class extends Component {
                                                 id="episode-{{ strtolower(\App\Models\Episode::displayCode($episode)) }}"
                                                 tabindex="-1"
                                                 wire:key="episode-{{ $episode['id'] ?? $episode['tvmaze_id'] }}"
-                                                @class([
-                                                    'flex items-center scroll-mt-24',
-                                                    'cursor-not-allowed opacity-50' => ! $this->hasAired($episode),
-                                                ])
+                                                @class(['flex scroll-mt-24 items-center', 'cursor-not-allowed opacity-50' => ! $this->hasAired($episode)])
                                             >
                                                 <div class="flex min-w-0 flex-1 items-center gap-2">
                                                     @if ($this->hasAired($episode))

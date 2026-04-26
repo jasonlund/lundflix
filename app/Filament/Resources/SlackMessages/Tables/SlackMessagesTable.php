@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use RuntimeException;
 
 class SlackMessagesTable
 {
@@ -45,6 +46,7 @@ class SlackMessagesTable
                     ->schema([
                         Textarea::make('content')
                             ->required()
+                            ->maxLength(3000)
                             ->rows(6),
                     ])
                     ->action(function (array $data, SlackMessage $record): void {
@@ -55,7 +57,7 @@ class SlackMessagesTable
                                 ->title('Message updated')
                                 ->success()
                                 ->send();
-                        } catch (\RuntimeException $e) {
+                        } catch (RuntimeException $e) {
                             Notification::make()
                                 ->title('Failed to update message')
                                 ->body($e->getMessage())
@@ -76,7 +78,7 @@ class SlackMessagesTable
                                 ->title('Message deleted')
                                 ->success()
                                 ->send();
-                        } catch (\RuntimeException $e) {
+                        } catch (RuntimeException $e) {
                             Notification::make()
                                 ->title('Failed to delete message')
                                 ->body($e->getMessage())
@@ -89,27 +91,26 @@ class SlackMessagesTable
 
     private static function formatSlackContent(string $content): string
     {
-        $anchors = [];
+        $html = preg_replace_callback(
+            '/<((?:https?:\/\/|mailto:)[^>|]+)\|([^>]+)>|\*([^*]+)\*|([^<*]+|[<*])/',
+            function (array $m): string {
+                if ($m[1] !== '') {
+                    return sprintf(
+                        '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                        e($m[1]),
+                        e($m[2]),
+                    );
+                }
 
-        $content = preg_replace_callback(
-            '/<((?:https?:\/\/|mailto:)[^>|]+)\|([^>]+)>/',
-            function (array $matches) use (&$anchors): string {
-                $placeholder = '__SLACK_LINK_'.count($anchors).'__';
-                $anchors[$placeholder] = sprintf(
-                    '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-                    e($matches[1]),
-                    e($matches[2]),
-                );
+                if ($m[3] !== '') {
+                    return '<strong>'.e($m[3]).'</strong>';
+                }
 
-                return $placeholder;
+                return e($m[0]);
             },
             $content,
-        ) ?? $content;
+        ) ?? e($content);
 
-        $content = e($content);
-        $content = preg_replace('/\*([^*]+)\*/', '<strong>$1</strong>', $content) ?? $content;
-        $content = str_replace(array_keys($anchors), array_values($anchors), $content);
-
-        return nl2br($content);
+        return nl2br($html);
     }
 }

@@ -39,15 +39,18 @@ it('updates a slack message via the API', function () {
     expect($message->fresh()->content)->toBe($newContent);
 });
 
-it('throws on update failure', function () {
+it('rolls back the database on update failure', function () {
     Http::fake([
         'slack.com/api/chat.update' => Http::response(['ok' => false, 'error' => 'channel_not_found']),
     ]);
 
-    $message = SlackMessage::factory()->create();
+    $message = SlackMessage::factory()->create(['content' => 'original content']);
 
-    (new SlackService)->updateMessage($message, 'new content');
-})->throws(RuntimeException::class, 'Slack API error: channel_not_found');
+    expect(fn () => (new SlackService)->updateMessage($message, 'new content'))
+        ->toThrow(RuntimeException::class, 'Slack API error: channel_not_found');
+
+    expect($message->fresh()->content)->toBe('original content');
+});
 
 it('deletes a slack message via the API', function () {
     Http::fake([
@@ -70,7 +73,7 @@ it('deletes a slack message via the API', function () {
     expect(SlackMessage::find($message->id))->toBeNull();
 });
 
-it('throws on delete failure', function () {
+it('still deletes the database record when slack returns message_not_found', function () {
     Http::fake([
         'slack.com/api/chat.delete' => Http::response(['ok' => false, 'error' => 'message_not_found']),
     ]);
@@ -78,4 +81,16 @@ it('throws on delete failure', function () {
     $message = SlackMessage::factory()->create();
 
     (new SlackService)->deleteMessage($message);
-})->throws(RuntimeException::class, 'Slack API error: message_not_found');
+
+    expect(SlackMessage::find($message->id))->toBeNull();
+});
+
+it('throws on delete failure for other errors', function () {
+    Http::fake([
+        'slack.com/api/chat.delete' => Http::response(['ok' => false, 'error' => 'channel_not_found']),
+    ]);
+
+    $message = SlackMessage::factory()->create();
+
+    (new SlackService)->deleteMessage($message);
+})->throws(RuntimeException::class, 'Slack API error: channel_not_found');

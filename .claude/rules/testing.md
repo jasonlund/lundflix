@@ -1,13 +1,11 @@
 # Verification
 
-- Do not claim a change works without evidence.
 - After repo changes, run the smallest relevant automated verification before stopping.
 - Minimum expectations:
   - PHP changes: `vendor/bin/pint --dirty` and targeted `php artisan test --compact`
   - Blade, CSS, or JavaScript changes: `npm run format:check` and `npm run lint`, plus targeted tests or builds when needed
   - Claude context and hook changes: validate JSON, syntax-check hook scripts, and run targeted tests that cover the configuration layout
-- If verification cannot run after code changes, note `VERIFICATION_SKIPPED: <reason>` inline — never as the final standalone message.
-- For non-trivial changes, run the `verification-reviewer` subagent before reporting completion.
+- Do not narrate verification results. Only mention failures that need attention.
 
 ## Browser Testing
 

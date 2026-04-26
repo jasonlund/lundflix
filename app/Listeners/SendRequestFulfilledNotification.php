@@ -19,6 +19,9 @@ class SendRequestFulfilledNotification implements ShouldQueue
 
     public function handle(RequestFulfilled $event): void
     {
+        // Silenced — keeping the listener wired up so it can be re-enabled later.
+        return;
+
         if (! config('services.slack.enabled')) {
             Log::warning('Slack notification skipped: Slack is not enabled', [
                 'request_id' => $event->request->id,

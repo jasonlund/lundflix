@@ -11,10 +11,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
+
+it('is registered as a listener for NotificationSent', function () {
+    Event::fake([NotificationSent::class]);
+
+    Event::assertListening(
+        NotificationSent::class,
+        StoreSlackMessage::class,
+    );
+});
 
 function fakeSlackResponse(
     bool $ok = true,

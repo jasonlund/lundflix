@@ -9,7 +9,7 @@
 ## Workflow
 
 - Never commit or push without explicit user permission.
-- For code changes, run the smallest relevant verification before stopping.
+- Run verification silently after code changes. Only surface failures.
 - Preferred verification commands:
   - PHP formatting: `vendor/bin/pint --dirty`
   - PHP static analysis: `composer phpstan`
@@ -55,4 +55,5 @@
 - Never use inline `style` attributes.
 - Do not add emojis to files unless the user requests it. Exceptions: the app footer emoji in `resources/views/components/layouts/app.blade.php` is intentional branding, and regional flag emojis generated from country codes in `resources/views/components/movies/availability.blade.php` are allowed for release metadata.
 - Blade directives do not work inside component attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+- **No vanilla JS hacks.** Do not reach for `setTimeout`, `MutationObserver`, or similar low-level browser APIs to orchestrate UI behavior. All client-side interactivity can and should be accomplished with Alpine.js (and Livewire for server state).
 - **Glassy UI — no solid colors.** All backgrounds (including active/highlighted states) must use transparency and `backdrop-blur-sm` to maintain a translucent aesthetic. For example, use `bg-lundflix/80 backdrop-blur-sm` instead of `bg-lundflix`. Inactive states use `bg-white/10 backdrop-blur-sm`. This applies to buttons, badges, pills, cards, and any other UI elements. Exceptions: the shared app footer in `resources/views/components/layouts/app.blade.php` may use `bg-black`, and the submit button in `resources/views/components/cart.blade.php` may use an opaque branded fill without `backdrop-blur-sm`.

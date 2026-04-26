@@ -13,6 +13,10 @@ class SlackService
 {
     public function updateMessage(SlackMessage $message, string $content): void
     {
+        $originalContent = $message->content;
+
+        $message->update(['content' => $content]);
+
         $blocks = [
             [
                 'type' => 'section',
@@ -31,10 +35,10 @@ class SlackService
         ]);
 
         if ($response->json('ok') !== true) {
+            $message->update(['content' => $originalContent]);
+
             throw new RuntimeException('Slack API error: '.$response->json('error', 'unknown'));
         }
-
-        $message->update(['content' => $content]);
     }
 
     public function deleteMessage(SlackMessage $message): void
@@ -44,8 +48,10 @@ class SlackService
             'ts' => $message->message_ts,
         ]);
 
-        if ($response->json('ok') !== true) {
-            throw new RuntimeException('Slack API error: '.$response->json('error', 'unknown'));
+        $error = $response->json('error');
+
+        if ($response->json('ok') !== true && $error !== 'message_not_found') {
+            throw new RuntimeException('Slack API error: '.($error ?? 'unknown'));
         }
 
         $message->delete();

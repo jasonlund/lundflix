@@ -18,19 +18,6 @@ if [[ "$stop_hook_active" == true ]]; then
     exit 0
 fi
 
-last_assistant_message="$(INPUT="$input" python3 - <<'PY'
-import json
-import os
-
-data = json.loads(os.environ["INPUT"])
-print(data.get("last_assistant_message", ""))
-PY
-)"
-
-if [[ "$last_assistant_message" == *"VERIFICATION_SKIPPED:"* ]]; then
-    exit 0
-fi
-
 changed_files="$(git -C "$project_dir" status --porcelain)"
 
 if [[ -z "$changed_files" ]]; then
@@ -61,6 +48,6 @@ changed_summary="$(printf '%s\n' "$changed_files" | head -n 6 | tr '\n' '; ' | s
 cat <<JSON
 {
   "decision": "block",
-  "reason": "Run the smallest relevant verification before stopping, or say VERIFICATION_SKIPPED: <reason>. Recent changes: $changed_summary"
+  "reason": "Run verification before stopping. Recent changes: $changed_summary"
 }
 JSON
