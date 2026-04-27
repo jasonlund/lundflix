@@ -152,7 +152,7 @@ class AirDateTime
     {
         $cutoffs = [];
 
-        foreach (self::OVERRIDES as $channelId => $config) {
+        foreach (array_keys(self::OVERRIDES) as $channelId) {
             $cutoffs[$channelId] = self::effectiveAirDateCutoff(['id' => $channelId]);
         }
 
