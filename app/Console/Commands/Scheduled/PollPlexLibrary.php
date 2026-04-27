@@ -117,7 +117,6 @@ class PollPlexLibrary extends Command
 
         if ($readyItems->isNotEmpty()) {
             $this->fulfillMatchingRequests($server, $readyItems, $plex);
-            $readyItems = $this->enrichNotificationItems($server, $readyItems, $plex);
             $this->sendSlackNotification($server, $readyItems);
         }
 
@@ -476,51 +475,6 @@ class PollPlexLibrary extends Command
         }
 
         return $this->metadataCache[$cacheKey];
-    }
-
-    /**
-     * @param  Collection<int, array<string, mixed>>  $items
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function enrichNotificationItems(PlexMediaServer $server, Collection $items, PlexService $plex): Collection
-    {
-        return $items
-            ->map(fn (array $item): array => match ($item['media_type'] ?? null) {
-                'movie' => $this->enrichMovieNotificationItem($server, $item, $plex),
-                'episode' => $this->enrichEpisodeNotificationItem($server, $item, $plex),
-                default => $item,
-            })
-            ->values();
-    }
-
-    /**
-     * @param  array<string, mixed>  $item
-     * @return array<string, mixed>
-     */
-    private function enrichMovieNotificationItem(PlexMediaServer $server, array $item, PlexService $plex): array
-    {
-        $movie = $this->resolveMovie($server, $item, $plex);
-
-        if ($movie instanceof Movie) {
-            $item['url'] = route('movies.show', $movie);
-        }
-
-        return $item;
-    }
-
-    /**
-     * @param  array<string, mixed>  $item
-     * @return array<string, mixed>
-     */
-    private function enrichEpisodeNotificationItem(PlexMediaServer $server, array $item, PlexService $plex): array
-    {
-        $show = $this->resolveShowForEpisode($server, $item, $plex);
-
-        if ($show instanceof Show) {
-            $item['show_url'] = route('shows.show', $show);
-        }
-
-        return $item;
     }
 
     /**

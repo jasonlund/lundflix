@@ -27,15 +27,14 @@ it('displays slack messages in the list', function () {
         ->assertSee('Inception (2010)');
 });
 
-it('renders slack mrkdwn links as readable anchors', function () {
+it('renders plain text library notification content', function () {
     SlackMessage::factory()->create([
-        'content' => "*☑️ Added to library on Main Plex*\n\n<https://lundflix.test/movies/inception|Inception (2010)>",
+        'content' => "*☑️ Added to the library of Main Plex*\n\nInception (2010)",
     ]);
 
     Livewire::test(ListSlackMessages::class)
         ->assertSee('Inception (2010)')
-        ->assertDontSee('<https://lundflix.test/movies/inception|Inception (2010)>')
-        ->assertSeeHtml('href="https://lundflix.test/movies/inception"');
+        ->assertSee('Added to the library of Main Plex');
 });
 
 it('can filter by type', function () {

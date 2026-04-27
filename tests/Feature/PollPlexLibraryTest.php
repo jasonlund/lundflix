@@ -395,10 +395,10 @@ it('continues processing other servers when one fails', function () {
     });
 });
 
-it('restores server context and enriches plex library notifications with app links', function () {
+it('restores server context and sends plex library notification', function () {
     $server = createPollableServer(['name' => 'Main Plex']);
-    $movie = Movie::factory()->create(['tmdb_id' => 27205]);
-    $show = Show::factory()->create(['tmdb_id' => 1396]);
+    Movie::factory()->create(['tmdb_id' => 27205]);
+    Show::factory()->create(['tmdb_id' => 1396]);
     $now = now()->timestamp;
     $pastTime = now()->subMinutes(10)->timestamp;
     $cid = $server->client_identifier;
@@ -437,17 +437,11 @@ it('restores server context and enriches plex library notifications with app lin
 
     $this->artisan('plex:poll-library')->assertSuccessful();
 
-    Notification::assertSentOnDemand(PlexLibraryNotification::class, function (PlexLibraryNotification $notification) use ($movie, $server, $show) {
-        $movieItem = $notification->items->firstWhere('media_type', 'movie');
-        $episodeItem = $notification->items->firstWhere('media_type', 'episode');
+    Notification::assertSentOnDemand(PlexLibraryNotification::class, function (PlexLibraryNotification $notification) use ($server) {
         $payload = $notification->toSlack(new AnonymousNotifiable)->toArray();
 
         expect($notification->serverName)->toBe($server->name);
-        expect($movieItem['url'])->toBe(route('movies.show', $movie));
-        expect($episodeItem['show_url'])->toBe(route('shows.show', $show));
-        expect($payload['text'])->toContain('Added to library on Main Plex');
-        expect($payload['blocks'][0]['text']['text'])->toContain(route('movies.show', $movie));
-        expect($payload['blocks'][0]['text']['text'])->toContain('#episode-s01e01');
+        expect($payload['text'])->toContain('Added to the library of Main Plex');
         expect($payload['blocks'][0]['text']['text'])->toContain('Main Plex');
         expect($payload['unfurl_links'])->toBeFalse();
         expect($payload['unfurl_media'])->toBeFalse();
