@@ -5,7 +5,6 @@ use App\Models\Movie;
 use App\Models\Show;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
-use App\Support\UserTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -65,15 +64,17 @@ new class extends Component {
      */
     private function upcomingRows(): Collection
     {
+        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo): void {
+                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '>=', today(UserTime::timezone()))
+                                ->whereRaw("airdate > {$cutoffSql}", $cutoffBindings)
                                 ->orderBy('airdate')
                                 ->limit(3),
                         ],
@@ -107,15 +108,17 @@ new class extends Component {
      */
     private function recentRows(): Collection
     {
+        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo): void {
+                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '<', today(UserTime::timezone()))
+                                ->whereRaw("airdate <= {$cutoffSql}", $cutoffBindings)
                                 ->orderByDesc('airdate')
                                 ->limit(1),
                         ],
@@ -142,6 +145,32 @@ new class extends Component {
             ->filter()
             ->sortByDesc(fn (array $row) => $row['sort_date'] ?? Carbon::create(1, 1, 1))
             ->values();
+    }
+
+    /**
+     * @return array{string, list<mixed>}
+     */
+    private function airedCutoffSubquery(): array
+    {
+        $overrides = AirDateTime::overrideCutoffs();
+        $defaultCutoff = AirDateTime::effectiveAirDateCutoff(null)
+            ->subDay()
+            ->format('Y-m-d H:i:s');
+
+        $whenClauses = [];
+        $bindings = [];
+
+        foreach ($overrides as $channelId => $cutoff) {
+            $whenClauses[] = "WHEN json_extract(s.web_channel, '$.id') = ? THEN ?";
+            $bindings[] = $channelId;
+            $bindings[] = $cutoff->format('Y-m-d H:i:s');
+        }
+
+        $bindings[] = $defaultCutoff;
+
+        $sql = '(SELECT CASE ' . implode(' ', $whenClauses) . ' ELSE ? END FROM shows s WHERE s.id = episodes.show_id)';
+
+        return [$sql, $bindings];
     }
 
     /**

@@ -405,3 +405,29 @@ it('returns null when no timezone is available', function () {
     expect(AirDateTime::scheduleTimezone(null, null))->toBeNull();
     expect(AirDateTime::scheduleTimezone(['id' => 1], ['id' => 2]))->toBeNull();
 });
+
+// --- overrideCutoffs() ---
+
+it('returns cutoffs for all override channels after all drop hours', function () {
+    // 2026-04-03 19:00 PDT — past Apple TV+ 6 PM and past midnight for Paramount+/HBO Max
+    $this->travelTo(Carbon::parse('2026-04-03 19:00', 'America/Los_Angeles')->utc());
+
+    $cutoffs = AirDateTime::overrideCutoffs();
+
+    expect($cutoffs)->toHaveKeys([310, 107, 329])
+        ->and($cutoffs[310]->format('Y-m-d'))->toBe('2026-04-04') // Apple TV+: today + 1 (dayOffset -1 inverted)
+        ->and($cutoffs[107]->format('Y-m-d'))->toBe('2026-04-03') // Paramount+: today
+        ->and($cutoffs[329]->format('Y-m-d'))->toBe('2026-04-03'); // HBO Max: today
+});
+
+it('returns cutoffs for all override channels before Apple TV+ drop hour', function () {
+    // 2026-04-03 10:00 PDT — before Apple TV+ 6 PM, but past midnight for Paramount+/HBO Max
+    $this->travelTo(Carbon::parse('2026-04-03 10:00', 'America/Los_Angeles')->utc());
+
+    $cutoffs = AirDateTime::overrideCutoffs();
+
+    expect($cutoffs)->toHaveKeys([310, 107, 329])
+        ->and($cutoffs[310]->format('Y-m-d'))->toBe('2026-04-03') // Apple TV+: yesterday's shifted cutoff
+        ->and($cutoffs[107]->format('Y-m-d'))->toBe('2026-04-03') // Paramount+: today
+        ->and($cutoffs[329]->format('Y-m-d'))->toBe('2026-04-03'); // HBO Max: today
+});

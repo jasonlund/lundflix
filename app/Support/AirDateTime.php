@@ -144,6 +144,22 @@ class AirDateTime
     }
 
     /**
+     * Get the effective air date cutoffs for all override services.
+     *
+     * @return array<int, Carbon> Cutoff dates keyed by web channel ID.
+     */
+    public static function overrideCutoffs(): array
+    {
+        $cutoffs = [];
+
+        foreach (array_keys(self::OVERRIDES) as $channelId) {
+            $cutoffs[$channelId] = self::effectiveAirDateCutoff(['id' => $channelId]);
+        }
+
+        return $cutoffs;
+    }
+
+    /**
      * @param  array<string, mixed>|null  $webChannel
      * @return array{timezone: string, hour: int, dayOffset: int}|null
      */
