@@ -162,7 +162,7 @@ new class extends Component {
         $bindings = [];
 
         foreach ($overrides as $channelId => $cutoff) {
-            $whenClauses[] = "WHEN CAST(json_extract(s.web_channel, '$.id') AS INTEGER) = ? THEN ?";
+            $whenClauses[] = "WHEN json_extract(s.web_channel, '$.id') = ? THEN ?";
             $bindings[] = $channelId;
             $bindings[] = $cutoff->format('Y-m-d H:i:s');
         }
