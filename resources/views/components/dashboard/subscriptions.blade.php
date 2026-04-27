@@ -5,7 +5,6 @@ use App\Models\Movie;
 use App\Models\Show;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
-use App\Support\UserTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -154,7 +153,7 @@ new class extends Component {
     private function airedCutoffSubquery(): array
     {
         $overrides = AirDateTime::overrideCutoffs();
-        $defaultCutoff = today(UserTime::timezone())
+        $defaultCutoff = AirDateTime::effectiveAirDateCutoff(null)
             ->subDay()
             ->format('Y-m-d H:i:s');
 
