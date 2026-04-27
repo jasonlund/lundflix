@@ -65,15 +65,17 @@ new class extends Component {
      */
     private function upcomingRows(): Collection
     {
+        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo): void {
+                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '>=', today(UserTime::timezone()))
+                                ->whereRaw("airdate > {$cutoffSql}", $cutoffBindings)
                                 ->orderBy('airdate')
                                 ->limit(3),
                         ],
@@ -107,17 +109,19 @@ new class extends Component {
      */
     private function recentRows(): Collection
     {
+        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo): void {
+                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->where('airdate', '<=', today(UserTime::timezone()))
+                                ->whereRaw("airdate <= {$cutoffSql}", $cutoffBindings)
                                 ->orderByDesc('airdate')
-                                ->limit(2),
+                                ->limit(1),
                         ],
                     ]);
                 },
@@ -145,6 +149,32 @@ new class extends Component {
     }
 
     /**
+     * @return array{string, list<mixed>}
+     */
+    private function airedCutoffSubquery(): array
+    {
+        $overrides = AirDateTime::overrideCutoffs();
+        $defaultCutoff = today(UserTime::timezone())
+            ->subDay()
+            ->format('Y-m-d H:i:s');
+
+        $whenClauses = [];
+        $bindings = [];
+
+        foreach ($overrides as $channelId => $cutoff) {
+            $whenClauses[] = "WHEN CAST(json_extract(s.web_channel, '$.id') AS INTEGER) = ? THEN ?";
+            $bindings[] = $channelId;
+            $bindings[] = $cutoff->format('Y-m-d H:i:s');
+        }
+
+        $bindings[] = $defaultCutoff;
+
+        $sql = '(SELECT CASE ' . implode(' ', $whenClauses) . ' ELSE ? END FROM shows s WHERE s.id = episodes.show_id)';
+
+        return [$sql, $bindings];
+    }
+
+    /**
      * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}
      */
     private function buildUpcomingMovieRow(Movie $movie): array
@@ -163,9 +193,7 @@ new class extends Component {
      */
     private function buildUpcomingShowRow(Show $show): array
     {
-        $episodes = $show->episodes->reject(
-            fn (Episode $ep) => AirDateTime::hasAired($ep->airdate, $ep->airtime, $show->web_channel, $show->network),
-        );
+        $episodes = $show->episodes;
 
         if ($episodes->isEmpty()) {
             return [
@@ -225,16 +253,7 @@ new class extends Component {
      */
     private function buildRecentShowRow(Show $show): ?array
     {
-        $episode = $show->episodes
-            ->filter(
-                fn (Episode $ep) => AirDateTime::hasAired(
-                    $ep->airdate,
-                    $ep->airtime,
-                    $show->web_channel,
-                    $show->network,
-                ),
-            )
-            ->first();
+        $episode = $show->episodes->first();
 
         if (! $episode) {
             return null;
