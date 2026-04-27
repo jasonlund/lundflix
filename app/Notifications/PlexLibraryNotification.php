@@ -33,14 +33,17 @@ class PlexLibraryNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        $formatter = new PlexLibraryFormatter;
-        $text = $formatter->format($this->serverName, $this->items);
+        $items = (new PlexLibraryFormatter)->format($this->items);
+        $heading = $this->serverName
+            ? "☑️ Added to the library of {$this->serverName}"
+            : '☑️ Added to the library';
 
         return (new SlackMessage)
-            ->text($text)
-            ->headerBlock('☑️ Added to lundflix')
-            ->sectionBlock(function (SectionBlock $block) use ($text): void {
-                $block->text($text)->markdown();
+            ->text("{$heading}\n\n{$items}")
+            ->unfurlLinks(false)
+            ->unfurlMedia(false)
+            ->sectionBlock(function (SectionBlock $block) use ($heading, $items): void {
+                $block->text("*{$heading}*\n\n{$items}")->markdown();
             });
     }
 }

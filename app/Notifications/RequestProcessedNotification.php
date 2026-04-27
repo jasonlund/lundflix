@@ -31,33 +31,65 @@ class RequestProcessedNotification extends Notification
         return ['slack'];
     }
 
+    private const SLACK_SECTION_LIMIT = 3000;
+
     public function toSlack(object $notifiable): SlackMessage
     {
-        $message = (new SlackMessage)
-            ->text($this->formatItems())
-            ->headerBlock('📤 Request Processed')
-            ->sectionBlock(function (SectionBlock $block): void {
-                $block->text(__('lundbergh.notification.request_processed'));
-            });
+        $heading = '*📤 Request Processed*';
+        $blocks = $this->buildBlocks($heading);
+        $plainText = implode("\n\n", array_map(
+            fn (array $pair): string => "*{$pair[0]}:*\n".implode("\n", $pair[1]),
+            $this->groupedByStatus(),
+        ));
 
-        foreach ($this->groupedByStatus() as [$label, $lines]) {
-            $message->sectionBlock(function (SectionBlock $block) use ($label, $lines): void {
-                $block->text("*{$label}:*\n".implode("\n", $lines))->markdown();
+        $message = (new SlackMessage)->text($plainText);
+
+        foreach ($blocks as $block) {
+            $message->sectionBlock(function (SectionBlock $sectionBlock) use ($block): void {
+                $sectionBlock->text($block)->markdown();
             });
         }
 
         return $message;
     }
 
-    private function formatItems(): string
+    /**
+     * @return list<string>
+     */
+    private function buildBlocks(string $heading): array
     {
-        $sections = [];
+        $blocks = [];
+        $current = $heading;
 
         foreach ($this->groupedByStatus() as [$label, $lines]) {
-            $sections[] = "*{$label}:*\n".implode("\n", $lines);
+            $labelLine = "\n\n*{$label}:*";
+
+            if (mb_strlen($current.$labelLine."\n".implode("\n", $lines)) <= self::SLACK_SECTION_LIMIT) {
+                $current .= $labelLine."\n".implode("\n", $lines);
+
+                continue;
+            }
+
+            if (mb_strlen($current.$labelLine) <= self::SLACK_SECTION_LIMIT) {
+                $current .= $labelLine;
+            } else {
+                $blocks[] = $current;
+                $current = "*{$label}:*";
+            }
+
+            foreach ($lines as $line) {
+                if (mb_strlen($current."\n".$line) > self::SLACK_SECTION_LIMIT) {
+                    $blocks[] = $current;
+                    $current = $line;
+                } else {
+                    $current .= "\n".$line;
+                }
+            }
         }
 
-        return implode("\n\n", $sections);
+        $blocks[] = $current;
+
+        return $blocks;
     }
 
     /**

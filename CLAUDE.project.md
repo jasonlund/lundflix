@@ -9,7 +9,7 @@
 ## Workflow
 
 - Never commit or push without explicit user permission.
-- For code changes, run the smallest relevant verification before stopping.
+- Run verification silently after code changes. Only surface failures.
 - Preferred verification commands:
   - PHP formatting: `vendor/bin/pint --dirty`
   - PHP static analysis: `composer phpstan`
@@ -50,9 +50,10 @@
 ## UI Conventions
 
 - Brand the app as `lundflix`.
-- Conversational user-facing copy uses Lundberghese strings from `lang/en/lundbergh.php`. Short labels, Filament admin text, and standard HTTP error pages are exempt.
+- Conversational user-facing copy uses Lundberghese strings from `lang/en/lundbergh.php`. Short labels, Filament admin text, standard HTTP error pages, and Slack notifications are exempt.
 - Dark mode is permanent. Use dark colors directly and do not add `dark:` classes.
 - Never use inline `style` attributes.
 - Do not add emojis to files unless the user requests it. Exceptions: the app footer emoji in `resources/views/components/layouts/app.blade.php` is intentional branding, and regional flag emojis generated from country codes in `resources/views/components/movies/availability.blade.php` are allowed for release metadata.
 - Blade directives do not work inside component attribute strings. Use `{{ Js::from(...) }}` instead of `@js(...)`.
+- **No vanilla JS hacks.** Do not reach for `setTimeout`, `MutationObserver`, or similar low-level browser APIs to orchestrate UI behavior. All client-side interactivity can and should be accomplished with Alpine.js (and Livewire for server state).
 - **Glassy UI — no solid colors.** All backgrounds (including active/highlighted states) must use transparency and `backdrop-blur-sm` to maintain a translucent aesthetic. For example, use `bg-lundflix/80 backdrop-blur-sm` instead of `bg-lundflix`. Inactive states use `bg-white/10 backdrop-blur-sm`. This applies to buttons, badges, pills, cards, and any other UI elements. Exceptions: the shared app footer in `resources/views/components/layouts/app.blade.php` may use `bg-black`, the submit button in `resources/views/components/cart.blade.php` may use an opaque branded fill without `backdrop-blur-sm`, and Flux modals (`resources/views/flux/modal/index.blade.php`) may use solid backgrounds for their panel chrome.

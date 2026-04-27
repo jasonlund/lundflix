@@ -9,22 +9,25 @@ use Illuminate\Support\Collection;
 class PlexLibraryFormatter
 {
     /**
-     * Format a collection of library items into a Slack message.
+     * Format a collection of library items into a plain-text Slack message.
      *
      * @param  Collection<int, array<string, mixed>>  $items
      */
-    public function format(?string $serverName, Collection $items): string
+    public function format(Collection $items): string
     {
-        $lines = ['*New on '.($serverName ?? 'Plex').':*'];
+        $lines = [];
 
         $movies = $items->where('media_type', 'movie');
         $episodes = $items->where('media_type', 'episode');
+
         foreach ($movies->sortBy('title') as $item) {
-            $line = $item['title'];
+            $label = $item['title'];
+
             if ($item['year']) {
-                $line .= " ({$item['year']})";
+                $label .= " ({$item['year']})";
             }
-            $lines[] = $line;
+
+            $lines[] = $label;
         }
 
         foreach ($this->groupEpisodes($episodes) as $showLine) {
@@ -35,8 +38,6 @@ class PlexLibraryFormatter
     }
 
     /**
-     * Group episodes by show and season, detect runs, return formatted lines.
-     *
      * @param  Collection<int, array<string, mixed>>  $episodes
      * @return array<int, string>
      */
@@ -82,8 +83,6 @@ class PlexLibraryFormatter
     }
 
     /**
-     * Detect consecutive runs in a sorted array of episode numbers.
-     *
      * @param  array<int, int>  $numbers  Sorted, unique episode numbers
      * @return array<int, array{start: int, end: int}>
      */
@@ -110,8 +109,6 @@ class PlexLibraryFormatter
     }
 
     /**
-     * Format runs for a season into notation like S01E01-E05 or S01E01, S01E03-E05.
-     *
      * @param  array<int, array{start: int, end: int}>  $runs
      */
     private function formatRuns(int $season, array $runs): string
@@ -121,8 +118,9 @@ class PlexLibraryFormatter
 
         foreach ($runs as $run) {
             $startCode = sprintf('%sE%02d', $seasonPrefix, $run['start']);
-
-            $parts[] = $run['start'] === $run['end'] ? $startCode : sprintf('%s-E%02d', $startCode, $run['end']);
+            $parts[] = $run['start'] === $run['end']
+                ? $startCode
+                : sprintf('%s-E%02d', $startCode, $run['end']);
         }
 
         return implode(', ', $parts);

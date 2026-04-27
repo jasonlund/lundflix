@@ -31,14 +31,12 @@ class RequestItemsNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
+        $items = $this->formatItems();
+
         return (new SlackMessage)
-            ->text($this->formatItems())
-            ->headerBlock('📝 New Request')
-            ->sectionBlock(function (SectionBlock $block): void {
-                $block->text(__('lundbergh.notification.request_intro'));
-            })
-            ->sectionBlock(function (SectionBlock $block): void {
-                $block->text($this->formatItems())->markdown();
+            ->text($items)
+            ->sectionBlock(function (SectionBlock $block) use ($items): void {
+                $block->text("*📝 New Request*\n\n{$items}")->markdown();
             });
     }
 

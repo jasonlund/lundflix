@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Scheduled;
 
 use App\Enums\RequestItemStatus;
+use App\Enums\SlackNotificationType;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\PlexMediaServer;
@@ -27,6 +28,12 @@ class PollPlexLibrary extends Command
 
     /** @var array<string, array<string, mixed>|null> */
     private array $metadataCache = [];
+
+    /** @var array<string, Movie|null> */
+    private array $resolvedMovies = [];
+
+    /** @var array<string, Show|null> */
+    private array $resolvedShows = [];
 
     public function handle(PlexService $plex): int
     {
@@ -57,6 +64,8 @@ class PollPlexLibrary extends Command
     private function pollServer(PlexMediaServer $server, PlexService $plex): void
     {
         $this->metadataCache = [];
+        $this->resolvedMovies = [];
+        $this->resolvedShows = [];
         $cid = $server->client_identifier;
 
         $hwm = (int) Cache::get("plex:poll:hwm:{$cid}", 0);
@@ -335,22 +344,26 @@ class PollPlexLibrary extends Command
      */
     private function resolveMovie(PlexMediaServer $server, array $item, PlexService $plex): ?Movie
     {
-        $metadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
+        $ratingKey = $item['rating_key'] ?? '';
+
+        if (array_key_exists($ratingKey, $this->resolvedMovies)) {
+            return $this->resolvedMovies[$ratingKey];
+        }
+
+        $metadata = $this->fetchMetadata($server, $ratingKey ?: null, $plex);
         $identifiers = $metadata ? $plex->extractExternalIdentifiers($metadata) : [];
+
+        $movie = null;
 
         if (isset($identifiers['tmdb'])) {
             $movie = Movie::query()->where('tmdb_id', (int) $identifiers['tmdb'])->first();
-
-            if ($movie) {
-                return $movie;
-            }
         }
 
-        if (isset($identifiers['imdb'])) {
-            return Movie::query()->where('imdb_id', $identifiers['imdb'])->first();
+        if (! $movie && isset($identifiers['imdb'])) {
+            $movie = Movie::query()->where('imdb_id', $identifiers['imdb'])->first();
         }
 
-        return null;
+        return $this->resolvedMovies[$ratingKey] = $movie;
     }
 
     /**
@@ -358,18 +371,7 @@ class PollPlexLibrary extends Command
      */
     private function resolveEpisode(PlexMediaServer $server, array $item, PlexService $plex): ?Episode
     {
-        $episodeMetadata = $this->fetchMetadata($server, $item['rating_key'] ?? null, $plex);
-        $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
-
-        if (! $this->hasShowIdentifiers($showIdentifiers) && isset($item['grandparent_rating_key'])) {
-            $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex);
-
-            if ($showMetadata) {
-                $showIdentifiers = $plex->extractExternalIdentifiers($showMetadata);
-            }
-        }
-
-        $show = $this->resolveShow($showIdentifiers);
+        $show = $this->resolveShowForEpisode($server, $item, $plex);
 
         if (! $show instanceof Show) {
             return null;
@@ -384,6 +386,33 @@ class PollPlexLibrary extends Command
             ->where('season', $item['season'])
             ->where('number', $item['episode_number'])
             ->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function resolveShowForEpisode(PlexMediaServer $server, array $item, PlexService $plex): ?Show
+    {
+        $ratingKey = $item['rating_key'] ?? '';
+
+        if (array_key_exists($ratingKey, $this->resolvedShows)) {
+            return $this->resolvedShows[$ratingKey];
+        }
+
+        $episodeMetadata = $this->fetchMetadata($server, $ratingKey ?: null, $plex);
+        $showIdentifiers = $episodeMetadata ? $plex->extractExternalIdentifiers($episodeMetadata) : [];
+
+        $show = $this->resolveShow($showIdentifiers);
+
+        if (! $show && isset($item['grandparent_rating_key'])) {
+            $showMetadata = $this->fetchMetadata($server, $item['grandparent_rating_key'], $plex);
+
+            if ($showMetadata) {
+                $show = $this->resolveShow($plex->extractExternalIdentifiers($showMetadata));
+            }
+        }
+
+        return $this->resolvedShows[$ratingKey] = $show;
     }
 
     /**
@@ -449,14 +478,6 @@ class PollPlexLibrary extends Command
     }
 
     /**
-     * @param  array<string, mixed>  $identifiers
-     */
-    private function hasShowIdentifiers(array $identifiers): bool
-    {
-        return isset($identifiers['tmdb']) || isset($identifiers['imdb']) || isset($identifiers['tvdb']);
-    }
-
-    /**
      * @param  Collection<int, array<string, mixed>>  $items
      */
     private function sendSlackNotification(PlexMediaServer $server, Collection $items): void
@@ -465,7 +486,7 @@ class PollPlexLibrary extends Command
             return;
         }
 
-        $channel = config('services.slack.notifications.channel');
+        $channel = SlackNotificationType::PlexLibrary->channel();
 
         if (! $channel) {
             return;

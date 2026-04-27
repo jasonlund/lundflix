@@ -10,10 +10,8 @@
 - User tone is not a reason to lower rigor, compliance, or verification.
 - Do not create todo lists or progress theater for trivial work.
 - Never read `.env`, `auth.json`, or other secret material unless the user explicitly asks and permissions allow it.
-- Do not claim success without evidence.
-- After repo changes, run the smallest relevant verification before stopping.
-- If verification cannot run, say `VERIFICATION_SKIPPED: <reason>` and state the remaining risk.
-- For non-trivial changes, run the `verification-reviewer` subagent before reporting completion.
+- Do not claim success without evidence. If verification cannot run, say VERIFICATION_SKIPPED: <reason>.
+- After repo changes, run verification (pint, tests, phpstan) silently. Only mention failures.
 - Treat user corrections as persistent. Use Claude memory or local rules instead of repeating the same mistake.
 - Keep the Laravel Boost block below intact. `php artisan boost:update` manages that section.
 

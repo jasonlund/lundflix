@@ -135,6 +135,44 @@ it('does not hit API when episodes are passed directly', function () {
     Http::assertNothingSent();
 });
 
+it('renders stable season and episode fragment anchors for deep links', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Pilot',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    $html = Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])->html();
+
+    expect($html)->toContain('id="season-s01"');
+    expect($html)->toContain('data-season-anchor');
+    expect($html)->toContain('id="episode-s01e01"');
+});
+
+it('renders hash navigation hooks for deep-linked season and episode anchors', function () {
+    $show = Show::factory()->create(['tvmaze_id' => 1]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'tvmaze_id' => 100,
+        'name' => 'Pilot',
+        'season' => 1,
+        'number' => 1,
+        'airdate' => now()->subWeek(),
+    ]);
+
+    $html = Livewire::test('shows.episodes', ['show' => $show, 'episodes' => collect([$episode])])->html();
+
+    expect($html)->toContain('window.addEventListener(\'hashchange\', handleHashChange)');
+    expect($html)->toContain('handleHashNavigation()');
+    expect($html)->toContain('accordionItem.hasAttribute(\'data-open\')');
+});
+
 it('displays episode checkboxes', function () {
     $show = Show::factory()->create(['tvmaze_id' => 1]);
 
