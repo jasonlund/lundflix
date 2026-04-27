@@ -489,3 +489,27 @@ it('excludes non-override episodes with future airtime from recent view', functi
 
     expect($rows)->toBeEmpty();
 });
+
+it('shows Paramount+ episode in recent view after midnight release via dayOffset 0 override', function () {
+    // Paramount+ drops at midnight PT on the airdate (dayOffset: 0, hour: 0).
+    // Travel to 9 AM PT on April 23 — episode with airdate April 23 has been out since midnight.
+    $this->travelTo(Carbon::parse('2026-04-23 09:00', 'America/Los_Angeles')->utc());
+
+    $user = User::factory()->create(['timezone' => 'America/Chicago']);
+    $show = Show::factory()->paramountPlus()->create(['name' => 'Lioness']);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 3,
+        'airdate' => '2026-04-23',
+        'airtime' => null,
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('Lioness')
+        ->and($rows->first()['subtitle'])->toBe('S02E03');
+});
