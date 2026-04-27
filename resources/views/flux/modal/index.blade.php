@@ -6,6 +6,7 @@
     "closable" => null,
     "trigger" => null,
     "variant" => null,
+    "bubble" => null,
     "flyout" => null,
     "headless" => false,
     "name" => null,
@@ -20,7 +21,8 @@
 
     $closable ??= $variant === "bare" ? false : true;
 
-    $useBubble = ! $flyout && $variant !== "bare";
+    $useOverlay = ! $flyout && $variant !== "bare";
+    $useBubble = $useOverlay && ($bubble ?? true);
 
     $maxWidth = match ($size) {
         "sm" => "max-w-screen-sm",
@@ -58,7 +60,7 @@
         $classes = Flux::classes()
             ->add(
                 match ($variant) {
-                    default => "p-6 m-auto px-4 w-full $maxWidth shadow-lg rounded-xl",
+                    default => "p-6 m-auto px-4 w-[calc(100%-2rem)] sm:w-full $maxWidth shadow-lg rounded-xl",
                     "bare" => "",
                 },
             )
@@ -114,7 +116,7 @@
         @if ($name) data-modal="{{ $name }}" @endif
         @if ($flyout) data-flux-flyout @endif
         x-data
-        @if ($useBubble)
+        @if ($useOverlay)
             x-init="
                 let d = $el
                 let backdrop = null
@@ -135,7 +137,9 @@
                         header.parentElement.style.paddingTop = header.offsetHeight - 1 + 'px'
                         header.classList.add('modal-open-header')
                     }
+                    <?php if ($dismissible !== false) { ?>
                     setTimeout(() => document.addEventListener('click', closeHandler), 0)
+                    <?php } ?>
                 }
                 let origClose = HTMLDialogElement.prototype.close
                 d.close = function (rv) {
