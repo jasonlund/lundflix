@@ -10,7 +10,8 @@ it('renders mobile-friendly navigation labels', function () {
     $response->assertSuccessful()
         ->assertSeeHtml('src="'.Vite::image('default-background.svg').'"')
         ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Search</span>')
-        ->assertSeeHtml('<span class="sr-only sm:not-sr-only">Logout</span>')
+        ->assertSee('Logout')
+        ->assertSeeHtml('data-flux-avatar')
         ->assertSeeHtml('text-lundflix')
         ->assertDontSee('[&>div.text-xs]:hidden');
 });

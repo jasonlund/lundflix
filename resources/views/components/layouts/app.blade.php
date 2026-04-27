@@ -74,17 +74,7 @@
 
                     <flux:spacer />
 
-                    <div
-                        class="**:data-[flux-button]:drop-shadow-glow **:data-[flux-button]:transition-[filter] **:data-[flux-button]:duration-300 **:data-[flux-button]:ease-out"
-                        x-bind:class="{ '**:data-[flux-button]:drop-shadow-none': scrolled }"
-                    >
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <flux:button type="submit" variant="ghost" icon="log-out">
-                                <span class="sr-only sm:not-sr-only">Logout</span>
-                            </flux:button>
-                        </form>
-                    </div>
+                    <livewire:user-menu />
                 </flux:header>
 
                 <flux:main>
@@ -127,6 +117,7 @@
         </div>
 
         <livewire:media-search />
+        <livewire:profile-form />
 
         <x-error-overlay />
 
