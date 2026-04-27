@@ -20,7 +20,7 @@ class StoreSlackMessage
 
         $type = SlackNotificationType::tryFromNotification($event->notification::class);
 
-        if (! $type) {
+        if (! $type instanceof SlackNotificationType) {
             return;
         }
 

@@ -38,7 +38,7 @@ class RequestProcessedNotification extends Notification
         $heading = '*📤 Request Processed*';
         $blocks = $this->buildBlocks($heading);
         $plainText = implode("\n\n", array_map(
-            fn (array $pair) => "*{$pair[0]}:*\n".implode("\n", $pair[1]),
+            fn (array $pair): string => "*{$pair[0]}:*\n".implode("\n", $pair[1]),
             $this->groupedByStatus(),
         ));
 

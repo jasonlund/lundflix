@@ -485,12 +485,10 @@ class PollPlexLibrary extends Command
     private function enrichNotificationItems(PlexMediaServer $server, Collection $items, PlexService $plex): Collection
     {
         return $items
-            ->map(function (array $item) use ($server, $plex): array {
-                return match ($item['media_type'] ?? null) {
-                    'movie' => $this->enrichMovieNotificationItem($server, $item, $plex),
-                    'episode' => $this->enrichEpisodeNotificationItem($server, $item, $plex),
-                    default => $item,
-                };
+            ->map(fn (array $item): array => match ($item['media_type'] ?? null) {
+                'movie' => $this->enrichMovieNotificationItem($server, $item, $plex),
+                'episode' => $this->enrichEpisodeNotificationItem($server, $item, $plex),
+                default => $item,
             })
             ->values();
     }
