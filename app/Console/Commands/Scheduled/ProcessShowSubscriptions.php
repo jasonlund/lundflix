@@ -55,10 +55,12 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            $processedEpisodeIds = $subscription->processedEpisodes->pluck('id');
+            $notifiedEpisodeIds = $subscription->processedEpisodes
+                ->filter(fn (Episode $e): bool => $e->pivot->notified_at !== null) // @phpstan-ignore property.notFound
+                ->pluck('id');
 
             $newEpisodes = $show->episodes
-                ->reject(fn (Episode $episode): bool => $processedEpisodeIds->contains($episode->id))
+                ->reject(fn (Episode $episode): bool => $notifiedEpisodeIds->contains($episode->id))
                 ->filter(function (Episode $episode) use ($windowStart, $now, $show): bool {
                     if (! $episode->airdate) {
                         return false;
@@ -80,7 +82,9 @@ class ProcessShowSubscriptions extends Command
                 continue;
             }
 
-            $subscription->processedEpisodes()->syncWithoutDetaching($newEpisodes->pluck('id'));
+            $subscription->processedEpisodes()->syncWithoutDetaching(
+                $newEpisodes->pluck('id')->mapWithKeys(fn ($id) => [$id => ['notified_at' => now()]])->all(),
+            );
 
             if (! isset($showEpisodeUnions[$show->id])) {
                 $showEpisodeUnions[$show->id] = ['show' => $show, 'episodes' => $newEpisodes];

@@ -51,6 +51,7 @@ class Subscription extends Model
     public function processedEpisodes(): BelongsToMany
     {
         return $this->belongsToMany(Episode::class, 'subscription_episode')
+            ->withPivot(['notified_at', 'requested_at'])
             ->withTimestamps();
     }
 

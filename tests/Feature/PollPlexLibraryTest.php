@@ -1,14 +1,17 @@
 <?php
 
 use App\Enums\RequestItemStatus;
+use App\Events\RequestFulfilled;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\PlexMediaServer;
+use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Notifications\PlexLibraryNotification;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 
@@ -637,6 +640,58 @@ it('ignores show and season type items from recentlyAdded', function () {
                 && $notification->items->first()['title'] === 'Real Movie';
         }
     );
+});
+
+it('dispatches RequestFulfilled when all items on a request are fulfilled', function () {
+    $server = createPollableServer();
+    $movie = Movie::factory()->create(['tmdb_id' => 27205]);
+    $request = Request::factory()->create();
+    $requestItem = RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    $now = now()->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [plexMovie('Inception', 100, $now, 2010)]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['tmdb://27205', 'imdb://tt1375666'])
+            ),
+        ],
+    ));
+
+    Event::fake([RequestFulfilled::class]);
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    expect($requestItem->fresh()->status)->toBe(RequestItemStatus::Fulfilled);
+
+    Event::assertDispatched(RequestFulfilled::class, fn (RequestFulfilled $event): bool => $event->request->is($request));
+});
+
+it('does not dispatch RequestFulfilled for partial fulfillment', function () {
+    $server = createPollableServer();
+    $movie = Movie::factory()->create(['tmdb_id' => 27205]);
+    $otherMovie = Movie::factory()->create();
+    $request = Request::factory()->create();
+    RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+    RequestItem::factory()->pending()->forRequestable($otherMovie)->create(['request_id' => $request->id]);
+
+    $now = now()->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [plexMovie('Inception', 100, $now, 2010)]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['tmdb://27205'])
+            ),
+        ],
+    ));
+
+    Event::fake([RequestFulfilled::class]);
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    Event::assertNotDispatched(RequestFulfilled::class);
 });
 
 it('skips episodes with null season or episode number', function () {

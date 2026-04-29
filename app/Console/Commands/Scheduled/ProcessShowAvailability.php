@@ -47,7 +47,7 @@ class ProcessShowAvailability extends Command
         $subscriptions = Subscription::query()
             ->active()
             ->forShows()
-            ->with(['user', 'processedEpisodes:id'])
+            ->with(['user', 'processedEpisodes'])
             ->get();
 
         $showIds = $subscriptions->pluck('subscribable_id')->unique()->values();
@@ -78,15 +78,18 @@ class ProcessShowAvailability extends Command
                 continue;
             }
 
-            $processedIds = $subscription->processedEpisodes->pluck('id')->all();
+            $requestedIds = $subscription->processedEpisodes
+                ->filter(fn (Episode $e): bool => $e->pivot->requested_at !== null) // @phpstan-ignore property.notFound
+                ->pluck('id')
+                ->all();
 
             $candidates = $show->episodes
-                ->filter(function (Episode $episode) use ($show, $windowStart, $now, $processedIds): bool {
+                ->filter(function (Episode $episode) use ($show, $windowStart, $now, $requestedIds): bool {
                     if (! $episode->airdate) {
                         return false;
                     }
 
-                    if (in_array($episode->id, $processedIds, true)) {
+                    if (in_array($episode->id, $requestedIds, true)) {
                         return false;
                     }
 
@@ -190,7 +193,9 @@ class ProcessShowAvailability extends Command
                 $subAvailable->map(fn (Episode $e): array => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
             );
 
-            $subscription->processedEpisodes()->attach($subAvailable->pluck('id')->all());
+            $subscription->processedEpisodes()->syncWithoutDetaching(
+                $subAvailable->pluck('id')->mapWithKeys(fn ($id) => [$id => ['requested_at' => now()]])->all(),
+            );
 
             foreach ($subAvailable as $episode) {
                 $newlyRequested[$show->id][$episode->id] = $episode;

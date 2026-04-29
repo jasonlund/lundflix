@@ -41,8 +41,6 @@ class ProcessMovieSubscriptions extends Command
                 continue;
             }
 
-            $subscription->markFulfilled();
-
             if (! isset($notified[$movie->id])) {
                 SubscriptionTriggered::dispatch(null, $movie);
                 $notified[$movie->id] = true;
