@@ -12,11 +12,11 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::command('plex:sync-servers')->everyFifteenMinutes();
 Schedule::command('plex:poll-library')->everyMinute()->withoutOverlapping();
 
-Schedule::command('process:show-availability')->everyFiveMinutes()
-    ->then(fn () => Artisan::call('process:show-subscriptions'));
+Schedule::command('process:show-subscriptions')->everyFiveMinutes()
+    ->then(fn () => Artisan::call('process:show-availability'));
 
-Schedule::command('process:movie-availability')->everyFifteenMinutes()
-    ->then(fn () => Artisan::call('process:movie-subscriptions'));
+Schedule::command('process:movie-subscriptions')->everyFifteenMinutes()
+    ->then(fn () => Artisan::call('process:movie-availability'));
 
 Schedule::command('sync:nightly')
     ->daily()

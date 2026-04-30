@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\RateLimiter;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    // Pin to 2 PM Eastern so subHours(2) stays within the same calendar day
+    $this->travelTo(now('America/New_York')->startOfDay()->addHours(14));
+
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
 });
@@ -91,6 +94,7 @@ it('does not request an episode already in subscription_episode', function () {
     DB::table('subscription_episode')->insert([
         'subscription_id' => $sub->id,
         'episode_id' => $episode->id,
+        'requested_at' => now(),
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -178,7 +182,10 @@ it('marks newly requested episodes in the pivot table', function () {
 
     $this->artisan('process:show-availability')->assertSuccessful();
 
-    expect($sub->fresh()->processedEpisodes->pluck('id')->all())->toBe([$episode->id]);
+    $pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episode->id)->first();
+
+    expect($pivot)->not->toBeNull();
+    expect($pivot->pivot->requested_at)->not->toBeNull();
 });
 
 it('bails early when the IPTorrents rate limit is reached', function () {
@@ -236,4 +243,38 @@ it('groups batch-premiere episodes and only searches the first by number', funct
     expect(RequestItem::count())->toBe(4);
 
     Event::assertDispatched(MediaAvailable::class);
+});
+
+it('still picks up episodes that were already notified by the subscriptions command', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisode')
+        ->once()
+        ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Severance']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
+    ]);
+
+    $sub->processedEpisodes()->attach($episode->id, ['notified_at' => now()]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(1);
+
+    Event::assertDispatched(MediaAvailable::class);
+
+    $pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episode->id)->first();
+    expect($pivot->pivot->requested_at)->not->toBeNull();
+    expect($pivot->pivot->notified_at)->not->toBeNull();
 });

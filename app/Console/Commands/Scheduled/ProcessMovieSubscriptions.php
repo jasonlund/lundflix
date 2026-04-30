@@ -23,6 +23,7 @@ class ProcessMovieSubscriptions extends Command
         $subscriptions = Subscription::query()
             ->active()
             ->forMovies()
+            ->whereNull('notified_at')
             ->with(['subscribable', 'user'])
             ->get();
 
@@ -41,7 +42,7 @@ class ProcessMovieSubscriptions extends Command
                 continue;
             }
 
-            $subscription->markFulfilled();
+            $subscription->markNotified();
 
             if (! isset($notified[$movie->id])) {
                 SubscriptionTriggered::dispatch(null, $movie);

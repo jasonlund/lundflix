@@ -147,7 +147,7 @@ it('does not dispatch again for episodes already processed in a prior run', func
         'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
     ]);
 
-    $subscription->processedEpisodes()->attach($episode->id);
+    $subscription->processedEpisodes()->attach($episode->id, ['notified_at' => now()]);
 
     $this->artisan('process:show-subscriptions')
         ->assertSuccessful()
@@ -156,7 +156,7 @@ it('does not dispatch again for episodes already processed in a prior run', func
     Event::assertNotDispatched(SubscriptionTriggered::class);
 });
 
-it('records processed episodes in the pivot after dispatching', function () {
+it('records processed episodes in the pivot with notified_at after dispatching', function () {
     Event::fake([SubscriptionTriggered::class]);
 
     $user = User::factory()->create();
@@ -174,8 +174,10 @@ it('records processed episodes in the pivot after dispatching', function () {
 
     $this->artisan('process:show-subscriptions')->assertSuccessful();
 
-    expect($subscription->processedEpisodes()->pluck('episodes.id')->toArray())
-        ->toContain($episode->id);
+    $pivot = $subscription->processedEpisodes()->where('episodes.id', $episode->id)->first();
+
+    expect($pivot)->not->toBeNull();
+    expect($pivot->pivot->notified_at)->not->toBeNull();
 });
 
 it('skips fulfilled show subscriptions', function () {
@@ -326,8 +328,8 @@ it('includes all new episodes in the notification when subscribers have differen
         'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
     ]);
 
-    // User A already processed episode 1 in a prior run
-    $subscriptionA->processedEpisodes()->attach($episode1->id);
+    // User A already notified for episode 1 in a prior run
+    $subscriptionA->processedEpisodes()->attach($episode1->id, ['notified_at' => now()]);
 
     $this->artisan('process:show-subscriptions')
         ->assertSuccessful()

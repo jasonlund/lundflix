@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\Scheduled;
 
+use App\Actions\Request\MarkRequestItems;
 use App\Enums\RequestItemStatus;
 use App\Enums\SlackNotificationType;
 use App\Models\Episode;
@@ -303,17 +304,33 @@ class PollPlexLibrary extends Command
             return;
         }
 
-        $fulfilled = DB::transaction(function () use ($resolved): int {
-            $count = 0;
+        $pendingItems = collect();
 
-            foreach ($resolved as $pair) {
-                $count += RequestItem::pending()
+        foreach ($resolved as $pair) {
+            $pendingItems = $pendingItems->merge(
+                RequestItem::pending()
                     ->where('requestable_type', $pair['type'])
                     ->where('requestable_id', $pair['id'])
-                    ->update([
-                        'status' => RequestItemStatus::Fulfilled,
-                        'actioned_at' => now(),
-                    ]);
+                    ->with('request')
+                    ->get(),
+            );
+        }
+
+        if ($pendingItems->isEmpty()) {
+            return;
+        }
+
+        $markItems = app(MarkRequestItems::class);
+
+        $fulfilled = DB::transaction(function () use ($pendingItems, $markItems): int {
+            $count = 0;
+
+            foreach ($pendingItems->groupBy('request_id') as $items) {
+                $count += $markItems->markAs(
+                    $items->first()->request,
+                    $items->pluck('id')->all(),
+                    RequestItemStatus::Fulfilled,
+                );
             }
 
             return $count;
