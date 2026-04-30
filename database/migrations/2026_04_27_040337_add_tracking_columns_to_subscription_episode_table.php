@@ -16,7 +16,6 @@ return new class extends Migration
 
         DB::table('subscription_episode')->update([
             'notified_at' => DB::raw('created_at'),
-            'requested_at' => DB::raw('created_at'),
         ]);
     }
 

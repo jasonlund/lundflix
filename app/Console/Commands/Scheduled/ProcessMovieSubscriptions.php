@@ -23,6 +23,7 @@ class ProcessMovieSubscriptions extends Command
         $subscriptions = Subscription::query()
             ->active()
             ->forMovies()
+            ->whereNull('notified_at')
             ->with(['subscribable', 'user'])
             ->get();
 
@@ -40,6 +41,8 @@ class ProcessMovieSubscriptions extends Command
             if (! $movie->digital_release_date?->isSameDay($today)) {
                 continue;
             }
+
+            $subscription->markNotified();
 
             if (! isset($notified[$movie->id])) {
                 SubscriptionTriggered::dispatch(null, $movie);

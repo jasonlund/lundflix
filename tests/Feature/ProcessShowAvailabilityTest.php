@@ -273,4 +273,8 @@ it('still picks up episodes that were already notified by the subscriptions comm
     expect(RequestItem::count())->toBe(1);
 
     Event::assertDispatched(MediaAvailable::class);
+
+    $pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episode->id)->first();
+    expect($pivot->pivot->requested_at)->not->toBeNull();
+    expect($pivot->pivot->notified_at)->not->toBeNull();
 });

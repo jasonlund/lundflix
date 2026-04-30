@@ -80,8 +80,7 @@ class ProcessShowAvailability extends Command
 
             $requestedIds = $subscription->processedEpisodes
                 ->filter(fn (Episode $e): bool => $e->pivot->requested_at !== null) // @phpstan-ignore property.notFound
-                ->pluck('id')
-                ->all();
+                ->pluck('id');
 
             $candidates = $show->episodes
                 ->filter(function (Episode $episode) use ($show, $windowStart, $now, $requestedIds): bool {
@@ -89,7 +88,7 @@ class ProcessShowAvailability extends Command
                         return false;
                     }
 
-                    if (in_array($episode->id, $requestedIds, true)) {
+                    if ($requestedIds->contains($episode->id)) {
                         return false;
                     }
 

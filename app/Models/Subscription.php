@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property Carbon|null $fulfilled_at
+ * @property Carbon|null $notified_at
  */
 class Subscription extends Model
 {
@@ -26,6 +27,7 @@ class Subscription extends Model
     {
         return [
             'fulfilled_at' => 'datetime',
+            'notified_at' => 'datetime',
         ];
     }
 
@@ -76,6 +78,12 @@ class Subscription extends Model
     public function markFulfilled(): void
     {
         $this->fulfilled_at = now();
+        $this->save();
+    }
+
+    public function markNotified(): void
+    {
+        $this->notified_at = now();
         $this->save();
     }
 }
