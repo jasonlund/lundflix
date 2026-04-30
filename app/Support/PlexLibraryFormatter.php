@@ -8,8 +8,12 @@ use Illuminate\Support\Collection;
 
 class PlexLibraryFormatter
 {
+    public function __construct(
+        private readonly ?string $clientIdentifier = null,
+    ) {}
+
     /**
-     * Format a collection of library items into a plain-text Slack message.
+     * Format a collection of library items into a Slack message.
      *
      * @param  Collection<int, array<string, mixed>>  $items
      */
@@ -21,13 +25,15 @@ class PlexLibraryFormatter
         $episodes = $items->where('media_type', 'episode');
 
         foreach ($movies->sortBy('title') as $item) {
-            $label = $item['title'];
+            $label = $this->escapeSlackMrkdwn($item['title']);
 
             if ($item['year']) {
                 $label .= " ({$item['year']})";
             }
 
-            $lines[] = $label;
+            $url = $this->plexUrl($item['rating_key'] ?? '');
+
+            $lines[] = $url ? "{$label} <{$url}|↗️>" : $label;
         }
 
         foreach ($this->groupEpisodes($episodes) as $showLine) {
@@ -75,11 +81,52 @@ class PlexLibraryFormatter
             }
 
             if ($seasonParts !== []) {
-                $lines[] = $showTitle.' '.implode(', ', $seasonParts);
+                $label = $this->escapeSlackMrkdwn($showTitle).' '.implode(', ', $seasonParts);
+                $filteredEpisodes = $showEpisodes->whereNotNull('episode_number');
+                $url = $this->resolveShowLinkUrl($filteredEpisodes, $filteredEpisodes->groupBy('season'));
+
+                $lines[] = $url ? "{$label} <{$url}|↗️>" : $label;
             }
         }
 
         return $lines;
+    }
+
+    /**
+     * Determine the Plex link target based on episode scope.
+     *
+     * @param  Collection<int, array<string, mixed>>  $showEpisodes
+     * @param  Collection<int|string, Collection<int, array<string, mixed>>>  $bySeason
+     */
+    private function resolveShowLinkUrl(Collection $showEpisodes, Collection $bySeason): ?string
+    {
+        $seasonCount = $bySeason->count();
+
+        if ($seasonCount > 1) {
+            return $this->plexUrl($showEpisodes->first()['grandparent_rating_key'] ?? '');
+        }
+
+        $episodeCount = $showEpisodes->count();
+
+        if ($episodeCount === 1) {
+            return $this->plexUrl($showEpisodes->first()['rating_key'] ?? '');
+        }
+
+        return $this->plexUrl($showEpisodes->first()['parent_rating_key'] ?? '');
+    }
+
+    private function escapeSlackMrkdwn(string $text): string
+    {
+        return str_replace(['&', '<', '>'], ['&amp;', '&lt;', '&gt;'], $text);
+    }
+
+    private function plexUrl(string $ratingKey): ?string
+    {
+        if ($this->clientIdentifier === null || $ratingKey === '') {
+            return null;
+        }
+
+        return "https://app.plex.tv/desktop/#!/server/{$this->clientIdentifier}/details?key=%2Flibrary%2Fmetadata%2F{$ratingKey}";
     }
 
     /**

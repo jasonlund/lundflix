@@ -4,14 +4,16 @@ use App\Support\PlexLibraryFormatter;
 
 beforeEach(function () {
     $this->formatter = new PlexLibraryFormatter;
+    $this->linkedFormatter = new PlexLibraryFormatter('test-client-id');
 });
 
-function movieItem(string $title, ?int $year = 2024): array
+function movieItem(string $title, ?int $year = 2024, string $ratingKey = ''): array
 {
     return [
         'media_type' => 'movie',
         'title' => $title,
         'year' => $year,
+        'rating_key' => $ratingKey,
         'show_title' => null,
         'season' => null,
         'episode_number' => null,
@@ -21,8 +23,11 @@ function movieItem(string $title, ?int $year = 2024): array
 function episodeItem(
     string $showTitle,
     int $season,
-    int $episodeNumber,
+    ?int $episodeNumber,
     string $title = 'Episode',
+    string $ratingKey = '',
+    string $parentRatingKey = '',
+    string $grandparentRatingKey = '',
 ): array {
     return [
         'media_type' => 'episode',
@@ -31,7 +36,15 @@ function episodeItem(
         'show_title' => $showTitle,
         'season' => $season,
         'episode_number' => $episodeNumber,
+        'rating_key' => $ratingKey,
+        'parent_rating_key' => $parentRatingKey,
+        'grandparent_rating_key' => $grandparentRatingKey,
     ];
+}
+
+function plexLink(string $ratingKey): string
+{
+    return "https://app.plex.tv/desktop/#!/server/test-client-id/details?key=%2Flibrary%2Fmetadata%2F{$ratingKey}";
 }
 
 it('formats a single movie', function () {
@@ -115,4 +128,129 @@ it('formats mixed movies and episodes', function () {
     ]));
 
     expect($result)->toBe("Inception (2010)\nBreaking Bad S01E01-E02");
+});
+
+// --- Plex link tests ---
+
+it('appends plex link to movie when client identifier is set', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('Inception', 2010, '100'),
+    ]));
+
+    expect($result)->toBe('Inception (2010) <'.plexLink('100').'|↗️>');
+});
+
+it('omits plex link from movie when rating key is empty', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('Inception', 2010, ''),
+    ]));
+
+    expect($result)->toBe('Inception (2010)');
+});
+
+it('links single episode to the episode', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 5, 'Gray Matter', ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+});
+
+it('links multiple episodes in one season to the season', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, 2, ratingKey: '201', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, 3, ratingKey: '202', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E01-E03 <'.plexLink('55').'|↗️>');
+});
+
+it('links episodes across multiple seasons to the show', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Lost', 1, 1, ratingKey: '300', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 1, 2, ratingKey: '301', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 2, 1, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
+    ]));
+
+    expect($result)->toBe('Lost S01E01-E02, S02E01 <'.plexLink('40').'|↗️>');
+});
+
+it('omits plex link from episodes when rating key is empty', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '', parentRatingKey: '', grandparentRatingKey: ''),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E01');
+});
+
+it('links single rendered season to season when null-episode siblings inflate season count', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Lost', 1, 1, ratingKey: '300', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 1, 2, ratingKey: '301', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 2, null, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
+    ]));
+
+    expect($result)->toBe('Lost S01E01-E02 <'.plexLink('60').'|↗️>');
+});
+
+it('links single rendered episode to the episode when null-episode sibling inflates count', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 5, 'Gray Matter', ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, null, ratingKey: '201', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+});
+
+// --- Slack mrkdwn escaping tests ---
+
+it('escapes ampersand in movie title', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('Law & Order', 1990),
+    ]));
+
+    expect($result)->toBe('Law &amp; Order (1990)');
+});
+
+it('escapes angle brackets in movie title', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('<Script>Alert</Script>', 2024, '100'),
+    ]));
+
+    expect($result)->toBe('&lt;Script&gt;Alert&lt;/Script&gt; (2024) <'.plexLink('100').'|↗️>');
+});
+
+it('escapes special characters in show title', function () {
+    $result = $this->formatter->format(collect([
+        episodeItem('Law & Order: SVU', 1, 1),
+    ]));
+
+    expect($result)->toBe('Law &amp; Order: SVU S01E01');
+});
+
+it('escapes all mrkdwn special characters together', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('A <B> & C', 2024),
+    ]));
+
+    expect($result)->toBe('A &lt;B&gt; &amp; C (2024)');
+});
+
+it('links only movies with rating keys in a mixed batch', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('The Matrix', 1999, '500'),
+        movieItem('Inception', 2010, ''),
+    ]));
+
+    expect($result)->toBe('Inception (2010)'."\n".'The Matrix (1999) <'.plexLink('500').'|↗️>');
+});
+
+it('omits plex links when no client identifier', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('Inception', 2010, '100'),
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe("Inception (2010)\nBreaking Bad S01E01");
 });
