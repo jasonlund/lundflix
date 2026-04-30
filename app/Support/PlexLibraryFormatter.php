@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 class PlexLibraryFormatter
 {
     public function __construct(
-        private ?string $clientIdentifier = null,
+        private readonly ?string $clientIdentifier = null,
     ) {}
 
     /**
@@ -25,7 +25,7 @@ class PlexLibraryFormatter
         $episodes = $items->where('media_type', 'episode');
 
         foreach ($movies->sortBy('title') as $item) {
-            $label = self::escapeSlackMrkdwn($item['title']);
+            $label = $this->escapeSlackMrkdwn($item['title']);
 
             if ($item['year']) {
                 $label .= " ({$item['year']})";
@@ -81,7 +81,7 @@ class PlexLibraryFormatter
             }
 
             if ($seasonParts !== []) {
-                $label = self::escapeSlackMrkdwn($showTitle).' '.implode(', ', $seasonParts);
+                $label = $this->escapeSlackMrkdwn($showTitle).' '.implode(', ', $seasonParts);
                 $filteredEpisodes = $showEpisodes->whereNotNull('episode_number');
                 $url = $this->resolveShowLinkUrl($filteredEpisodes, $filteredEpisodes->groupBy('season'));
 
@@ -115,7 +115,7 @@ class PlexLibraryFormatter
         return $this->plexUrl($showEpisodes->first()['parent_rating_key'] ?? '');
     }
 
-    private static function escapeSlackMrkdwn(string $text): string
+    private function escapeSlackMrkdwn(string $text): string
     {
         return str_replace(['&', '<', '>'], ['&amp;', '&lt;', '&gt;'], $text);
     }
