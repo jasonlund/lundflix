@@ -228,7 +228,16 @@ new class extends Component {
 };
 ?>
 
-<div>
+<div
+    x-data
+    x-init="
+        let lastRequest = null
+        $wire.$interceptRequest(({ request }) => {
+            if (lastRequest) lastRequest.cancel()
+            lastRequest = request
+        })
+    "
+>
     <flux:modal
         name="search"
         variant="bare"
