@@ -23,7 +23,7 @@ function movieItem(string $title, ?int $year = 2024, string $ratingKey = ''): ar
 function episodeItem(
     string $showTitle,
     int $season,
-    int $episodeNumber,
+    ?int $episodeNumber,
     string $title = 'Episode',
     string $ratingKey = '',
     string $parentRatingKey = '',
@@ -182,6 +182,68 @@ it('omits plex link from episodes when rating key is empty', function () {
     ]));
 
     expect($result)->toBe('Breaking Bad S01E01');
+});
+
+it('links single rendered season to season when null-episode siblings inflate season count', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Lost', 1, 1, ratingKey: '300', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 1, 2, ratingKey: '301', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 2, null, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
+    ]));
+
+    expect($result)->toBe('Lost S01E01-E02 <'.plexLink('60').'|↗️>');
+});
+
+it('links single rendered episode to the episode when null-episode sibling inflates count', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 5, 'Gray Matter', ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, null, ratingKey: '201', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+});
+
+// --- Slack mrkdwn escaping tests ---
+
+it('escapes ampersand in movie title', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('Law & Order', 1990),
+    ]));
+
+    expect($result)->toBe('Law &amp; Order (1990)');
+});
+
+it('escapes angle brackets in movie title', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('<Script>Alert</Script>', 2024, '100'),
+    ]));
+
+    expect($result)->toBe('&lt;Script&gt;Alert&lt;/Script&gt; (2024) <'.plexLink('100').'|↗️>');
+});
+
+it('escapes special characters in show title', function () {
+    $result = $this->formatter->format(collect([
+        episodeItem('Law & Order: SVU', 1, 1),
+    ]));
+
+    expect($result)->toBe('Law &amp; Order: SVU S01E01');
+});
+
+it('escapes all mrkdwn special characters together', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('A <B> & C', 2024),
+    ]));
+
+    expect($result)->toBe('A &lt;B&gt; &amp; C (2024)');
+});
+
+it('links only movies with rating keys in a mixed batch', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('The Matrix', 1999, '500'),
+        movieItem('Inception', 2010, ''),
+    ]));
+
+    expect($result)->toBe('Inception (2010)'."\n".'The Matrix (1999) <'.plexLink('500').'|↗️>');
 });
 
 it('omits plex links when no client identifier', function () {
