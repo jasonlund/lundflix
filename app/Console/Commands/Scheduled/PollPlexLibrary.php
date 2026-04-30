@@ -182,6 +182,7 @@ class PollPlexLibrary extends Command
             'season' => $episode['parentIndex'] ?? null,
             'episode_number' => $episode['index'] ?? null,
             'rating_key' => (string) ($episode['ratingKey'] ?? ''),
+            'parent_rating_key' => (string) ($episode['parentRatingKey'] ?? ''),
             'grandparent_rating_key' => (string) ($episode['grandparentRatingKey'] ?? ''),
             'added_at' => $episode['addedAt'] ?? null,
         ];
@@ -497,6 +498,7 @@ class PollPlexLibrary extends Command
                 ->notify(new PlexLibraryNotification(
                     serverName: $server->name,
                     items: $items,
+                    clientIdentifier: $server->client_identifier,
                 ));
         } catch (\Throwable $e) {
             Log::error('Plex poll Slack notification failed', [

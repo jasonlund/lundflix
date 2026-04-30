@@ -21,6 +21,7 @@ class PlexLibraryNotification extends Notification
     public function __construct(
         public ?string $serverName,
         public Collection $items,
+        public string $clientIdentifier = '',
     ) {}
 
     /**
@@ -33,7 +34,7 @@ class PlexLibraryNotification extends Notification
 
     public function toSlack(object $notifiable): SlackMessage
     {
-        $items = (new PlexLibraryFormatter)->format($this->items);
+        $items = (new PlexLibraryFormatter($this->clientIdentifier ?: null))->format($this->items);
         $heading = $this->serverName
             ? "☑️ Added to the library of {$this->serverName}"
             : '☑️ Added to the library';

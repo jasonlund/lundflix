@@ -4,14 +4,16 @@ use App\Support\PlexLibraryFormatter;
 
 beforeEach(function () {
     $this->formatter = new PlexLibraryFormatter;
+    $this->linkedFormatter = new PlexLibraryFormatter('test-client-id');
 });
 
-function movieItem(string $title, ?int $year = 2024): array
+function movieItem(string $title, ?int $year = 2024, string $ratingKey = ''): array
 {
     return [
         'media_type' => 'movie',
         'title' => $title,
         'year' => $year,
+        'rating_key' => $ratingKey,
         'show_title' => null,
         'season' => null,
         'episode_number' => null,
@@ -23,6 +25,9 @@ function episodeItem(
     int $season,
     int $episodeNumber,
     string $title = 'Episode',
+    string $ratingKey = '',
+    string $parentRatingKey = '',
+    string $grandparentRatingKey = '',
 ): array {
     return [
         'media_type' => 'episode',
@@ -31,7 +36,15 @@ function episodeItem(
         'show_title' => $showTitle,
         'season' => $season,
         'episode_number' => $episodeNumber,
+        'rating_key' => $ratingKey,
+        'parent_rating_key' => $parentRatingKey,
+        'grandparent_rating_key' => $grandparentRatingKey,
     ];
+}
+
+function plexLink(string $ratingKey): string
+{
+    return "https://app.plex.tv/desktop/#!/server/test-client-id/details?key=%2Flibrary%2Fmetadata%2F{$ratingKey}";
 }
 
 it('formats a single movie', function () {
@@ -115,4 +128,67 @@ it('formats mixed movies and episodes', function () {
     ]));
 
     expect($result)->toBe("Inception (2010)\nBreaking Bad S01E01-E02");
+});
+
+// --- Plex link tests ---
+
+it('appends plex link to movie when client identifier is set', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('Inception', 2010, '100'),
+    ]));
+
+    expect($result)->toBe('Inception (2010) <'.plexLink('100').'|↗️>');
+});
+
+it('omits plex link from movie when rating key is empty', function () {
+    $result = $this->linkedFormatter->format(collect([
+        movieItem('Inception', 2010, ''),
+    ]));
+
+    expect($result)->toBe('Inception (2010)');
+});
+
+it('links single episode to the episode', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 5, 'Gray Matter', ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+});
+
+it('links multiple episodes in one season to the season', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, 2, ratingKey: '201', parentRatingKey: '55', grandparentRatingKey: '50'),
+        episodeItem('Breaking Bad', 1, 3, ratingKey: '202', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E01-E03 <'.plexLink('55').'|↗️>');
+});
+
+it('links episodes across multiple seasons to the show', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Lost', 1, 1, ratingKey: '300', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 1, 2, ratingKey: '301', parentRatingKey: '60', grandparentRatingKey: '40'),
+        episodeItem('Lost', 2, 1, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
+    ]));
+
+    expect($result)->toBe('Lost S01E01-E02, S02E01 <'.plexLink('40').'|↗️>');
+});
+
+it('omits plex link from episodes when rating key is empty', function () {
+    $result = $this->linkedFormatter->format(collect([
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '', parentRatingKey: '', grandparentRatingKey: ''),
+    ]));
+
+    expect($result)->toBe('Breaking Bad S01E01');
+});
+
+it('omits plex links when no client identifier', function () {
+    $result = $this->formatter->format(collect([
+        movieItem('Inception', 2010, '100'),
+        episodeItem('Breaking Bad', 1, 1, ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
+    ]));
+
+    expect($result)->toBe("Inception (2010)\nBreaking Bad S01E01");
 });
