@@ -137,7 +137,7 @@ it('appends plex link to movie when client identifier is set', function () {
         movieItem('Inception', 2010, '100'),
     ]));
 
-    expect($result)->toBe('Inception (2010) <'.plexLink('100').'|↗️>');
+    expect($result)->toBe('Inception (2010) <'.plexLink('100').'|View> ↗️');
 });
 
 it('omits plex link from movie when rating key is empty', function () {
@@ -153,7 +153,7 @@ it('links single episode to the episode', function () {
         episodeItem('Breaking Bad', 1, 5, 'Gray Matter', ratingKey: '200', parentRatingKey: '55', grandparentRatingKey: '50'),
     ]));
 
-    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|View> ↗️');
 });
 
 it('links multiple episodes in one season to the season', function () {
@@ -163,7 +163,7 @@ it('links multiple episodes in one season to the season', function () {
         episodeItem('Breaking Bad', 1, 3, ratingKey: '202', parentRatingKey: '55', grandparentRatingKey: '50'),
     ]));
 
-    expect($result)->toBe('Breaking Bad S01E01-E03 <'.plexLink('55').'|↗️>');
+    expect($result)->toBe('Breaking Bad S01E01-E03 <'.plexLink('55').'|View> ↗️');
 });
 
 it('links episodes across multiple seasons to the show', function () {
@@ -173,7 +173,7 @@ it('links episodes across multiple seasons to the show', function () {
         episodeItem('Lost', 2, 1, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
     ]));
 
-    expect($result)->toBe('Lost S01E01-E02, S02E01 <'.plexLink('40').'|↗️>');
+    expect($result)->toBe('Lost S01E01-E02, S02E01 <'.plexLink('40').'|View> ↗️');
 });
 
 it('omits plex link from episodes when rating key is empty', function () {
@@ -191,7 +191,7 @@ it('links single rendered season to season when null-episode siblings inflate se
         episodeItem('Lost', 2, null, ratingKey: '302', parentRatingKey: '61', grandparentRatingKey: '40'),
     ]));
 
-    expect($result)->toBe('Lost S01E01-E02 <'.plexLink('60').'|↗️>');
+    expect($result)->toBe('Lost S01E01-E02 <'.plexLink('60').'|View> ↗️');
 });
 
 it('links single rendered episode to the episode when null-episode sibling inflates count', function () {
@@ -200,7 +200,7 @@ it('links single rendered episode to the episode when null-episode sibling infla
         episodeItem('Breaking Bad', 1, null, ratingKey: '201', parentRatingKey: '55', grandparentRatingKey: '50'),
     ]));
 
-    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|↗️>');
+    expect($result)->toBe('Breaking Bad S01E05 <'.plexLink('200').'|View> ↗️');
 });
 
 // --- Slack mrkdwn escaping tests ---
@@ -218,7 +218,7 @@ it('escapes angle brackets in movie title', function () {
         movieItem('<Script>Alert</Script>', 2024, '100'),
     ]));
 
-    expect($result)->toBe('&lt;Script&gt;Alert&lt;/Script&gt; (2024) <'.plexLink('100').'|↗️>');
+    expect($result)->toBe('&lt;Script&gt;Alert&lt;/Script&gt; (2024) <'.plexLink('100').'|View> ↗️');
 });
 
 it('escapes special characters in show title', function () {
@@ -243,7 +243,7 @@ it('links only movies with rating keys in a mixed batch', function () {
         movieItem('Inception', 2010, ''),
     ]));
 
-    expect($result)->toBe('Inception (2010)'."\n".'The Matrix (1999) <'.plexLink('500').'|↗️>');
+    expect($result)->toBe('Inception (2010)'."\n".'The Matrix (1999) <'.plexLink('500').'|View> ↗️');
 });
 
 it('omits plex links when no client identifier', function () {

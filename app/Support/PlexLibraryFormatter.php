@@ -33,7 +33,7 @@ class PlexLibraryFormatter
 
             $url = $this->plexUrl($item['rating_key'] ?? '');
 
-            $lines[] = $url ? "{$label} <{$url}|↗️>" : $label;
+            $lines[] = $url ? "{$label} <{$url}|View> ↗️" : $label;
         }
 
         foreach ($this->groupEpisodes($episodes) as $showLine) {
@@ -85,7 +85,7 @@ class PlexLibraryFormatter
                 $filteredEpisodes = $showEpisodes->whereNotNull('episode_number');
                 $url = $this->resolveShowLinkUrl($filteredEpisodes, $filteredEpisodes->groupBy('season'));
 
-                $lines[] = $url ? "{$label} <{$url}|↗️>" : $label;
+                $lines[] = $url ? "{$label} <{$url}|View> ↗️" : $label;
             }
         }
 
