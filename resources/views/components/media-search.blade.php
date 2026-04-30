@@ -228,7 +228,32 @@ new class extends Component {
 };
 ?>
 
-<div>
+<div
+    x-data
+    x-init="
+        let lastRequest = null
+
+        function isQueryRequest(request) {
+            for (const message of request.messages) {
+                for (const action of message.getActions()) {
+                    if (action.origin?.directive?.expression === 'query') return true
+                }
+            }
+            return false
+        }
+
+        $wire.$interceptRequest(({ request, onFinish }) => {
+            if (isQueryRequest(request)) {
+                if (lastRequest) lastRequest.cancel()
+                lastRequest = request
+            }
+
+            onFinish(() => {
+                if (lastRequest === request) lastRequest = null
+            })
+        })
+    "
+>
     <flux:modal
         name="search"
         variant="bare"
