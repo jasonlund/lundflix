@@ -83,7 +83,7 @@ class ProcessShowSubscriptions extends Command
             }
 
             $subscription->processedEpisodes()->syncWithoutDetaching(
-                $newEpisodes->pluck('id')->mapWithKeys(fn ($id) => [$id => ['notified_at' => now()]])->all(),
+                $newEpisodes->pluck('id')->mapWithKeys(fn ($id): array => [$id => ['notified_at' => now()]])->all(),
             );
 
             if (! isset($showEpisodeUnions[$show->id])) {

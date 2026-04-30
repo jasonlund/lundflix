@@ -194,7 +194,7 @@ class ProcessShowAvailability extends Command
             );
 
             $subscription->processedEpisodes()->syncWithoutDetaching(
-                $subAvailable->pluck('id')->mapWithKeys(fn ($id) => [$id => ['requested_at' => now()]])->all(),
+                $subAvailable->pluck('id')->mapWithKeys(fn ($id): array => [$id => ['requested_at' => now()]])->all(),
             );
 
             foreach ($subAvailable as $episode) {

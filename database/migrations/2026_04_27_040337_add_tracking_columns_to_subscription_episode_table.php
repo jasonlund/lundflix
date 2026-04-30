@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('subscription_episode', function (Blueprint $table) {
+        Schema::table('subscription_episode', function (Blueprint $table): void {
             $table->timestamp('notified_at')->nullable()->after('episode_id');
             $table->timestamp('requested_at')->nullable()->after('notified_at');
         });
@@ -22,7 +22,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('subscription_episode', function (Blueprint $table) {
+        Schema::table('subscription_episode', function (Blueprint $table): void {
             $table->dropColumn(['notified_at', 'requested_at']);
         });
     }
