@@ -232,9 +232,25 @@ new class extends Component {
     x-data
     x-init="
         let lastRequest = null
-        $wire.$interceptRequest(({ request }) => {
-            if (lastRequest) lastRequest.cancel()
-            lastRequest = request
+
+        function isQueryRequest(request) {
+            for (const message of request.messages) {
+                for (const action of message.getActions()) {
+                    if (action.origin?.directive?.expression === 'query') return true
+                }
+            }
+            return false
+        }
+
+        $wire.$interceptRequest(({ request, onFinish }) => {
+            if (isQueryRequest(request)) {
+                if (lastRequest) lastRequest.cancel()
+                lastRequest = request
+            }
+
+            onFinish(() => {
+                if (lastRequest === request) lastRequest = null
+            })
         })
     "
 >

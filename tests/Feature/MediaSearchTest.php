@@ -60,6 +60,12 @@ it('renders the search modal component', function () {
         ->assertStatus(200);
 });
 
+it('renders the request cancellation guard for race conditions', function () {
+    Livewire::test('media-search')
+        ->assertSeeHtml('$wire.$interceptRequest')
+        ->assertSeeHtml('lastRequest');
+});
+
 it('uses active styling in search results', function () {
     Show::factory()->create(['name' => 'The Wire', 'language' => 'English']);
 
