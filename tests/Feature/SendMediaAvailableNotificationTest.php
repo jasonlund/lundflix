@@ -7,6 +7,7 @@ use App\Models\Request;
 use App\Models\Show;
 use App\Notifications\MediaAvailableNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
@@ -24,6 +25,10 @@ it('sends a slack notification when a movie becomes available', function () {
     MediaAvailable::dispatch($request, $movie);
 
     Notification::assertSentOnDemand(MediaAvailableNotification::class, function (MediaAvailableNotification $notification) use ($movie) {
+        $payload = $notification->toSlack(new AnonymousNotifiable)->toArray();
+
+        expect($payload['blocks'][0]['text']['text'])->toContain('*🟢 Film Available*');
+
         return $notification->media->is($movie);
     });
 });

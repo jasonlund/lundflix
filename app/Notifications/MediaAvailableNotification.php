@@ -57,7 +57,7 @@ class MediaAvailableNotification extends Notification
         return (new SlackMessage)
             ->text($title)
             ->sectionBlock(function (SectionBlock $block) use ($title): void {
-                $block->text("*🟢 Available*\n\n{$title}")->markdown();
+                $block->text("*🟢 Film Available*\n\n{$title}")->markdown();
             });
     }
 
