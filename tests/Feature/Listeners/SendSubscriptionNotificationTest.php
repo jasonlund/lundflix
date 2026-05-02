@@ -8,6 +8,7 @@ use App\Models\Request;
 use App\Models\Show;
 use App\Notifications\SubscriptionMediaNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -36,7 +37,13 @@ it('sends slack notification for a movie subscription', function () {
     $listener = new SendSubscriptionNotification;
     $listener->handle(new SubscriptionTriggered($request, $movie));
 
-    Notification::assertSentOnDemand(SubscriptionMediaNotification::class);
+    Notification::assertSentOnDemand(SubscriptionMediaNotification::class, function (SubscriptionMediaNotification $notification) {
+        $payload = $notification->toSlack(new AnonymousNotifiable)->toArray();
+
+        expect($payload['blocks'][0]['text']['text'])->toContain('*🎬 Movie Released*');
+
+        return true;
+    });
 });
 
 it('sends slack notification for a show subscription with episodes', function () {
@@ -53,7 +60,33 @@ it('sends slack notification for a show subscription with episodes', function ()
     $listener = new SendSubscriptionNotification;
     $listener->handle(new SubscriptionTriggered($request, $show, $episodes));
 
-    Notification::assertSentOnDemand(SubscriptionMediaNotification::class);
+    Notification::assertSentOnDemand(SubscriptionMediaNotification::class, function (SubscriptionMediaNotification $notification) {
+        $payload = $notification->toSlack(new AnonymousNotifiable)->toArray();
+
+        expect($payload['blocks'][0]['text']['text'])->toContain('*📺 Episodes Premiered*');
+
+        return true;
+    });
+});
+
+it('sends slack notification for a show subscription with one episode', function () {
+    Notification::fake();
+    config(['services.slack.enabled' => true, 'services.slack.notifications.channel' => 'C12345']);
+
+    $request = Request::factory()->create();
+    $show = Show::factory()->create(['name' => 'Stranger Things']);
+    $episode = Episode::factory()->create(['show_id' => $show->id, 'season' => 6, 'number' => 1, 'type' => 'regular']);
+
+    $listener = new SendSubscriptionNotification;
+    $listener->handle(new SubscriptionTriggered($request, $show, collect([$episode])));
+
+    Notification::assertSentOnDemand(SubscriptionMediaNotification::class, function (SubscriptionMediaNotification $notification) {
+        $payload = $notification->toSlack(new AnonymousNotifiable)->toArray();
+
+        expect($payload['blocks'][0]['text']['text'])->toContain('*📺 Episode Premiered*');
+
+        return true;
+    });
 });
 
 it('does not send notification when slack is disabled', function () {

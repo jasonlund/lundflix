@@ -57,7 +57,7 @@ class SubscriptionMediaNotification extends Notification
         return (new SlackMessage)
             ->text($title)
             ->sectionBlock(function (SectionBlock $block) use ($title): void {
-                $block->text("*🎬 New Release*\n\n{$title}")->markdown();
+                $block->text("*🎬 Movie Released*\n\n{$title}")->markdown();
             });
     }
 
@@ -68,7 +68,7 @@ class SubscriptionMediaNotification extends Notification
         $episodes = $this->episodes ?? collect();
 
         $episodeCount = $episodes->count();
-        $header = $episodeCount === 1 ? '📺 New Episode' : '📺 New Episodes';
+        $header = $episodeCount === 1 ? '📺 Episode Premiered' : '📺 Episodes Premiered';
 
         $grouped = app(CartService::class)->groupItems($episodes); // @phpstan-ignore argument.type
         $parts = [];
