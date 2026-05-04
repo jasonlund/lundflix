@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\MediaAvailable;
+use App\Jobs\DownloadTorrents;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -8,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\IptorrentsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,10 +19,13 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
+    Bus::fake([DownloadTorrents::class]);
 });
 
 function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'): array
 {
+    $filename = str_replace(' ', '.', $name);
+
     return [
         'torrent_id' => 1,
         'name' => $name,
@@ -29,7 +34,7 @@ function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-
         'leechers' => 5,
         'snatches' => 100,
         'uploaded' => '2024-01-01',
-        'download_url' => 'https://iptorrents.com/download.php/1/file.torrent',
+        'download_url' => "https://iptorrents.com/download.php/1/{$filename}.torrent",
     ];
 }
 
@@ -56,6 +61,10 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
     Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->media->is($movie));
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return $job->torrents === [['torrent_id' => 1, 'filename' => 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP.torrent']];
+    });
 });
 
 it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {

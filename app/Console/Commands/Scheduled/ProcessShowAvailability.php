@@ -10,6 +10,7 @@ use App\Enums\MediaType;
 use App\Events\MediaAvailable;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
+use App\Jobs\DownloadTorrents;
 use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
@@ -120,6 +121,8 @@ class ProcessShowAvailability extends Command
         $showAvailable = [];
         /** @var array<int, array<int, Episode>> $newlyRequested keyed by show id, episode id */
         $newlyRequested = [];
+        /** @var list<array{torrent_id: int, filename: string}> $torrentDownloads */
+        $torrentDownloads = [];
         $processed = 0;
 
         foreach ($bySub as $entry) {
@@ -147,6 +150,11 @@ class ProcessShowAvailability extends Command
                         $result = $this->ipt->searchEpisode($probe);
 
                         if ($result !== null) {
+                            $torrentDownloads[] = [
+                                'torrent_id' => $result['torrent_id'],
+                                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
+                            ];
+
                             foreach ($episodes as $episode) {
                                 $available->push($episode);
                             }
@@ -212,6 +220,10 @@ class ProcessShowAvailability extends Command
                 ->values();
 
             MediaAvailable::dispatch(null, $show, $episodes);
+        }
+
+        if ($torrentDownloads !== []) {
+            DownloadTorrents::dispatch($torrentDownloads);
         }
 
         $this->info("Processed {$processed} show availability check(s).");

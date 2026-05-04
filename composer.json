@@ -19,6 +19,7 @@
         "laravel/scout": "^10.23",
         "laravel/slack-notification-channel": "^3.7",
         "laravel/tinker": "^2.10.1",
+        "league/flysystem-ftp": "^3.0",
         "livewire/blaze": "^1.0",
         "livewire/flux": "^2.12.1",
         "livewire/flux-pro": "^2.10",
