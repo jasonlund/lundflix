@@ -1,10 +1,12 @@
 <?php
 
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
 use App\Notifications\TorrentIgnoredNotification;
 use App\Notifications\TorrentRejectedNotification;
 use App\Services\IptorrentsService;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Contracts\Queue\Job as QueueJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -195,6 +197,61 @@ it('does not send notifications when slack is disabled', function () {
         ['torrent_id' => 1, 'filename' => 'test.torrent'],
     ]);
     $job->handle(app(IptorrentsService::class));
+
+    Notification::assertNothingSent();
+});
+
+it('releases the job with delay when rate limited on first torrent', function () {
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('download')
+        ->with(1, 'first.torrent')
+        ->andThrow(new IptorrentsRateLimitExceededException);
+
+    $fakeJob = Mockery::mock(QueueJob::class);
+    $fakeJob->shouldReceive('release')->with(60)->once();
+
+    $job = new DownloadTorrents([
+        ['torrent_id' => 1, 'filename' => 'first.torrent'],
+        ['torrent_id' => 2, 'filename' => 'second.torrent'],
+    ]);
+    $job->setJob($fakeJob);
+    $job->handle(app(IptorrentsService::class));
+
+    expect($job->torrents)->toBe([
+        ['torrent_id' => 1, 'filename' => 'first.torrent'],
+        ['torrent_id' => 2, 'filename' => 'second.torrent'],
+    ]);
+
+    Notification::assertNothingSent();
+});
+
+it('releases with remaining torrents and sends notifications for already-processed ones', function () {
+    $ipt = $this->mock(IptorrentsService::class);
+    mockIptDownload($ipt, 1, 'accepted.torrent');
+    $ipt->shouldReceive('download')
+        ->with(2, 'ratelimited.torrent')
+        ->andThrow(new IptorrentsRateLimitExceededException);
+
+    mockTorrentDisk([
+        'accepted.torrent.invalid' => false,
+        'accepted.torrent' => false,
+    ]);
+
+    $fakeJob = Mockery::mock(QueueJob::class);
+    $fakeJob->shouldReceive('release')->with(60)->once();
+
+    $job = new DownloadTorrents([
+        ['torrent_id' => 1, 'filename' => 'accepted.torrent'],
+        ['torrent_id' => 2, 'filename' => 'ratelimited.torrent'],
+        ['torrent_id' => 3, 'filename' => 'pending.torrent'],
+    ]);
+    $job->setJob($fakeJob);
+    $job->handle(app(IptorrentsService::class));
+
+    expect($job->torrents)->toBe([
+        ['torrent_id' => 2, 'filename' => 'ratelimited.torrent'],
+        ['torrent_id' => 3, 'filename' => 'pending.torrent'],
+    ]);
 
     Notification::assertNothingSent();
 });

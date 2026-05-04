@@ -90,6 +90,10 @@ it('creates a request when IPTorrents finds a codec-only torrent in an allowed c
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
     Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->media->is($movie));
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return $job->torrents === [['torrent_id' => 1, 'filename' => 'Dune.Part.Two.2024.1080p.x265.torrent']];
+    });
 });
 
 it('does nothing when IPTorrents returns no results', function () {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\SlackNotificationType;
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Notifications\TorrentIgnoredNotification;
 use App\Notifications\TorrentRejectedNotification;
 use App\Services\IptorrentsService;
@@ -19,6 +20,12 @@ class DownloadTorrents implements ShouldQueue
 {
     use Queueable;
 
+    public int $timeout = 300;
+
+    public int $tries = 5;
+
+    public int $maxExceptions = 3;
+
     private const POLL_INTERVAL_SECONDS = 5;
 
     private const POLL_MAX_SECONDS = 60;
@@ -28,7 +35,9 @@ class DownloadTorrents implements ShouldQueue
      */
     public function __construct(
         public array $torrents,
-    ) {}
+    ) {
+        $this->onQueue('torrents');
+    }
 
     public function handle(IptorrentsService $ipt): void
     {
@@ -37,9 +46,15 @@ class DownloadTorrents implements ShouldQueue
         /** @var list<string> $ignored */
         $ignored = [];
 
-        foreach ($this->torrents as $torrent) {
+        foreach ($this->torrents as $index => $torrent) {
             try {
                 $this->processTorrent($ipt, $torrent, $rejected, $ignored);
+            } catch (IptorrentsRateLimitExceededException) {
+                $this->torrents = array_slice($this->torrents, $index);
+                $this->sendNotifications($rejected, $ignored);
+                $this->release(60);
+
+                return;
             } catch (\Throwable $e) {
                 Log::error('Torrent processing failed', [
                     'torrent_id' => $torrent['torrent_id'],
