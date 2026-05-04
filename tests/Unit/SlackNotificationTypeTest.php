@@ -6,6 +6,8 @@ use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
 use App\Notifications\SubscriptionMediaNotification;
+use App\Notifications\TorrentIgnoredNotification;
+use App\Notifications\TorrentRejectedNotification;
 
 it('maps notification classes to enum cases', function (string $class, SlackNotificationType $expected) {
     expect(SlackNotificationType::tryFromNotification($class))->toBe($expected);
@@ -15,6 +17,8 @@ it('maps notification classes to enum cases', function (string $class, SlackNoti
     [MediaAvailableNotification::class, SlackNotificationType::MediaAvailable],
     [SubscriptionMediaNotification::class, SlackNotificationType::SubscriptionMedia],
     [PlexLibraryNotification::class, SlackNotificationType::PlexLibrary],
+    [TorrentRejectedNotification::class, SlackNotificationType::TorrentRejected],
+    [TorrentIgnoredNotification::class, SlackNotificationType::TorrentIgnored],
 ]);
 
 it('returns null for unknown notification classes', function () {
@@ -59,4 +63,6 @@ it('returns the default channel for non-library notification types', function (S
     SlackNotificationType::RequestProcessed,
     SlackNotificationType::MediaAvailable,
     SlackNotificationType::SubscriptionMedia,
+    SlackNotificationType::TorrentRejected,
+    SlackNotificationType::TorrentIgnored,
 ]);

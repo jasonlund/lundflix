@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\MediaAvailable;
+use App\Jobs\DownloadTorrents;
 use App\Models\Episode;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -9,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Services\IptorrentsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
@@ -22,10 +24,13 @@ beforeEach(function () {
 
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
+    Bus::fake([DownloadTorrents::class]);
 });
 
 function fakeEpisodeTorrentResult(string $name): array
 {
+    $filename = str_replace(' ', '.', $name);
+
     return [
         'torrent_id' => 1,
         'name' => $name,
@@ -34,7 +39,7 @@ function fakeEpisodeTorrentResult(string $name): array
         'leechers' => 3,
         'snatches' => 80,
         'uploaded' => '2024-01-01',
-        'download_url' => 'https://iptorrents.com/download.php/1/file.torrent',
+        'download_url' => "https://iptorrents.com/download.php/1/{$filename}.torrent",
     ];
 }
 
@@ -71,6 +76,10 @@ it('creates a request for episodes with available torrents', function () {
     expect(RequestItem::count())->toBe(1);
 
     Event::assertDispatched(MediaAvailable::class);
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return $job->torrents === [['torrent_id' => 1, 'filename' => 'Severance.S02E01.1080p.WEB-DL.x264-GROUP.torrent']];
+    });
 });
 
 it('does not request an episode already in subscription_episode', function () {

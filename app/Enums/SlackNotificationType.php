@@ -9,6 +9,8 @@ use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
 use App\Notifications\SubscriptionMediaNotification;
+use App\Notifications\TorrentIgnoredNotification;
+use App\Notifications\TorrentRejectedNotification;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
@@ -19,6 +21,8 @@ enum SlackNotificationType: string implements HasColor, HasLabel
     case MediaAvailable = 'media_available';
     case SubscriptionMedia = 'subscription_media';
     case PlexLibrary = 'plex_library';
+    case TorrentRejected = 'torrent_rejected';
+    case TorrentIgnored = 'torrent_ignored';
 
     public function getLabel(): string
     {
@@ -28,6 +32,8 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::MediaAvailable => 'Available',
             self::SubscriptionMedia => 'New Release',
             self::PlexLibrary => 'Added to Library',
+            self::TorrentRejected => 'Torrent Rejected',
+            self::TorrentIgnored => 'Torrent Ignored',
         };
     }
 
@@ -39,6 +45,8 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::MediaAvailable => 'success',
             self::SubscriptionMedia => 'warning',
             self::PlexLibrary => 'gray',
+            self::TorrentRejected => 'danger',
+            self::TorrentIgnored => 'warning',
         };
     }
 
@@ -62,6 +70,8 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             MediaAvailableNotification::class => self::MediaAvailable,
             SubscriptionMediaNotification::class => self::SubscriptionMedia,
             PlexLibraryNotification::class => self::PlexLibrary,
+            TorrentRejectedNotification::class => self::TorrentRejected,
+            TorrentIgnoredNotification::class => self::TorrentIgnored,
             default => null,
         };
     }

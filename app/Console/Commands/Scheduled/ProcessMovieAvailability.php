@@ -11,6 +11,7 @@ use App\Enums\MovieStatus;
 use App\Events\MediaAvailable;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
+use App\Jobs\DownloadTorrents;
 use App\Models\Movie;
 use App\Models\Subscription;
 use App\Services\IptorrentsService;
@@ -63,10 +64,12 @@ class ProcessMovieAvailability extends Command
 
         $byMovie = $subscriptions->groupBy('subscribable_id');
 
-        /** @var array<int, bool> $checked */
+        /** @var array<int, array{torrent_id: int, name: string, download_url: string}|false> $checked */
         $checked = [];
         /** @var array<int, Movie> $toDispatch */
         $toDispatch = [];
+        /** @var list<array{torrent_id: int, filename: string}> $torrentDownloads */
+        $torrentDownloads = [];
         $processed = 0;
 
         foreach ($byMovie as $movieId => $subs) {
@@ -75,7 +78,8 @@ class ProcessMovieAvailability extends Command
 
             if (! array_key_exists($movieId, $checked)) {
                 try {
-                    $checked[$movieId] = $this->ipt->searchMovie($movie) !== null;
+                    $result = $this->ipt->searchMovie($movie);
+                    $checked[$movieId] = $result ?? false;
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');
                     break;
@@ -91,7 +95,7 @@ class ProcessMovieAvailability extends Command
                 }
             }
 
-            if (! $checked[$movieId]) {
+            if ($checked[$movieId] === false) {
                 continue;
             }
 
@@ -106,11 +110,21 @@ class ProcessMovieAvailability extends Command
                 $processed++;
             }
 
+            $result = $checked[$movieId];
+            $torrentDownloads[] = [
+                'torrent_id' => $result['torrent_id'],
+                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
+            ];
+
             $toDispatch[$movieId] = $movie;
         }
 
         foreach ($toDispatch as $movie) {
             MediaAvailable::dispatch(null, $movie);
+        }
+
+        if ($torrentDownloads !== []) {
+            DownloadTorrents::dispatch($torrentDownloads);
         }
 
         $this->info("Processed {$processed} movie availability check(s).");

@@ -47,6 +47,15 @@ return [
             'report' => false,
         ],
 
+        'torrent' => [
+            'driver' => 'ftp',
+            'host' => env('TORRENT_FTP_HOST'),
+            'username' => env('TORRENT_FTP_USERNAME'),
+            'password' => env('TORRENT_FTP_PASSWORD'),
+            'root' => env('TORRENT_FTP_ROOT', '/'),
+            'throw' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
