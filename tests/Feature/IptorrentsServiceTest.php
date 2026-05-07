@@ -333,6 +333,7 @@ describe('searchMovie', function () {
         expect($result)->toBeNull();
         Http::assertSentCount(2);
     });
+
 });
 
 describe('searchEpisode', function () {
@@ -381,55 +382,7 @@ describe('searchEpisode', function () {
         Http::assertSentCount(2);
     });
 
-    it('falls back to name + episode code with default categories', function () {
-        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
-        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 503, name: 'Test.Show.S01E01.1080p', seeders: 30),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchEpisode($episode);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(503);
-
-        Http::assertSentCount(3);
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'q=Test+Show+s01e01'));
-    });
-
-    it('falls back to name + episode code with all TV categories', function () {
-        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
-        $episode = Episode::factory()->for($show)->create(['season' => 3, 'number' => 10]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 504, name: 'Test.Show.S03E10.DVDRip', seeders: 10),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchEpisode($episode);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(504);
-
-        Http::assertSentCount(4);
-    });
-
-    it('skips IMDB steps when show has no IMDB ID', function () {
+    it('returns null when show has no IMDB ID', function () {
         $show = Show::factory()->create(['imdb_id' => '', 'name' => 'No IMDB Show']);
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
 
@@ -442,11 +395,8 @@ describe('searchEpisode', function () {
         $service = new IptorrentsService;
         $result = $service->searchEpisode($episode);
 
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(505);
-
-        Http::assertSentCount(1);
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
     });
 
     it('returns null when nothing found', function () {
@@ -461,6 +411,6 @@ describe('searchEpisode', function () {
         $result = $service->searchEpisode($episode);
 
         expect($result)->toBeNull();
-        Http::assertSentCount(4);
+        Http::assertSentCount(2);
     });
 });

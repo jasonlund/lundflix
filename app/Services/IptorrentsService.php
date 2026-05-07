@@ -88,15 +88,14 @@ class IptorrentsService
         );
         $allCategories = IptCategory::tvCases();
 
-        $queries = [];
-
-        if ($episode->show->imdb_id) {
-            $queries[] = ["{$episode->show->imdb_id} {$episode->code}", $defaultCategories];
-            $queries[] = ["{$episode->show->imdb_id} {$episode->code}", $allCategories];
+        if (! $episode->show->imdb_id) {
+            return null;
         }
 
-        $queries[] = ["{$episode->show->name} {$episode->code}", $defaultCategories];
-        $queries[] = ["{$episode->show->name} {$episode->code}", $allCategories];
+        $queries = [
+            ["{$episode->show->imdb_id} {$episode->code}", $defaultCategories],
+            ["{$episode->show->imdb_id} {$episode->code}", $allCategories],
+        ];
 
         foreach ($queries as [$query, $categories]) {
             $results = $this->search($query, $categories);
