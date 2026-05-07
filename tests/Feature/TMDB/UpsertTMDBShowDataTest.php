@@ -68,6 +68,7 @@ it('upserts show data keyed by tvmaze_id', function () {
             'original_name' => null,
             'original_language' => 'en',
             'thetvdb_id' => $show->thetvdb_id,
+            'imdb_id' => $show->imdb_id,
         ],
     ]);
 
@@ -75,6 +76,30 @@ it('upserts show data keyed by tvmaze_id', function () {
 
     expect($show->tmdb_id)->toBe(1396)
         ->and($show->tmdb_synced_at)->not->toBeNull();
+});
+
+it('backfills imdb_id when missing', function () {
+    $show = Show::factory()->create(['imdb_id' => null, 'tmdb_id' => null, 'tmdb_synced_at' => null]);
+
+    $upsert = app(UpsertTMDBShowData::class);
+    $upsert->upsert([
+        [
+            'tvmaze_id' => $show->tvmaze_id,
+            'name' => $show->name,
+            'tmdb_id' => 1396,
+            'tmdb_synced_at' => now()->toDateTimeString(),
+            'content_ratings' => null,
+            'original_name' => null,
+            'original_language' => 'en',
+            'thetvdb_id' => $show->thetvdb_id,
+            'imdb_id' => 'tt0903747',
+        ],
+    ]);
+
+    $show->refresh();
+
+    expect($show->imdb_id)->toBe('tt0903747')
+        ->and($show->tmdb_id)->toBe(1396);
 });
 
 it('does not include thetvdb_id in mapped data', function () {

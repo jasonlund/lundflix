@@ -10,7 +10,7 @@ use App\Support\DatabaseRetry;
 class UpsertTMDBShowData
 {
     /**
-     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, content_ratings: ?array, original_name: ?string, original_language: ?string}>  $shows
+     * @param  array<int, array{tvmaze_id: int, tmdb_id: ?int, tmdb_synced_at: string, content_ratings: ?array, original_name: ?string, original_language: ?string, imdb_id: ?string}>  $shows
      */
     public function upsert(array $shows): int
     {
@@ -27,7 +27,7 @@ class UpsertTMDBShowData
         return DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
-            ['tmdb_id', 'tmdb_synced_at', 'content_ratings', 'original_name', 'original_language', 'thetvdb_id']
+            ['tmdb_id', 'tmdb_synced_at', 'content_ratings', 'original_name', 'original_language', 'thetvdb_id', 'imdb_id']
         ));
     }
 
