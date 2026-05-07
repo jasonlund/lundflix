@@ -181,15 +181,18 @@ class SyncTMDBShows extends Command
                     'original_name' => null,
                     'original_language' => null,
                     'thetvdb_id' => $show->thetvdb_id,
+                    'imdb_id' => $show->imdb_id,
                 ];
 
                 $details = $detailsMap[$show->tvmaze_id] ?? null;
                 if ($details) {
                     $mapped = UpsertTMDBShowData::mapFromApi($details);
                     $row = array_merge($row, $mapped);
-                    // Backfill thetvdb_id from TMDB only if missing locally
                     if ($show->thetvdb_id === null && isset($details['external_ids']['tvdb_id'])) {
                         $row['thetvdb_id'] = $details['external_ids']['tvdb_id'];
+                    }
+                    if ($show->imdb_id === null && isset($details['external_ids']['imdb_id'])) {
+                        $row['imdb_id'] = $details['external_ids']['imdb_id'];
                     }
                 } elseif (isset($tmdbIdMap[$show->tvmaze_id])) {
                     $row['tmdb_id'] = $tmdbIdMap[$show->tvmaze_id];
@@ -253,13 +256,16 @@ class SyncTMDBShows extends Command
                     'original_name' => null,
                     'original_language' => null,
                     'thetvdb_id' => $show->thetvdb_id,
+                    'imdb_id' => $show->imdb_id,
                 ];
 
                 if ($showDetails) {
                     $row = array_merge($row, UpsertTMDBShowData::mapFromApi($showDetails));
-                    // Backfill thetvdb_id from TMDB only if missing locally
                     if ($show->thetvdb_id === null && isset($showDetails['external_ids']['tvdb_id'])) {
                         $row['thetvdb_id'] = $showDetails['external_ids']['tvdb_id'];
+                    }
+                    if ($show->imdb_id === null && isset($showDetails['external_ids']['imdb_id'])) {
+                        $row['imdb_id'] = $showDetails['external_ids']['imdb_id'];
                     }
                 }
 
