@@ -147,7 +147,7 @@ class ProcessShowAvailability extends Command
 
                     foreach ($groups as $episodes) {
                         $probe = $episodes->sortBy('number')->first();
-                        $result = $this->ipt->searchEpisode($probe);
+                        $result = $this->ipt->searchEpisodeByName($probe);
 
                         if ($result !== null) {
                             $torrentDownloads[] = [

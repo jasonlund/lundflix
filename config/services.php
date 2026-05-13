@@ -53,6 +53,8 @@ return [
 
     'iptorrents' => [
         'base_url' => env('IPT_BASE_URL', 'https://iptorrents.com'),
+        'uid' => env('IPT_UID'),
+        'pass' => env('IPT_PASS'),
     ],
 
 ];

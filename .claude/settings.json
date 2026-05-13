@@ -24,8 +24,6 @@
       "Write(./.claude/hooks/**)"
     ],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
       "Read(./auth.json)"
     ]
   },

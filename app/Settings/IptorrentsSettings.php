@@ -19,13 +19,23 @@ class IptorrentsSettings extends Settings
         return 'iptorrents';
     }
 
+    public function resolvedUid(): string
+    {
+        return $this->ipt_uid !== '' ? $this->ipt_uid : (string) config('services.iptorrents.uid', '');
+    }
+
+    public function resolvedPass(): string
+    {
+        return $this->ipt_pass !== '' ? $this->ipt_pass : (string) config('services.iptorrents.pass', '');
+    }
+
     public function cookieHeader(): string
     {
-        return "uid={$this->ipt_uid}; pass={$this->ipt_pass}";
+        return "uid={$this->resolvedUid()}; pass={$this->resolvedPass()}";
     }
 
     public function isConfigured(): bool
     {
-        return $this->ipt_uid !== '' && $this->ipt_pass !== '';
+        return $this->resolvedUid() !== '' && $this->resolvedPass() !== '';
     }
 }

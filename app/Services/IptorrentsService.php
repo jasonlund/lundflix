@@ -25,6 +25,8 @@ class IptorrentsService
 
     private const RATE_LIMIT_DECAY = 60;
 
+    private const MAX_IMDB_LOOKUPS = 3;
+
     /**
      * Search IPTorrents and return parsed results (max 50 per search).
      *
@@ -50,25 +52,40 @@ class IptorrentsService
      */
     public function searchMovie(Movie $movie): ?array
     {
+        if (! $movie->imdb_id) {
+            return null;
+        }
+
         $defaultCategories = array_map(
             IptCategory::from(...),
             IptCategory::defaultMovieValues(),
         );
 
-        $queries = [];
+        $results = $this->search($movie->imdb_id, $defaultCategories);
 
-        if ($movie->imdb_id) {
-            $queries[] = $movie->imdb_id;
+        return $results->first();
+    }
+
+    /**
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchMovieByName(Movie $movie): ?array
+    {
+        if (! $movie->imdb_id) {
+            return null;
         }
 
-        $titleQuery = $movie->title.($movie->year ? ' '.$movie->year : '');
-        $queries[] = $titleQuery;
+        $categories = array_map(
+            IptCategory::from(...),
+            IptCategory::defaultMovieValues(),
+        );
 
-        foreach ($queries as $query) {
-            $results = $this->search($query, $defaultCategories);
+        $query = $this->sanitizeNameForSearch($movie->title).($movie->year ? ' '.$movie->year : '');
+        $results = $this->search($query, $categories);
 
-            if ($results->isNotEmpty()) {
-                return $results->first();
+        foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
+            if ($this->fetchTorrentImdbId($result['torrent_id']) === $movie->imdb_id) {
+                return $result;
             }
         }
 
@@ -82,27 +99,83 @@ class IptorrentsService
     {
         $episode->loadMissing('show');
 
-        $defaultCategories = array_map(
+        if (! $episode->show->imdb_id) {
+            return null;
+        }
+
+        $categories = array_map(
             IptCategory::from(...),
             IptCategory::defaultTvValues(),
         );
-        $allCategories = IptCategory::tvCases();
+
+        $results = $this->search("{$episode->show->imdb_id} {$episode->code}", $categories);
+
+        return $results->first();
+    }
+
+    /**
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchEpisodeByName(Episode $episode): ?array
+    {
+        $episode->loadMissing('show');
 
         if (! $episode->show->imdb_id) {
             return null;
         }
 
-        $queries = [
-            ["{$episode->show->imdb_id} {$episode->code}", $defaultCategories],
-            ["{$episode->show->imdb_id} {$episode->code}", $allCategories],
-        ];
+        $categories = array_map(
+            IptCategory::from(...),
+            IptCategory::defaultTvValues(),
+        );
 
-        foreach ($queries as [$query, $categories]) {
-            $results = $this->search($query, $categories);
+        $searchName = $episode->show->ipt_search_term
+            ?? $this->sanitizeNameForSearch($episode->show->name);
 
-            if ($results->isNotEmpty()) {
-                return $results->first();
+        $query = "{$searchName} {$episode->code}";
+        $results = $this->search($query, $categories);
+
+        foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $index => $result) {
+            if ($this->fetchTorrentImdbId($result['torrent_id']) === $episode->show->imdb_id) {
+                $this->learnSearchTerm($episode, $result['name'], $index);
+
+                return $result;
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fetch the IMDB ID from a torrent's detail page.
+     */
+    public function fetchTorrentImdbId(int $torrentId): ?string
+    {
+        $this->checkRateLimit();
+
+        $url = $this->baseUrl()."/torrent.php?id={$torrentId}";
+        $response = $this->client()->get($url);
+        $response->throw();
+
+        $html = $response->body();
+        $this->detectAuthFailure($html);
+
+        $crawler = new Crawler($html);
+
+        try {
+            $imdbLink = $crawler->filter('a[href*="imdb.com/title/"]');
+
+            if ($imdbLink->count() === 0) {
+                return null;
+            }
+
+            $href = $imdbLink->first()->attr('href') ?? '';
+
+            if (preg_match('/(tt\d+)/', $href, $matches)) {
+                return $matches[1];
+            }
+        } catch (\Throwable) {
+            // Parsing error
         }
 
         return null;
@@ -129,6 +202,61 @@ class IptorrentsService
         Storage::disk('local')->put($path, $response->body());
 
         return Storage::disk('local')->path($path);
+    }
+
+    private function learnSearchTerm(Episode $episode, string $torrentName, int $matchIndex): void
+    {
+        if ($episode->show->ipt_search_term !== null || $matchIndex === 0) {
+            return;
+        }
+
+        $showTitle = $this->extractShowTitle($torrentName);
+
+        if ($showTitle === null) {
+            return;
+        }
+
+        if (mb_strtolower($showTitle) === mb_strtolower($this->sanitizeNameForSearch($episode->show->name))) {
+            return;
+        }
+
+        try {
+            $categories = array_map(
+                IptCategory::from(...),
+                IptCategory::defaultTvValues(),
+            );
+
+            $verificationResults = $this->search(
+                "{$showTitle} {$episode->code}",
+                $categories,
+            );
+
+            if ($verificationResults->isEmpty()) {
+                return;
+            }
+
+            if ($this->fetchTorrentImdbId($verificationResults->first()['torrent_id']) !== $episode->show->imdb_id) {
+                return;
+            }
+        } catch (\Throwable) {
+            return;
+        }
+
+        $episode->show->update(['ipt_search_term' => $showTitle]);
+    }
+
+    private function extractShowTitle(string $torrentName): ?string
+    {
+        if (preg_match('/^(.+?)\s+[Ss]\d{2}[EeSs]\d{2}/', $torrentName, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return null;
+    }
+
+    private function sanitizeNameForSearch(string $name): string
+    {
+        return trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
     private function buildSearchUrl(string $query, array $categories, string $sort): string
