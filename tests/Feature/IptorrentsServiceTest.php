@@ -492,6 +492,26 @@ describe('searchMovieByName', function () {
             && str_contains($request->url(), 'q=Widows+Bay+2024'));
     });
 
+    it('replaces hyphens with spaces in search URL', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Spider-Man', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 604, name: 'Spider.Man.2024.x265', seeders: 10),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchMovieByName($movie);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Spider+Man+2024'));
+    });
+
     it('returns null when search finds nothing', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Ghost Movie', 'year' => 2024]);
 

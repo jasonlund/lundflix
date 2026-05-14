@@ -272,6 +272,8 @@ class IptorrentsService
 
     private function sanitizeNameForSearch(string $name): string
     {
+        $name = (string) preg_replace('/[\x{2010}-\x{2015}\x{2D}]+/u', ' ', $name);
+
         return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
