@@ -142,19 +142,32 @@ class Formatters
     }
 
     /**
+     * Compact relative time with direction: bare for future, parenthesized for past.
+     */
+    public static function relativeTime(Carbon $target): string
+    {
+        $diff = self::compactDiff($target);
+
+        return $target->isPast() ? "({$diff})" : $diff;
+    }
+
+    /**
      * Compact relative time string using the highest-order unit.
-     *
-     * Sub-hour gaps are floored to "1h" — this is intentional so the UI
-     * never shows "0h" for very recent/imminent events.
      */
     private static function compactDiff(Carbon $target): string
     {
         $now = now();
 
+        $minutes = (int) $now->diffInMinutes($target, absolute: true);
+
+        if ($minutes < 60) {
+            return max(1, $minutes).'m';
+        }
+
         $hours = (int) $now->diffInHours($target, absolute: true);
 
-        if ($hours < 24) {
-            return max(1, $hours).'h';
+        if ($hours < 48) {
+            return $hours.'h';
         }
 
         $days = (int) $now->diffInDays($target, absolute: true);
@@ -167,7 +180,7 @@ class Formatters
             return ((int) floor($days / 7)).'w';
         }
 
-        return ((int) floor($days / 30)).'m';
+        return ((int) floor($days / 30)).'mo';
     }
 
     public static function yearLabel(Show|Movie $item): ?string

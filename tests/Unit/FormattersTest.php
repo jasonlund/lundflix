@@ -170,16 +170,18 @@ it('returns null runtime for a show with no runtime', function () {
     expect(Formatters::runtimeFor($show))->toBeNull();
 });
 
-it('formats time until as hours when less than 24h away', function () {
+it('formats time until as hours when less than 48h away', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
 
     expect(Formatters::timeUntil(Carbon::parse('2026-04-01 20:00:00')))->toBe('8h');
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-02 18:00:00')))->toBe('30h');
 });
 
-it('formats time until with minimum of 1h', function () {
+it('formats time until as minutes when less than 1h away', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
 
-    expect(Formatters::timeUntil(Carbon::parse('2026-04-01 12:30:00')))->toBe('1h');
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01 12:30:00')))->toBe('30m');
+    expect(Formatters::timeUntil(Carbon::parse('2026-04-01 12:01:00')))->toBe('1m');
 });
 
 it('formats time until as days when less than 7d away', function () {
@@ -197,7 +199,7 @@ it('formats time until as weeks when less than 30d away', function () {
 it('formats time until as months when 30d or more away', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:00:00'));
 
-    expect(Formatters::timeUntil(Carbon::parse('2026-07-01')))->toBe('3m');
+    expect(Formatters::timeUntil(Carbon::parse('2026-07-01')))->toBe('3mo');
 });
 
 it('formats time until as positive value for a past date', function () {
@@ -206,16 +208,18 @@ it('formats time until as positive value for a past date', function () {
     expect(Formatters::timeUntil(Carbon::parse('2026-03-28')))->toBe('4d');
 });
 
-it('formats time since as hours when less than 24h ago', function () {
+it('formats time since as hours when less than 48h ago', function () {
     $this->travelTo(Carbon::parse('2026-04-01 20:00:00'));
 
     expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:00:00')))->toBe('8h');
+    expect(Formatters::timeSince(Carbon::parse('2026-03-31 14:00:00')))->toBe('30h');
 });
 
-it('formats time since with minimum of 1h', function () {
+it('formats time since as minutes when less than 1h ago', function () {
     $this->travelTo(Carbon::parse('2026-04-01 12:30:00'));
 
-    expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:00:00')))->toBe('1h');
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:00:00')))->toBe('30m');
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01 12:14:00')))->toBe('16m');
 });
 
 it('formats time since as days when less than 7d ago', function () {
@@ -233,7 +237,7 @@ it('formats time since as weeks when less than 30d ago', function () {
 it('formats time since as months when 30d or more ago', function () {
     $this->travelTo(Carbon::parse('2026-07-01 12:00:00'));
 
-    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('3m');
+    expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('3mo');
 });
 
 it('formats time until with an authenticated user in a different timezone', function () {

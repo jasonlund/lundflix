@@ -63,6 +63,7 @@ return [
         'when_yesterday' => 'yesterday',
         'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
         'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
+        'no_recent_subscriptions' => "Mmkay… nothing's come out recently. So… yeah.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",
