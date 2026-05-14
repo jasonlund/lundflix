@@ -22,6 +22,8 @@
       "Write(./.claude/agents/**)"
     ],
     "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
       "Read(./auth.json)"
     ]
   }

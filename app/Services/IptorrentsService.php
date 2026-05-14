@@ -256,7 +256,7 @@ class IptorrentsService
 
     private function sanitizeNameForSearch(string $name): string
     {
-        return trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
+        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
     private function buildSearchUrl(string $query, array $categories, string $sort): string
