@@ -198,7 +198,7 @@ it('throws IptorrentsAuthException when credentials are not configured', functio
 });
 
 it('throws IptorrentsRateLimitExceededException when rate limit exceeded', function () {
-    foreach (range(1, 10) as $_) {
+    foreach (range(1, 20) as $_) {
         RateLimiter::hit('iptorrents', 60);
     }
 
@@ -396,7 +396,7 @@ describe('fetchTorrentImdbId', function () {
     });
 
     it('throws rate limit exception when exhausted', function () {
-        foreach (range(1, 10) as $_) {
+        foreach (range(1, 20) as $_) {
             RateLimiter::hit('iptorrents', 60);
         }
 
@@ -941,7 +941,7 @@ describe('searchEpisodeByName', function () {
             return Http::response(fakeIptSearchHtml([]));
         });
 
-        foreach (range(1, 9) as $_) {
+        foreach (range(1, 17) as $_) {
             RateLimiter::hit('iptorrents', 60);
         }
 
