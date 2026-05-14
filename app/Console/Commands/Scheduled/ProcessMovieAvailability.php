@@ -78,7 +78,7 @@ class ProcessMovieAvailability extends Command
 
             if (! array_key_exists($movieId, $checked)) {
                 try {
-                    $result = $this->ipt->searchMovie($movie);
+                    $result = $this->ipt->searchMovieByName($movie);
                     $checked[$movieId] = $result ?? false;
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');

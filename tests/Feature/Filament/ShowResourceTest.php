@@ -182,11 +182,11 @@ it('can search shows by imdb_id using Scout', function () {
 
 it('can search shows by year using Scout', function () {
     $matchingShow = Show::factory()->create([
-        'name' => 'Show From 2020',
+        'name' => 'Breaking Bad',
         'premiered' => '2020-05-15',
     ]);
     $otherShow = Show::factory()->create([
-        'name' => 'Show From 2010',
+        'name' => 'The Wire',
         'premiered' => '2010-03-20',
     ]);
 

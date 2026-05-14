@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
+use Laravel\Nightwatch\Facades\Nightwatch;
 
 class DownloadTorrents implements ShouldQueue
 {
@@ -41,6 +42,8 @@ class DownloadTorrents implements ShouldQueue
 
     public function handle(IptorrentsService $ipt): void
     {
+        Nightwatch::sample();
+
         /** @var list<string> $rejected */
         $rejected = [];
         /** @var list<string> $ignored */
