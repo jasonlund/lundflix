@@ -80,7 +80,13 @@ class IptorrentsService
             IptCategory::defaultMovieValues(),
         );
 
-        $query = $this->sanitizeNameForSearch($movie->title).($movie->year ? ' '.$movie->year : '');
+        $searchName = $this->sanitizeNameForSearch($movie->title);
+
+        if ($searchName === '') {
+            return null;
+        }
+
+        $query = $searchName.($movie->year ? ' '.$movie->year : '');
         $results = $this->search($query, $categories);
 
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
@@ -131,6 +137,10 @@ class IptorrentsService
 
         $searchName = $episode->show->ipt_search_term
             ?? $this->sanitizeNameForSearch($episode->show->name);
+
+        if ($searchName === '') {
+            return null;
+        }
 
         $query = "{$searchName} {$episode->code}";
         $results = $this->search($query, $categories);
