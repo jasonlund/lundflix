@@ -78,6 +78,35 @@ function fakeIptLoginPage(): string
     HTML;
 }
 
+function fakeIptTorrentDetailPage(string $imdbId = 'tt7654321'): string
+{
+    return <<<HTML
+        <html>
+        <head><title>Test Torrent - IPTorrents - #1 Private Tracker</title></head>
+        <body>
+        <table><tr><td style="display:flex;gap:8px;">
+            <a href="https://www.themoviedb.org/tv/12345/" target="_blank">TMDB</a>
+            <a href="https://www.imdb.com/title/{$imdbId}/" target="_blank">IMDb</a>
+        </td></tr></table>
+        </body>
+        </html>
+    HTML;
+}
+
+function fakeIptTorrentDetailPageWithoutImdb(): string
+{
+    return <<<'HTML'
+        <html>
+        <head><title>Test Torrent - IPTorrents - #1 Private Tracker</title></head>
+        <body>
+        <table><tr><td style="display:flex;gap:8px;">
+            <a href="https://www.themoviedb.org/tv/12345/" target="_blank">TMDB</a>
+        </td></tr></table>
+        </body>
+        </html>
+    HTML;
+}
+
 it('parses search results from HTML response', function () {
     Http::fake([
         'iptorrents.com/*' => Http::response(fakeIptSearchHtml([
@@ -155,6 +184,8 @@ it('throws IptorrentsAuthException when cookie is expired', function () {
 });
 
 it('throws IptorrentsAuthException when credentials are not configured', function () {
+    config(['services.iptorrents.uid' => '', 'services.iptorrents.pass' => '']);
+
     $settings = app(IptorrentsSettings::class);
     $settings->ipt_uid = '';
     $settings->ipt_pass = '';
@@ -167,7 +198,7 @@ it('throws IptorrentsAuthException when credentials are not configured', functio
 });
 
 it('throws IptorrentsRateLimitExceededException when rate limit exceeded', function () {
-    foreach (range(1, 10) as $_) {
+    foreach (range(1, 20) as $_) {
         RateLimiter::hit('iptorrents', 60);
     }
 
@@ -258,69 +289,7 @@ describe('searchMovie', function () {
             && str_contains($request->url(), '100='));
     });
 
-    it('falls back to title and year with default categories', function () {
-        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 700, name: 'Test.Movie.2024.1080p.x265', seeders: 30),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchMovie($movie);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(700);
-
-        Http::assertSentCount(2);
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'q=Test+Movie+2024'));
-    });
-
-    it('does not broaden beyond the allowed movie categories', function () {
-        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 800, name: 'Test.Movie.2024.DVDRip', seeders: 10),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchMovie($movie);
-
-        expect($result)->toBeNull();
-
-        Http::assertSentCount(2);
-    });
-
-    it('skips IMDB steps when movie has no IMDB ID', function () {
-        $movie = Movie::factory()->create(['imdb_id' => '', 'title' => 'No IMDB Movie', 'year' => 2024]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::response(fakeIptSearchHtml([
-                fakeIptTorrentRow(torrentId: 900, name: 'No.IMDB.Movie.2024.x265', seeders: 25),
-            ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchMovie($movie);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(900);
-
-        Http::assertSentCount(1);
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'q=No+IMDB+Movie+2024'));
-    });
-
-    it('returns null when nothing found', function () {
+    it('returns null when IMDB search finds nothing', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt9999999', 'title' => 'Unfindable Movie', 'year' => 2024]);
 
         Http::fake([
@@ -331,7 +300,17 @@ describe('searchMovie', function () {
         $result = $service->searchMovie($movie);
 
         expect($result)->toBeNull();
-        Http::assertSentCount(2);
+        Http::assertSentCount(1);
+    });
+
+    it('returns null when movie has no IMDB ID', function () {
+        $movie = Movie::factory()->create(['imdb_id' => '', 'title' => 'No IMDB Movie', 'year' => 2024]);
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovie($movie);
+
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
     });
 
 });
@@ -358,28 +337,6 @@ describe('searchEpisode', function () {
         Http::assertSent(fn ($request) => str_contains($request->url(), 'q=tt7654321+s01e05')
             && str_contains($request->url(), '5=')
             && str_contains($request->url(), '99='));
-    });
-
-    it('falls back to IMDB + all TV categories', function () {
-        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
-        $episode = Episode::factory()->for($show)->create(['season' => 2, 'number' => 3]);
-
-        Http::fake([
-            'iptorrents.com/*' => Http::sequence()
-                ->push(fakeIptSearchHtml([]))
-                ->push(fakeIptSearchHtml([
-                    fakeIptTorrentRow(torrentId: 502, name: 'Test.Show.S02E03.720p', seeders: 40),
-                ])),
-        ]);
-
-        $service = new IptorrentsService;
-        $result = $service->searchEpisode($episode);
-
-        expect($result)
-            ->not->toBeNull()
-            ->and($result['torrent_id'])->toBe(502);
-
-        Http::assertSentCount(2);
     });
 
     it('returns null when show has no IMDB ID', function () {
@@ -411,6 +368,603 @@ describe('searchEpisode', function () {
         $result = $service->searchEpisode($episode);
 
         expect($result)->toBeNull();
+        Http::assertSentCount(1);
+    });
+});
+
+describe('fetchTorrentImdbId', function () {
+    it('extracts IMDB ID from torrent detail page', function () {
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptTorrentDetailPage('tt7772588')),
+        ]);
+
+        $service = new IptorrentsService;
+        $result = $service->fetchTorrentImdbId(12345);
+
+        expect($result)->toBe('tt7772588');
+    });
+
+    it('returns null when detail page has no IMDB link', function () {
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptTorrentDetailPageWithoutImdb()),
+        ]);
+
+        $service = new IptorrentsService;
+        $result = $service->fetchTorrentImdbId(12345);
+
+        expect($result)->toBeNull();
+    });
+
+    it('throws rate limit exception when exhausted', function () {
+        foreach (range(1, 20) as $_) {
+            RateLimiter::hit('iptorrents', 60);
+        }
+
+        $service = new IptorrentsService;
+        expect(fn () => $service->fetchTorrentImdbId(12345))
+            ->toThrow(IptorrentsRateLimitExceededException::class);
+
+        Http::assertNothingSent();
+    });
+
+    it('throws auth exception on login page', function () {
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptLoginPage()),
+        ]);
+
+        $service = new IptorrentsService;
+        expect(fn () => $service->fetchTorrentImdbId(12345))
+            ->toThrow(IptorrentsAuthException::class);
+    });
+});
+
+describe('searchMovieByName', function () {
+    it('returns verified result when name search finds match', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 600, name: 'Test.Movie.2024.1080p.x265', seeders: 50),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(600);
+
         Http::assertSentCount(2);
+    });
+
+    it('rejects result when IMDB does not match', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 601, name: 'Wrong.Movie.2024', seeders: 30),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)->toBeNull();
+        Http::assertSentCount(2);
+    });
+
+    it('returns null when movie has no IMDB ID', function () {
+        $movie = Movie::factory()->create(['imdb_id' => '', 'title' => 'No IMDB Movie', 'year' => 2024]);
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
+    });
+
+    it('sanitizes title in search URL', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => "Widow's Bay", 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 603, name: 'Widows.Bay.2024.x265', seeders: 10),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchMovieByName($movie);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Widows+Bay+2024'));
+    });
+
+    it('replaces hyphens with spaces in search URL', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Spider-Man', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 604, name: 'Spider.Man.2024.x265', seeders: 10),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchMovieByName($movie);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Spider+Man+2024'));
+    });
+
+    it('returns null when search finds nothing', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Ghost Movie', 'year' => 2024]);
+
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptSearchHtml([])),
+        ]);
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)->toBeNull();
+        Http::assertSentCount(1);
+    });
+
+    it('finds match at second position when first IMDB does not match', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=800')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=801')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 800, name: 'Wrong.Movie.2024.1080p', seeders: 100),
+                fakeIptTorrentRow(torrentId: 801, name: 'Test.Movie.2024.1080p', seeders: 50),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(801);
+
+        Http::assertSentCount(3);
+    });
+
+    it('caps IMDB lookups at maximum', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 810, name: 'Wrong.1.2024', seeders: 100),
+                fakeIptTorrentRow(torrentId: 811, name: 'Wrong.2.2024', seeders: 90),
+                fakeIptTorrentRow(torrentId: 812, name: 'Wrong.3.2024', seeders: 80),
+                fakeIptTorrentRow(torrentId: 813, name: 'Wrong.4.2024', seeders: 70),
+                fakeIptTorrentRow(torrentId: 814, name: 'Wrong.5.2024', seeders: 60),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)->toBeNull();
+
+        // 1 search + 3 IMDB lookups (capped, not all 5)
+        Http::assertSentCount(4);
+    });
+});
+
+describe('searchEpisodeByName', function () {
+    it('returns verified result when name search finds match', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 5]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt7654321'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 700, name: 'Test.Show.S01E05.1080p.x265', seeders: 80),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(700);
+
+        Http::assertSentCount(2);
+    });
+
+    it('rejects result when IMDB does not match', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 2, 'number' => 3]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 701, name: 'Wrong.Show.S02E03', seeders: 40),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)->toBeNull();
+        Http::assertSentCount(2);
+    });
+
+    it('rejects result when detail page has no IMDB link', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPageWithoutImdb());
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 702, name: 'Test.Show.S01E01', seeders: 20),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)->toBeNull();
+    });
+
+    it('returns null when show has no IMDB ID', function () {
+        $show = Show::factory()->create(['imdb_id' => '', 'name' => 'No IMDB Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 2]);
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
+    });
+
+    it('sanitizes show name in search URL', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => "Widow's Bay"]);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt7654321'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 704, name: 'Widows.Bay.S01E01.x265', seeders: 10),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchEpisodeByName($episode);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Widows+Bay+s01e01'));
+    });
+
+    it('returns null when search finds nothing', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Ghost Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptSearchHtml([])),
+        ]);
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)->toBeNull();
+        Http::assertSentCount(1);
+    });
+
+    it('finds match at second position and learns ipt_search_term', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=950')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), 'q=Taskmaster+AU+s01e01')) {
+                return Http::response(fakeIptSearchHtml([
+                    fakeIptTorrentRow(torrentId: 950, name: 'Taskmaster AU S01E01 1080p', seeders: 100),
+                ]));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(901);
+
+        expect($show->fresh()->ipt_search_term)->toBe('Taskmaster AU');
+
+        // 1 search + 2 IMDB lookups + 1 verification search + 1 verification IMDB
+        Http::assertSentCount(5);
+    });
+
+    it('uses ipt_search_term when set on show', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster', 'ipt_search_term' => 'Taskmaster AU']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 910, name: 'Taskmaster AU S01E01 1080p', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(910);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Taskmaster+AU+s01e01'));
+    });
+
+    it('does not overwrite existing ipt_search_term', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster', 'ipt_search_term' => 'Taskmaster AU']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=920')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=921')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 920, name: 'Taskmaster AU S01E01 720p', seeders: 50),
+                fakeIptTorrentRow(torrentId: 921, name: 'Taskmaster AU S01E01 1080p', seeders: 30),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result['torrent_id'])->toBe(921);
+        expect($show->fresh()->ipt_search_term)->toBe('Taskmaster AU');
+    });
+
+    it('does not learn when verification search returns wrong IMDB', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=960')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            if (str_contains($request->url(), 'q=Taskmaster+AU+s01e01')) {
+                return Http::response(fakeIptSearchHtml([
+                    fakeIptTorrentRow(torrentId: 960, name: 'Taskmaster AU S01E01 720p', seeders: 50),
+                ]));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(901);
+
+        expect($show->fresh()->ipt_search_term)->toBeNull();
+
+        // 1 search + 2 IMDB lookups + 1 verification search + 1 verification IMDB
+        Http::assertSentCount(5);
+    });
+
+    it('does not learn when verification search returns no results', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), 'q=Taskmaster+AU+s01e01')) {
+                return Http::response(fakeIptSearchHtml([]));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(901);
+
+        expect($show->fresh()->ipt_search_term)->toBeNull();
+
+        // 1 search + 2 IMDB lookups + 1 verification search (no IMDB lookup since empty)
+        Http::assertSentCount(4);
+    });
+
+    it('does not learn when match is at first position', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt7654321'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 930, name: 'Test Show S01E01 1080p', seeders: 80),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchEpisodeByName($episode);
+
+        expect($show->fresh()->ipt_search_term)->toBeNull();
+    });
+
+    it('caps IMDB lookups at maximum', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 940, name: 'Wrong.1.S01E01', seeders: 100),
+                fakeIptTorrentRow(torrentId: 941, name: 'Wrong.2.S01E01', seeders: 90),
+                fakeIptTorrentRow(torrentId: 942, name: 'Wrong.3.S01E01', seeders: 80),
+                fakeIptTorrentRow(torrentId: 943, name: 'Wrong.4.S01E01', seeders: 70),
+                fakeIptTorrentRow(torrentId: 944, name: 'Wrong.5.S01E01', seeders: 60),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)->toBeNull();
+
+        // 1 search + 3 IMDB lookups (capped, not all 5)
+        Http::assertSentCount(4);
+    });
+
+    it('re-throws rate limit exception from learnSearchTerm', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        $searchCallCount = 0;
+
+        Http::fake(function ($request) use (&$searchCallCount) {
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (! str_contains($request->url(), '/torrent.php')) {
+                $searchCallCount++;
+
+                if ($searchCallCount === 1) {
+                    return Http::response(fakeIptSearchHtml([
+                        fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                        fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+                    ]));
+                }
+            }
+
+            return Http::response(fakeIptSearchHtml([]));
+        });
+
+        foreach (range(1, 17) as $_) {
+            RateLimiter::hit('iptorrents', 60);
+        }
+
+        $service = new IptorrentsService;
+
+        expect(fn () => $service->searchEpisodeByName($episode))
+            ->toThrow(IptorrentsRateLimitExceededException::class);
+    });
+
+    it('extracts show title from single-digit season/episode naming', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'extractShowTitle');
+
+        expect($method->invoke($service, 'Some Show S1E1 720p'))->toBe('Some Show')
+            ->and($method->invoke($service, 'Another Show S1E12 1080p'))->toBe('Another Show')
+            ->and($method->invoke($service, 'Third Show S12E1 HDTV'))->toBe('Third Show');
+    });
+
+    it('extracts show title from date-based episode naming', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'extractShowTitle');
+
+        expect($method->invoke($service, 'Daily Show 2024.11.25 720p'))->toBe('Daily Show')
+            ->and($method->invoke($service, 'Late Night 2024-01-15 1080p'))->toBe('Late Night');
     });
 });

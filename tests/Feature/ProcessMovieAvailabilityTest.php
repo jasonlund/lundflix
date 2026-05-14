@@ -42,7 +42,7 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'));
+    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'));
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -71,7 +71,7 @@ it('creates a request when IPTorrents finds a codec-only torrent in an allowed c
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.x265'));
+    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.x265'));
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -100,7 +100,7 @@ it('does nothing when IPTorrents returns no results', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovie')->once()->andReturnNull();
+    $mock->shouldReceive('searchMovieByName')->once()->andReturnNull();
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -123,7 +123,7 @@ it('skips movies whose digital release is older than the 3-day window', function
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovie');
+    $mock->shouldNotReceive('searchMovieByName');
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -144,7 +144,7 @@ it('skips movies whose digital release is in the future', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovie');
+    $mock->shouldNotReceive('searchMovieByName');
 
     $movie = Movie::factory()->create([
         'title' => 'Upcoming',
@@ -163,7 +163,7 @@ it('skips unreleased movies', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovie');
+    $mock->shouldNotReceive('searchMovieByName');
 
     $movie = Movie::factory()->create([
         'title' => 'Not Yet',
@@ -182,7 +182,7 @@ it('skips subscriptions already fulfilled', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovie');
+    $mock->shouldNotReceive('searchMovieByName');
 
     $movie = Movie::factory()->create([
         'digital_release_date' => today(),
@@ -199,7 +199,7 @@ it('dedupes API calls when multiple users subscribe to the same movie', function
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovie')->once()->andReturn(fakeTorrentResult('Popular.Film.2024.1080p.WEB-DL.x264-GROUP'));
+    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Popular.Film.2024.1080p.WEB-DL.x264-GROUP'));
 
     $movie = Movie::factory()->create([
         'title' => 'Popular Film',
