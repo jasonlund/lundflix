@@ -263,7 +263,7 @@ class IptorrentsService
 
     private function extractShowTitle(string $torrentName): ?string
     {
-        if (preg_match('/^(.+?)\s+[Ss]\d{2}[EeSs]\d{2}/', $torrentName, $matches)) {
+        if (preg_match('/^(.+?)\s+(?:[Ss]\d{1,2}[Ee]\d{1,2}|\d{4}[.\-]\d{2}[.\-]\d{2})/', $torrentName, $matches)) {
             return trim($matches[1]);
         }
 

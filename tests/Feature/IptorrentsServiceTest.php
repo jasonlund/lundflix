@@ -930,4 +930,21 @@ describe('searchEpisodeByName', function () {
         expect(fn () => $service->searchEpisodeByName($episode))
             ->toThrow(IptorrentsRateLimitExceededException::class);
     });
+
+    it('extracts show title from single-digit season/episode naming', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'extractShowTitle');
+
+        expect($method->invoke($service, 'Some Show S1E1 720p'))->toBe('Some Show')
+            ->and($method->invoke($service, 'Another Show S1E12 1080p'))->toBe('Another Show')
+            ->and($method->invoke($service, 'Third Show S12E1 HDTV'))->toBe('Third Show');
+    });
+
+    it('extracts show title from date-based episode naming', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'extractShowTitle');
+
+        expect($method->invoke($service, 'Daily Show 2024.11.25 720p'))->toBe('Daily Show')
+            ->and($method->invoke($service, 'Late Night 2024-01-15 1080p'))->toBe('Late Night');
+    });
 });
