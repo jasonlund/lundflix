@@ -238,6 +238,8 @@ class IptorrentsService
             if ($this->fetchTorrentImdbId($verificationResults->first()['torrent_id']) !== $episode->show->imdb_id) {
                 return;
             }
+        } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
+            throw $e;
         } catch (\Throwable) {
             return;
         }

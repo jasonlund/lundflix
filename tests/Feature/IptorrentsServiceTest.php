@@ -891,4 +891,43 @@ describe('searchEpisodeByName', function () {
         // 1 search + 3 IMDB lookups (capped, not all 5)
         Http::assertSentCount(4);
     });
+
+    it('re-throws rate limit exception from learnSearchTerm', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        $searchCallCount = 0;
+
+        Http::fake(function ($request) use (&$searchCallCount) {
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (! str_contains($request->url(), '/torrent.php')) {
+                $searchCallCount++;
+
+                if ($searchCallCount === 1) {
+                    return Http::response(fakeIptSearchHtml([
+                        fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                        fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+                    ]));
+                }
+            }
+
+            return Http::response(fakeIptSearchHtml([]));
+        });
+
+        foreach (range(1, 9) as $_) {
+            RateLimiter::hit('iptorrents', 60);
+        }
+
+        $service = new IptorrentsService;
+
+        expect(fn () => $service->searchEpisodeByName($episode))
+            ->toThrow(IptorrentsRateLimitExceededException::class);
+    });
 });
