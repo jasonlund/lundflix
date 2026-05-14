@@ -56,7 +56,7 @@ class Show extends Model
             'id' => (string) $this->id,
             'imdb_id' => (string) $this->imdb_id,
             'name' => (string) $this->name,
-            'year' => $this->premiered?->year, // @phpstan-ignore property.nonObject (casted to date)
+            'year' => $this->premiered ? (string) $this->premiered->year : null, // @phpstan-ignore property.nonObject (casted to date)
             'num_votes' => (int) $this->num_votes,
             'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
