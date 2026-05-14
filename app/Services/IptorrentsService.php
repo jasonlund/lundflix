@@ -9,6 +9,7 @@ use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Models\Show;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -254,7 +255,10 @@ class IptorrentsService
             return;
         }
 
-        $episode->show->update(['ipt_search_term' => $showTitle]);
+        Show::query()
+            ->where('id', $episode->show->id)
+            ->whereNull('ipt_search_term')
+            ->update(['ipt_search_term' => $showTitle]);
     }
 
     private function extractShowTitle(string $torrentName): ?string
