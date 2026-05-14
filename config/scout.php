@@ -207,6 +207,7 @@ return [
                         ['name' => 'id', 'type' => 'string'],
                         ['name' => 'imdb_id', 'type' => 'string'],
                         ['name' => 'name', 'type' => 'string'],
+                        ['name' => 'year', 'type' => 'int32', 'optional' => true],
                         ['name' => 'num_votes', 'type' => 'int32'],
                         ['name' => 'language', 'type' => 'string', 'optional' => true],
                     ],

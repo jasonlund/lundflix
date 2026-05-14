@@ -15,7 +15,7 @@ class UpsertTVMazeShows
      */
     public function upsert(array $shows): int
     {
-        return DatabaseRetry::run(fn (): int => Show::upsert(
+        $count = DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
             [
@@ -24,6 +24,10 @@ class UpsertTVMazeShows
                 'web_channel', 'thetvdb_id',
             ]
         ));
+
+        Show::whereIn('tvmaze_id', array_column($shows, 'tvmaze_id'))->get()->searchable(); // @phpstan-ignore method.notFound (Scout collection macro)
+
+        return $count;
     }
 
     /**

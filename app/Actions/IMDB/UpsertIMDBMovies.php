@@ -23,10 +23,16 @@ class UpsertIMDBMovies
             return $movie;
         }, $movies);
 
-        return DatabaseRetry::run(fn (): int => Movie::upsert(
+        $imdbIds = array_column($movies, 'imdb_id');
+
+        $count = DatabaseRetry::run(fn (): int => Movie::upsert(
             $movies,
             ['imdb_id'],
             ['title', 'year', 'runtime', 'genres']
         ));
+
+        Movie::whereIn('imdb_id', $imdbIds)->get()->searchable(); // @phpstan-ignore method.notFound (Scout collection macro)
+
+        return $count;
     }
 }
