@@ -25,11 +25,17 @@ class UpsertTMDBData
             return $movie;
         }, $movies);
 
-        return DatabaseRetry::run(fn (): int => Movie::upsert(
+        $imdbIds = array_column($movies, 'imdb_id');
+
+        $count = DatabaseRetry::run(fn (): int => Movie::upsert(
             $movies,
             ['imdb_id'],
             ['tmdb_id', 'release_date', 'digital_release_date', 'original_language', 'original_title', 'status', 'origin_country', 'release_dates', 'tmdb_synced_at']
         ));
+
+        Movie::whereIn('imdb_id', $imdbIds)->get()->searchable(); // @phpstan-ignore method.notFound (Scout collection macro)
+
+        return $count;
     }
 
     /**

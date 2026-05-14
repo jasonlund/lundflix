@@ -24,11 +24,15 @@ class UpsertTMDBShowData
             return $show;
         }, $shows);
 
-        return DatabaseRetry::run(fn (): int => Show::upsert(
+        $count = DatabaseRetry::run(fn (): int => Show::upsert(
             $shows,
             ['tvmaze_id'],
             ['tmdb_id', 'tmdb_synced_at', 'content_ratings', 'original_name', 'original_language', 'thetvdb_id', 'imdb_id']
         ));
+
+        Show::whereIn('tvmaze_id', array_column($shows, 'tvmaze_id'))->get()->searchable(); // @phpstan-ignore method.notFound (Scout collection macro)
+
+        return $count;
     }
 
     /**

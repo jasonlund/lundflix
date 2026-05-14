@@ -94,11 +94,11 @@ it('can search movies by imdb_id using Scout', function () {
 
 it('can search movies by year using Scout', function () {
     $matchingMovie = Movie::factory()->create([
-        'title' => 'Movie From 2024',
+        'title' => 'The Dark Knight',
         'year' => 2024,
     ]);
     $otherMovie = Movie::factory()->create([
-        'title' => 'Movie From 1999',
+        'title' => 'Fight Club',
         'year' => 1999,
     ]);
 
