@@ -152,6 +152,8 @@ new #[Layout('components.layouts.guest')] #[Title('Register')] class extends Com
                     <flux:button type="submit" variant="primary" class="w-full">Create Account</flux:button>
                 </form>
             </div>
+
+            <x-auth-card-footer />
         </flux:card>
     </div>
 </div>

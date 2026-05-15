@@ -87,24 +87,32 @@
                     class="flex items-center justify-center gap-2 border-t border-zinc-800/70 bg-black p-1 text-xs text-zinc-400 [grid-area:footer] md:border-x"
                 >
                     <span class="font-[Josefin_Slab] font-semibold">Made with 🤠 in Wyoming</span>
-                    {{--
-                        <span>·</span>
-                        <flux:modal.trigger name="credits">
+                    <span>·</span>
+                    <flux:modal.trigger name="credits">
                         <button type="button" class="cursor-pointer transition-colors hover:text-white">Credits</button>
-                        </flux:modal.trigger>
-                        <span>·</span>
-                        <span>Changelog</span>
-                    --}}
+                    </flux:modal.trigger>
                 </footer>
 
-                {{--
-                    <flux:modal name="credits" size="sm">
-                    <div class="space-y-4">
-                    <flux:heading size="lg">Credits</flux:heading>
-                    <flux:text>Foobar</flux:text>
+                <flux:modal name="credits" size="md">
+                    <div class="space-y-5">
+                        <flux:text>{{ __('lundbergh.credits.intro') }}</flux:text>
+
+                        <div
+                            class="prose prose-sm prose-invert prose-blockquote:not-italic prose-blockquote:border-l-lundflix prose-blockquote:font-normal prose-p:before:content-none prose-p:after:content-none max-w-none"
+                        >
+                            <blockquote>
+                                <!-- prettier-ignore -->
+                                <p>This product uses the TMDB API but is not endorsed or certified by <span class="not-prose"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" class="transition-opacity hover:opacity-80"><img src="{{ Vite::image('logos/services/tmdb.svg') }}" alt="TMDB" class="inline h-3 align-baseline" /></a></span>.</p>
+                                <!-- prettier-ignore -->
+                                <p>Show data from TVMaze — <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (CC BY-SA)</p>
+                                <!-- prettier-ignore -->
+                                <p>Information courtesy of IMDb (<a href="https://www.imdb.com" target="_blank" rel="noopener noreferrer">https://www.imdb.com</a>). Used with permission.</p>
+                                <!-- prettier-ignore -->
+                                <p>Network logos by Tapio Sinnertwin — <a href="https://github.com/tv-logo/tv-logos" target="_blank" rel="noopener noreferrer">github.com/tv-logo/tv-logos</a></p>
+                            </blockquote>
+                        </div>
                     </div>
-                    </flux:modal>
-                --}}
+                </flux:modal>
             </div>
         </div>
 

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 @import '@vendor/livewire/flux/dist/flux.css';
 
 @source '@views';
@@ -141,7 +142,8 @@ button[data-flux-control] {
 }
 
 [data-flux-modal] > dialog:not([data-flux-flyout])::backdrop {
-    background-color: transparent;
+    background-color: rgb(0 0 0 / 0.6);
+    backdrop-filter: blur(24px);
 }
 
 [data-flux-modal] > dialog[open]:not(:modal) {
@@ -151,22 +153,16 @@ button[data-flux-control] {
     height: fit-content;
 }
 
-[data-flux-header].modal-open-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 31;
-}
-
-@media (min-width: 768px) {
-    [data-flux-header].modal-open-header {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 768px;
-    }
+[data-flux-modal] > dialog[open][data-modal='credits']:not(:modal) {
+    z-index: 40;
+    inset: 0;
+    height: 100dvh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(10 10 10 / 0.8);
+    backdrop-filter: blur(4px);
 }
 
 @utility drop-shadow-glow {

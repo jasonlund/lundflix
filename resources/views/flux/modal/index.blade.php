@@ -120,7 +120,6 @@
             x-init="
                 let d = $el
                 let backdrop = null
-                let header = null
                 let closeHandler = (e) => {
                     if (! d.contains(e.target)) d.close()
                 }
@@ -132,11 +131,6 @@
                     d.parentElement.appendChild(backdrop)
                     requestAnimationFrame(() => (backdrop.style.opacity = '1'))
                     HTMLDialogElement.prototype.show.call(d)
-                    header = document.querySelector('[data-flux-header]')
-                    if (header) {
-                        header.parentElement.style.paddingTop = header.offsetHeight - 1 + 'px'
-                        header.classList.add('modal-open-header')
-                    }
                     <?php if ($dismissible !== false) { ?>
                     setTimeout(() => document.addEventListener('click', closeHandler), 0)
                     <?php } ?>
@@ -150,11 +144,6 @@
                         let b = backdrop
                         backdrop = null
                         b.addEventListener('transitionend', () => b.remove(), { once: true })
-                    }
-                    if (header) {
-                        header.parentElement.style.paddingTop = ''
-                        header.classList.remove('modal-open-header')
-                        header = null
                     }
                     origClose.call(d, rv)
                 }
