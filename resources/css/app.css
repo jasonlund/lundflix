@@ -150,12 +150,6 @@ button[data-flux-control] {
 
 [data-flux-modal] > dialog[open][data-modal='credits']:not(:modal) {
     z-index: 40;
-    inset: 0;
-    height: 100dvh;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 @utility drop-shadow-glow {

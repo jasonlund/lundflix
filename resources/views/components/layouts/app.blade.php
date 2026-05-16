@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark overflow-x-clip">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-dvh bg-zinc-950 antialiased">
+    <body class="min-h-dvh overflow-x-clip bg-zinc-950 antialiased">
         <div
             class="relative isolate min-h-dvh overflow-x-clip bg-zinc-900 md:mx-auto md:max-w-screen-md md:overflow-x-visible md:border-t md:border-zinc-800/70"
         >
