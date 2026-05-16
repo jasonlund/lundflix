@@ -85,6 +85,8 @@ it('renders the reset password form with a valid token', function () {
     $response->assertOk();
     $response->assertSee(__('lundbergh.form.password_reset_verified'));
     $response->assertSee($user->email);
+    $response->assertSee('Made with');
+    $response->assertSee('in Wyoming');
 });
 
 it('resets password with a valid token', function () {

@@ -120,11 +120,12 @@
             x-init="
                 let d = $el
                 let backdrop = null
-                let header = null
+                let triggeredFrom = null
                 let closeHandler = (e) => {
                     if (! d.contains(e.target)) d.close()
                 }
                 d.showModal = function () {
+                    triggeredFrom = document.activeElement instanceof HTMLElement ? document.activeElement : null
                     backdrop = document.createElement('div')
                     backdrop.className = 'fixed inset-0 z-[29] bg-black/60 backdrop-blur-xl'
                     backdrop.style.opacity = '0'
@@ -132,11 +133,6 @@
                     d.parentElement.appendChild(backdrop)
                     requestAnimationFrame(() => (backdrop.style.opacity = '1'))
                     HTMLDialogElement.prototype.show.call(d)
-                    header = document.querySelector('[data-flux-header]')
-                    if (header) {
-                        header.parentElement.style.paddingTop = header.offsetHeight - 1 + 'px'
-                        header.classList.add('modal-open-header')
-                    }
                     <?php if ($dismissible !== false) { ?>
                     setTimeout(() => document.addEventListener('click', closeHandler), 0)
                     <?php } ?>
@@ -151,12 +147,11 @@
                         backdrop = null
                         b.addEventListener('transitionend', () => b.remove(), { once: true })
                     }
-                    if (header) {
-                        header.parentElement.style.paddingTop = ''
-                        header.classList.remove('modal-open-header')
-                        header = null
-                    }
                     origClose.call(d, rv)
+                    if (triggeredFrom && typeof triggeredFrom.focus === 'function' && document.body.contains(triggeredFrom)) {
+                        triggeredFrom.focus()
+                    }
+                    triggeredFrom = null
                 }
             "
             x-on:keydown.escape.window="if ($el.open) $el.close()"

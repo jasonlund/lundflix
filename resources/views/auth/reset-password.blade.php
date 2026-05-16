@@ -40,6 +40,8 @@
                         <flux:button type="submit" variant="primary" class="w-full">Reset Password</flux:button>
                     </form>
                 </div>
+
+                <x-auth-card-footer />
             </flux:card>
         </div>
     </div>

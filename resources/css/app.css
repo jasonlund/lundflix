@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 @import '@vendor/livewire/flux/dist/flux.css';
 
 @source '@views';
@@ -140,10 +141,6 @@ button[data-flux-control] {
     @apply py-2;
 }
 
-[data-flux-modal] > dialog:not([data-flux-flyout])::backdrop {
-    background-color: transparent;
-}
-
 [data-flux-modal] > dialog[open]:not(:modal) {
     position: fixed;
     inset: 0;
@@ -151,22 +148,14 @@ button[data-flux-control] {
     height: fit-content;
 }
 
-[data-flux-header].modal-open-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 31;
-}
-
-@media (min-width: 768px) {
-    [data-flux-header].modal-open-header {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 768px;
-    }
+[data-flux-modal] > dialog[open][data-modal='credits']:not(:modal) {
+    z-index: 40;
+    inset: 0;
+    height: 100dvh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @utility drop-shadow-glow {

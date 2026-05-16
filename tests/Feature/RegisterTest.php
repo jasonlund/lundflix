@@ -27,6 +27,21 @@ it('redirects to login without session data', function () {
         ->assertRedirect(route('login'));
 });
 
+it('shows the auth card footer on the register page', function () {
+    $this->withSession([
+        'plex_registration' => [
+            'plex_id' => 999,
+            'plex_token' => 'test-token',
+            'plex_username' => 'plexuser',
+            'plex_email' => 'plexuser@example.com',
+            'plex_thumb' => 'https://plex.tv/avatar.jpg',
+        ],
+    ])->get(route('register'))
+        ->assertOk()
+        ->assertSee('Made with')
+        ->assertSee('in Wyoming');
+});
+
 it('creates a user on successful registration', function () {
     $this->withSession([
         'plex_registration' => [
