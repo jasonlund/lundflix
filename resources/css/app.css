@@ -156,8 +156,6 @@ button[data-flux-control] {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgb(10 10 10 / 0.8);
-    backdrop-filter: blur(4px);
 }
 
 @utility drop-shadow-glow {

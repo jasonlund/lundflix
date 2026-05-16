@@ -89,7 +89,13 @@
                     <span class="font-[Josefin_Slab] font-semibold">Made with 🤠 in Wyoming</span>
                     <span>·</span>
                     <flux:modal.trigger name="credits">
-                        <button type="button" class="cursor-pointer transition-colors hover:text-white">Credits</button>
+                        <button
+                            type="button"
+                            aria-haspopup="dialog"
+                            class="cursor-pointer transition-colors hover:text-white"
+                        >
+                            Credits
+                        </button>
                     </flux:modal.trigger>
                 </footer>
 

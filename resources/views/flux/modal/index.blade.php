@@ -120,10 +120,12 @@
             x-init="
                 let d = $el
                 let backdrop = null
+                let triggeredFrom = null
                 let closeHandler = (e) => {
                     if (! d.contains(e.target)) d.close()
                 }
                 d.showModal = function () {
+                    triggeredFrom = document.activeElement instanceof HTMLElement ? document.activeElement : null
                     backdrop = document.createElement('div')
                     backdrop.className = 'fixed inset-0 z-[29] bg-black/60 backdrop-blur-xl'
                     backdrop.style.opacity = '0'
@@ -146,6 +148,10 @@
                         b.addEventListener('transitionend', () => b.remove(), { once: true })
                     }
                     origClose.call(d, rv)
+                    if (triggeredFrom && typeof triggeredFrom.focus === 'function' && document.body.contains(triggeredFrom)) {
+                        triggeredFrom.focus()
+                    }
+                    triggeredFrom = null
                 }
             "
             x-on:keydown.escape.window="if ($el.open) $el.close()"
