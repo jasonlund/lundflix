@@ -126,6 +126,16 @@ class Formatters
     }
 
     /**
+     * Format a date as `n/j` for the current year or `n/j/y` otherwise.
+     */
+    public static function shortDate(Carbon $date): string
+    {
+        $format = $date->year === now()->year ? 'n/j' : 'n/j/y';
+
+        return $date->format($format);
+    }
+
+    /**
      * Format a past date as a compact relative string. Delegates to compactDiff().
      */
     public static function timeSince(Carbon $target): string

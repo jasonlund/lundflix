@@ -253,3 +253,17 @@ it('formats time since with an authenticated user in a different timezone', func
 
     expect(Formatters::timeSince(Carbon::parse('2026-04-01')))->toBe('4d');
 });
+
+it('formats short date as n/j when in the current year', function () {
+    $this->travelTo(Carbon::parse('2026-05-15 12:00:00'));
+
+    expect(Formatters::shortDate(Carbon::parse('2026-05-14')))->toBe('5/14');
+    expect(Formatters::shortDate(Carbon::parse('2026-01-03')))->toBe('1/3');
+});
+
+it('formats short date as n/j/y when in a different year', function () {
+    $this->travelTo(Carbon::parse('2026-05-15 12:00:00'));
+
+    expect(Formatters::shortDate(Carbon::parse('2025-12-31')))->toBe('12/31/25');
+    expect(Formatters::shortDate(Carbon::parse('2024-07-04')))->toBe('7/4/24');
+});

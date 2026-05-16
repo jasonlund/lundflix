@@ -82,6 +82,9 @@ class SyncTVMazeUpdates extends Command
             $this->warn("{$failed} shows could not be fetched.");
         }
 
+        $ambiguous = Show::recomputeAmbiguousNames()->count();
+        $this->info("Ambiguous show names recomputed ({$ambiguous} entries).");
+
         return Command::SUCCESS;
     }
 }

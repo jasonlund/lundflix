@@ -108,7 +108,6 @@ it('renders error preview page for configured status codes', function (int $stat
     $response->assertStatus($status);
     $response->assertSee(config("error-pages.{$status}.message"));
     $response->assertSeeHtml('data-crt');
-    $response->assertSeeHtml('data-crt-layer="flicker"');
     $response->assertSeeHtml('data-crt-layer="scanlines"');
     $response->assertSeeHtml('data-crt-layer="beam"');
     $response->assertSeeHtml('data-crt-beam');

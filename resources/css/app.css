@@ -178,8 +178,6 @@ button[data-flux-control] {
 }
 
 [data-crt] {
-    --crt-overlay-opacity: 0.06;
-    --crt-flicker-duration: 50ms;
     --crt-row-step: 1px;
     --crt-column-step: 2px;
     --crt-row-shadow-opacity: 0.28;
@@ -216,11 +214,6 @@ button[data-flux-control] {
     will-change: transform, opacity;
 }
 
-[data-crt-layer='flicker'] {
-    background-color: rgb(23 23 23 / var(--crt-overlay-opacity));
-    animation: crt-flicker var(--crt-flicker-duration) linear infinite;
-}
-
 [data-crt-layer='scanlines'] {
     background-image:
         linear-gradient(rgba(18, 16, 16, 0) 50%, rgb(0 0 0 / var(--crt-row-shadow-opacity)) 50%),
@@ -255,46 +248,8 @@ button[data-flux-control] {
     }
 }
 
-@keyframes crt-flicker {
-    0% {
-        opacity: 0;
-    }
-    10% {
-        opacity: 0.9;
-    }
-    20% {
-        opacity: 0.99;
-    }
-    30% {
-        opacity: 0;
-    }
-    40% {
-        opacity: 0.9;
-    }
-    50% {
-        opacity: 0.99;
-    }
-    60% {
-        opacity: 0;
-    }
-    70% {
-        opacity: 0.9;
-    }
-    80% {
-        opacity: 0.99;
-    }
-    90% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 0.9;
-    }
-}
-
 @media (hover: none) and (pointer: coarse) {
     [data-crt] {
-        --crt-overlay-opacity: 0.03;
-        --crt-flicker-duration: 120ms;
         --crt-row-step: 2px;
         --crt-column-step: 4px;
         --crt-row-shadow-opacity: 0.16;

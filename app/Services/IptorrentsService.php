@@ -137,7 +137,7 @@ class IptorrentsService
         );
 
         $searchName = $episode->show->ipt_search_term
-            ?? $this->sanitizeNameForSearch($episode->show->name);
+            ?? $this->sanitizeNameForSearch($episode->show->getRawOriginal('name'));
 
         if ($searchName === '') {
             return null;
@@ -227,7 +227,7 @@ class IptorrentsService
             return;
         }
 
-        if (mb_strtolower($showTitle) === mb_strtolower($this->sanitizeNameForSearch($episode->show->name))) {
+        if (mb_strtolower($showTitle) === mb_strtolower($this->sanitizeNameForSearch($episode->show->getRawOriginal('name')))) {
             return;
         }
 

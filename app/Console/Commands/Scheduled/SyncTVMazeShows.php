@@ -71,6 +71,9 @@ class SyncTVMazeShows extends Command
 
         $this->info("Sync complete. {$total} shows processed.");
 
+        $ambiguous = Show::recomputeAmbiguousNames()->count();
+        $this->info("Ambiguous show names recomputed ({$ambiguous} entries).");
+
         return Command::SUCCESS;
     }
 

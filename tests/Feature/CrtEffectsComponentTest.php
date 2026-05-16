@@ -7,7 +7,6 @@ test('renders the shared crt data hooks', function () {
 
     expect($html)
         ->toContain('data-crt')
-        ->toContain('data-crt-layer="flicker"')
         ->toContain('data-crt-layer="scanlines"')
         ->toContain('data-crt-layer="beam"')
         ->toContain('data-crt-beam');

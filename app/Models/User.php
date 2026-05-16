@@ -15,8 +15,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\SchemalessAttributes\Casts\SchemalessAttributes;
+use Spatie\SchemalessAttributes\SchemalessAttributes as SchemalessAttributesBag;
 
-/** @property UserRole $role */
+/**
+ * @property UserRole $role
+ * @property SchemalessAttributesBag $preferences
+ */
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
@@ -47,6 +52,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'plex_token' => 'encrypted',
             'role' => UserRole::class,
+            'preferences' => SchemalessAttributes::class,
         ];
     }
 
