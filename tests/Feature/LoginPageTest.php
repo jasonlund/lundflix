@@ -55,6 +55,13 @@ it('shows the forgot password button', function () {
         ->assertSee('Forgot Password?');
 });
 
+it('shows the auth card footer on the login page', function () {
+    $this->get(route('login'))
+        ->assertOk()
+        ->assertSee('Made with')
+        ->assertSee('in Wyoming');
+});
+
 it('redirects to home when there is no intended url', function () {
     $user = User::factory()->create();
 

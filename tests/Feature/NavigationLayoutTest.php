@@ -27,3 +27,15 @@ it('renders transparent navbar with Alpine scroll tracking', function () {
         ->assertSee('drop-shadow-glow', false)
         ->assertSee('drop-shadow-none', false);
 });
+
+it('renders the credits modal trigger in the footer', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('home'));
+
+    $response->assertSuccessful()
+        ->assertSee('Credits')
+        ->assertSee('TMDB API')
+        ->assertSee('TVMaze')
+        ->assertSee('IMDb');
+});

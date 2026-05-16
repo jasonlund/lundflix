@@ -69,4 +69,7 @@ return [
         'please_wait' => "Mmm yeah… I'm gonna need you to wait while we get that ready. So… yeah.",
         'fetching' => "Yeah… we're fetching that content right now. Just sit tight.",
     ],
+    'credits' => [
+        'intro' => 'Yeah… legal wanted these somewhere. So… yeah.',
+    ],
 ];

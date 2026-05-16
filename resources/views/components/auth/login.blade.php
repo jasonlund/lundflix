@@ -193,6 +193,8 @@ new #[Layout('components.layouts.guest')] #[Title('Sign In')] class extends Comp
                     </div>
                 </flux:modal>
             </div>
+
+            <x-auth-card-footer />
         </flux:card>
     </div>
 </div>
