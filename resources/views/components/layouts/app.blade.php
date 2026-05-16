@@ -106,7 +106,7 @@
                                 <!-- prettier-ignore -->
                                 <p>Show data from TVMaze — <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>)</p>
                                 <!-- prettier-ignore -->
-                                <p>Information courtesy of IMDb (<a href="https://www.imdb.com" target="_blank" rel="noopener noreferrer">https://www.imdb.com</a>). Used with permission.</p>
+                                <p>Information courtesy of IMDb. Sourced from the <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">IMDb Non-Commercial Datasets</a>.</p>
                                 <!-- prettier-ignore -->
                                 <p>Network logos by Tapio Sinnertwin — <a href="https://github.com/tv-logo/tv-logos" target="_blank" rel="noopener noreferrer">github.com/tv-logo/tv-logos</a></p>
                             </blockquote>
