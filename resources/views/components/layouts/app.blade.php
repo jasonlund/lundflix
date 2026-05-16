@@ -104,7 +104,7 @@
                                 <!-- prettier-ignore -->
                                 <p>This product uses the TMDB API but is not endorsed or certified by <span class="not-prose"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" class="transition-opacity hover:opacity-80"><img src="{{ Vite::image('logos/services/tmdb.svg') }}" alt="TMDB" class="inline h-3 align-baseline" /></a></span>.</p>
                                 <!-- prettier-ignore -->
-                                <p>Show data from TVMaze — <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (CC BY-SA)</p>
+                                <p>Show data from TVMaze — <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>)</p>
                                 <!-- prettier-ignore -->
                                 <p>Information courtesy of IMDb (<a href="https://www.imdb.com" target="_blank" rel="noopener noreferrer">https://www.imdb.com</a>). Used with permission.</p>
                                 <!-- prettier-ignore -->
