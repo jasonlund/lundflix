@@ -141,11 +141,6 @@ button[data-flux-control] {
     @apply py-2;
 }
 
-[data-flux-modal] > dialog:not([data-flux-flyout])::backdrop {
-    background-color: rgb(0 0 0 / 0.6);
-    backdrop-filter: blur(24px);
-}
-
 [data-flux-modal] > dialog[open]:not(:modal) {
     position: fixed;
     inset: 0;
