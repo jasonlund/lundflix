@@ -10,6 +10,7 @@
         caption: null,
         traceId: null,
         show(detail) {
+            document.dispatchEvent(new CustomEvent('modal-close', { detail: {} }))
             Object.assign(this, detail, { visible: true })
             history.pushState({ errorOverlay: true }, '')
             this.$nextTick(() => this.$refs.video?.play())
