@@ -52,14 +52,22 @@ class Show extends Model
      */
     public function toSearchableArray(): array
     {
-        return [
+        $array = [
             'id' => (string) $this->id,
             'imdb_id' => (string) $this->imdb_id,
             'name' => (string) $this->name,
-            'year' => $this->premiered ? (string) $this->premiered->year : null, // @phpstan-ignore property.nonObject (casted to date)
             'num_votes' => (int) $this->num_votes,
             'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
+
+        // `year` is a computed field for the Typesense index. The database
+        // Scout driver used locally treats every key as a real column, so we
+        // omit it unless an index-backed engine is configured.
+        if (config('scout.driver') !== 'database') {
+            $array['year'] = $this->premiered ? (string) $this->premiered->year : null; // @phpstan-ignore property.nonObject (casted to date)
+        }
+
+        return $array;
     }
 
     /**
