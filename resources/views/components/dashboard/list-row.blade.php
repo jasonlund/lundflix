@@ -2,6 +2,7 @@
     'href' => null,
     'wireKey' => null,
     'muted' => false,
+    'navigate' => true,
 ])
 
 @php
@@ -16,7 +17,7 @@
 @endphp
 
 <{{ $tag }}
-    @if ($href) href="{{ $href }}" wire:navigate @endif
+    @if ($href) href="{{ $href }}" @if ($navigate) wire:navigate @endif @endif
     @if ($wireKey) wire:key="{{ $wireKey }}" @endif
     {{ $attributes->class([$rowClasses]) }}
 >

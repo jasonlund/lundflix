@@ -4,6 +4,7 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\AirDateTime;
+use App\Support\Concerns\WithPersistedPerPage;
 use App\Support\Formatters;
 use App\Support\UserTime;
 use Carbon\Carbon;
@@ -16,9 +17,14 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 new class extends Component {
-    use WithPagination;
+    use WithPagination, WithPersistedPerPage;
 
     public string $view = 'upcoming';
+
+    protected function perPagePreferenceKey(): string
+    {
+        return 'dashboard.subscriptions.per_page';
+    }
 
     public function updatedView(): void
     {
@@ -49,9 +55,9 @@ new class extends Component {
         $allRows = $this->allRows;
 
         return new LengthAwarePaginator(
-            items: $allRows->forPage($this->getPage(), 10),
+            items: $allRows->forPage($this->getPage(), $this->perPage),
             total: $allRows->count(),
-            perPage: 10,
+            perPage: $this->perPage,
             currentPage: $this->getPage(),
             options: ['path' => request()->url()],
         );
@@ -463,48 +469,53 @@ new class extends Component {
 ?>
 
 <div>
-    @if ($this->hasSubscriptions)
-        <flux:card size="sm">
-            <div class="flex items-center justify-between">
-                <p class="font-semibold text-white">Subscriptions</p>
+    <flux:card size="sm">
+        <div class="flex items-center justify-between">
+            <p class="font-semibold text-white">Subscriptions</p>
 
+            @if ($this->hasSubscriptions)
                 <flux:select wire:model.live="view" size="sm" class="max-w-fit" aria-label="Subscription view">
                     <flux:select.option value="upcoming">Upcoming</flux:select.option>
                     <flux:select.option value="recent">Recent</flux:select.option>
                 </flux:select>
-            </div>
+            @endif
+        </div>
 
-            @if ($this->rows->isEmpty())
-                <x-lundbergh-bubble :message="__('lundbergh.dashboard.no_recent_subscriptions')" />
-            @else
-                <div class="mt-3">
-                    @foreach ($this->rows as $row)
-                        <a
-                            href="{{ $row['url'] }}"
-                            wire:navigate
-                            wire:key="subscription-row-{{ $loop->index }}-{{ $this->rows->currentPage() }}"
-                            class="{{ $row['detail'] === 'TBD' ? 'opacity-50' : '' }} flex items-start gap-3 border-t border-white/20 py-3 transition-colors first:border-t-0 hover:bg-white/5 sm:items-center"
-                        >
+        @if (! $this->hasSubscriptions)
+            <x-lundbergh-bubble :message="__('lundbergh.empty.subscriptions')" />
+        @elseif ($this->rows->isEmpty())
+            <x-lundbergh-bubble :message="__('lundbergh.dashboard.no_recent_subscriptions')" />
+        @else
+            <x-dashboard.list>
+                @foreach ($this->rows as $row)
+                    <x-dashboard.list-row
+                        :href="$row['url']"
+                        :wire-key="'subscription-row-' . $loop->index . '-' . $this->rows->currentPage()"
+                        :muted="$row['detail'] === 'TBD'"
+                    >
+                        <x-slot:leading>
                             <flux:icon
                                 :name="$row['type'] === 'movie' ? 'film' : 'tv'"
                                 variant="mini"
                                 class="mt-0.5 shrink-0 text-zinc-400 sm:mt-0"
                             />
-                            <span class="min-w-0 flex-1 overflow-hidden font-medium text-white">
-                                <span
-                                    class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
-                                >
-                                    {{ $row['title'] }}
-                                </span>
-                                @if ($row['subtitle'])
-                                    <span class="hidden text-zinc-500 sm:inline">·</span>
-                                    <span
-                                        class="{{ $row['type'] === 'movie' ? 'font-mono' : 'font-sans' }} block text-sm text-zinc-400 sm:inline"
-                                    >
-                                        {{ $row['subtitle'] }}
-                                    </span>
-                                @endif
+                        </x-slot>
+
+                        <span
+                            class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
+                        >
+                            {{ $row['title'] }}
+                        </span>
+                        @if ($row['subtitle'])
+                            <span class="hidden text-zinc-500 sm:inline">·</span>
+                            <span
+                                class="{{ $row['type'] === 'movie' ? 'font-mono' : 'font-sans' }} block text-sm text-zinc-400 sm:inline"
+                            >
+                                {{ $row['subtitle'] }}
                             </span>
+                        @endif
+
+                        <x-slot:trailing>
                             <span class="shrink-0 text-right text-sm text-zinc-400">
                                 @if ($row['recently_aired'])
                                     ({{ $row['detail'] }}
@@ -522,12 +533,17 @@ new class extends Component {
                                     @endif
                                 @endif
                             </span>
-                        </a>
-                    @endforeach
-                </div>
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
 
-                <flux:pagination :paginator="$this->rows" class="shrink-0" />
-            @endif
-        </flux:card>
-    @endif
+            <flux:pagination
+                :paginator="$this->rows"
+                :per-page-options="[5, 10, 20]"
+                per-page-model="perPage"
+                class="-mx-4 px-4"
+            />
+        @endif
+    </flux:card>
 </div>

@@ -239,11 +239,11 @@ new class extends Component {
 ?>
 
 <div>
-    @if ($this->allRows->isNotEmpty())
-        <flux:card size="sm">
-            <div class="flex items-center justify-between">
-                <p class="font-semibold text-white">Requests</p>
+    <flux:card size="sm">
+        <div class="flex items-center justify-between">
+            <p class="font-semibold text-white">Requests</p>
 
+            @if ($this->allRows->isNotEmpty())
                 <flux:dropdown align="end">
                     <flux:button variant="subtle" size="sm" icon:trailing="funnel">
                         <span class="font-mono">{{ count($statusFilters) }}</span>
@@ -266,8 +266,12 @@ new class extends Component {
                         </flux:menu.checkbox.group>
                     </flux:menu>
                 </flux:dropdown>
-            </div>
+            @endif
+        </div>
 
+        @if ($this->allRows->isEmpty())
+            <x-lundbergh-bubble :message="__('lundbergh.empty.requests')" />
+        @else
             @if ($this->rows->isEmpty())
                 <flux:text class="mt-2 text-zinc-500">
                     {{ __('lundbergh.dashboard.no_matching_requests') }}
@@ -314,8 +318,13 @@ new class extends Component {
                     @endforeach
                 </x-dashboard.list>
 
-                <flux:pagination :paginator="$this->rows" :per-page-options="[5, 10, 20]" per-page-model="perPage" />
+                <flux:pagination
+                    :paginator="$this->rows"
+                    :per-page-options="[5, 10, 20]"
+                    per-page-model="perPage"
+                    class="-mx-4 px-4"
+                />
             @endif
-        </flux:card>
-    @endif
+        @endif
+    </flux:card>
 </div>

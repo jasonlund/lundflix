@@ -34,6 +34,7 @@ return [
         'imdb_not_found' => "Yeah… so, we couldn't find that IMDb ID. I'm gonna need you to go ahead and come in tomorrow and… double-check it. That'd be great.",
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
         'requests' => "Yeah… so, you haven't submitted any requests yet. I'm gonna need you to go ahead and search for something, add it to your cart, and submit a request. That'd be great.",
+        'subscriptions' => "Mmkay… you're not subscribed to anything yet. I'm gonna need you to go ahead and subscribe to a movie or show. That'd be great.",
     ],
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",

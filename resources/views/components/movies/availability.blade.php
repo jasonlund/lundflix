@@ -159,53 +159,53 @@ new class extends Component {
         </x-slot>
 
         @if (count($this->serverDisplayData) > 0)
-            <flux:table class="mt-4">
-                <flux:table.rows>
-                    @foreach ($this->serverDisplayData as $server)
-                        <flux:table.row wire:key="row-{{ $server['clientIdentifier'] }}">
-                            <flux:table.cell variant="strong">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
-                                    ></div>
-                                    <flux:avatar
-                                        size="xs"
-                                        circle
-                                        :src="$server['ownerThumb']"
-                                        :name="$server['name']"
-                                    />
-                                    {{ $server['name'] }}
-                                </div>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <span class="text-sm text-zinc-400">
-                                    @if ($server['videoResolution'])
-                                        {{ $server['videoResolution'] }}
-                                    @endif
+            <x-dashboard.list>
+                @foreach ($this->serverDisplayData as $server)
+                    <x-dashboard.list-row :wire-key="'row-' . $server['clientIdentifier']">
+                        <x-slot:leading>
+                            <div class="mt-1 flex shrink-0 items-center gap-2 sm:mt-0">
+                                <span
+                                    class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
+                                ></span>
+                                <flux:avatar size="xs" circle :src="$server['ownerThumb']" :name="$server['name']" />
+                            </div>
+                        </x-slot>
 
-                                    @if ($server['videoResolution'] && $server['runtime'])
-                                        <x-middot />
-                                    @endif
+                        <span
+                            class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
+                        >
+                            {{ $server['name'] }}
+                        </span>
+                        @if ($server['videoResolution'] || $server['runtime'])
+                            <span class="hidden text-zinc-500 sm:inline">·</span>
+                            <span class="block text-sm text-zinc-400 sm:inline">
+                                @if ($server['videoResolution'])
+                                    {{ $server['videoResolution'] }}
+                                @endif
 
-                                    @if ($server['runtime'])
-                                        {{ $server['runtime'] }}
-                                    @endif
-                                </span>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <flux:button
-                                    variant="ghost"
-                                    size="sm"
-                                    icon="arrow-top-right-on-square"
-                                    href="{{ $server['webUrl'] }}"
-                                    target="_blank"
-                                    inset="top bottom"
-                                />
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                                @if ($server['videoResolution'] && $server['runtime'])
+                                    <span class="text-zinc-500">·</span>
+                                @endif
+
+                                @if ($server['runtime'])
+                                    {{ $server['runtime'] }}
+                                @endif
+                            </span>
+                        @endif
+
+                        <x-slot:trailing>
+                            <flux:button
+                                variant="ghost"
+                                size="sm"
+                                icon="arrow-top-right-on-square"
+                                href="{{ $server['webUrl'] }}"
+                                target="_blank"
+                                inset="top bottom"
+                            />
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @else
             <flux:text class="mt-4 text-zinc-500">Not available on any Plex server.</flux:text>
         @endif
@@ -219,24 +219,28 @@ new class extends Component {
             @endphp
 
             <flux:separator class="my-4" />
-            <flux:table>
-                <flux:table.rows>
-                    @foreach ($allReleases as $release)
-                        @php
-                            $flag = collect(str_split(strtoupper($release['country'])))
-                                ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
-                                ->join('');
-                        @endphp
+            <x-dashboard.list>
+                @foreach ($allReleases as $release)
+                    @php
+                        $flag = collect(str_split(strtoupper($release['country'])))
+                            ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
+                            ->join('');
+                    @endphp
 
-                        <flux:table.row wire:key="release-{{ $release['country'] }}-{{ $release['type']->value }}">
-                            <flux:table.cell variant="strong">
-                                {{ $flag }} {{ $release['type']->label() }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                {{ $release['date']->format('M j, Y') }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <div class="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                    <x-dashboard.list-row :wire-key="'release-' . $release['country'] . '-' . $release['type']->value">
+                        <span class="block truncate sm:inline sm:overflow-visible sm:whitespace-normal">
+                            {{ $flag }} {{ $release['type']->label() }}
+                        </span>
+                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                        <span class="block text-sm text-zinc-400 sm:inline">
+                            {{ $release['date']->format('M j, Y') }}
+                        </span>
+
+                        @if ($release['certification'] || $release['note'] || ! empty($release['descriptors']))
+                            <x-slot:trailing>
+                                <div
+                                    class="flex shrink-0 flex-wrap items-center justify-end gap-2 text-sm text-zinc-400"
+                                >
                                     @if ($release['certification'])
                                         <flux:badge size="sm" class="bg-white/10 backdrop-blur-sm">
                                             {{ $release['certification'] }}
@@ -253,11 +257,11 @@ new class extends Component {
                                         </span>
                                     @endif
                                 </div>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                            </x-slot>
+                        @endif
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @endif
     </x-section>
 </div>

@@ -348,84 +348,91 @@ new class extends Component {
         </x-slot>
 
         @if (count($this->serverDisplayData) > 0)
-            <flux:table class="mt-4">
-                <flux:table.rows>
-                    @foreach ($this->serverDisplayData as $server)
-                        <flux:table.row wire:key="row-{{ $server['clientIdentifier'] }}">
-                            <flux:table.cell variant="strong">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
-                                    ></div>
-                                    <flux:avatar
-                                        size="xs"
-                                        circle
-                                        :src="$server['ownerThumb']"
-                                        :name="$server['name']"
-                                    />
-                                    {{ $server['name'] }}
-                                </div>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                @if ($server['hasAllAired'])
-                                    All
-                                @else
-                                    {{ $server['episodeCount'] }}
-                                @endif
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <flux:button
-                                    variant="ghost"
-                                    size="sm"
-                                    icon="arrow-top-right-on-square"
-                                    href="{{ $server['webUrl'] }}"
-                                    target="_blank"
-                                    inset="top bottom"
-                                />
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+            <x-dashboard.list>
+                @foreach ($this->serverDisplayData as $server)
+                    <x-dashboard.list-row :wire-key="'row-' . $server['clientIdentifier']">
+                        <x-slot:leading>
+                            <div class="mt-1 flex shrink-0 items-center gap-2 sm:mt-0">
+                                <span
+                                    class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
+                                ></span>
+                                <flux:avatar size="xs" circle :src="$server['ownerThumb']" :name="$server['name']" />
+                            </div>
+                        </x-slot>
+
+                        <span
+                            class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
+                        >
+                            {{ $server['name'] }}
+                        </span>
+                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                        <span class="block text-sm text-zinc-400 sm:inline">
+                            @if ($server['hasAllAired'])
+                                All
+                            @else
+                                {{ $server['episodeCount'] }}
+                            @endif
+                        </span>
+
+                        <x-slot:trailing>
+                            <flux:button
+                                variant="ghost"
+                                size="sm"
+                                icon="arrow-top-right-on-square"
+                                href="{{ $server['webUrl'] }}"
+                                target="_blank"
+                                inset="top bottom"
+                            />
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @else
             <flux:text class="mt-4 text-zinc-500">Not available on any Plex server.</flux:text>
         @endif
 
         @if (count($this->episodeMilestones) > 0)
             <flux:separator class="my-4" />
-            <flux:heading size="xs" class="mb-2 text-zinc-400">Episodes</flux:heading>
-            <flux:table>
-                <flux:table.rows>
-                    @foreach ($this->episodeMilestones as $key => $milestone)
-                        <flux:table.row wire:key="milestone-{{ $key }}">
-                            <flux:table.cell variant="strong">
-                                {{ $milestone['label'] }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <span class="text-sm text-zinc-400">{{ $milestone['code'] }}</span>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                {{ $milestone['name'] ?? '' }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <span class="text-sm text-zinc-400">
-                                    @if ($milestone['date'])
-                                        {{ $milestone['date'] }}
-                                    @endif
+            <flux:heading size="xs" class="text-zinc-400">Episodes</flux:heading>
+            <x-dashboard.list>
+                @foreach ($this->episodeMilestones as $key => $milestone)
+                    <x-dashboard.list-row :wire-key="'milestone-' . $key">
+                        <span class="block truncate sm:inline sm:overflow-visible sm:whitespace-normal">
+                            {{ $milestone['label'] }}
+                        </span>
+                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                        <span class="block text-sm text-zinc-400 sm:inline">
+                            {{ $milestone['code'] }}
+                        </span>
+                        @if (! empty($milestone['name']))
+                            <span class="hidden text-zinc-500 sm:inline">·</span>
+                            <span
+                                class="block truncate font-serif tracking-wide text-zinc-400 sm:inline sm:overflow-visible sm:whitespace-normal"
+                            >
+                                {{ $milestone['name'] }}
+                            </span>
+                        @endif
 
-                                    @if ($milestone['date'] && $milestone['runtime'])
-                                        <x-middot />
-                                    @endif
+                        <x-slot:trailing>
+                            <span class="shrink-0 text-right text-sm text-zinc-400">
+                                @if ($milestone['date'])
+                                    {{ $milestone['date'] }}
+                                @endif
 
-                                    @if ($milestone['runtime'])
+                                @if ($milestone['date'] && $milestone['runtime'])
+                                    <span class="hidden text-zinc-500 sm:inline">·</span>
+                                @endif
+
+                                @if ($milestone['runtime'])
+                                    <span class="block text-zinc-500 sm:inline sm:text-xs">
                                         {{ $milestone['runtime'] }}
-                                    @endif
-                                </span>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                                    </span>
+                                @endif
+                            </span>
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @endif
     </x-section>
 </div>

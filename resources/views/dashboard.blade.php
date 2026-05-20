@@ -5,7 +5,7 @@
         <div class="mt-6 space-y-6">
             <livewire:dashboard.requests />
             <livewire:dashboard.subscriptions />
-            <livewire:plex.server-status lazy />
+            <livewire:plex.server-status />
         </div>
     </div>
 </x-layouts.app>

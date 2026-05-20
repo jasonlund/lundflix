@@ -9,16 +9,6 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 new class extends Component {
-    public function placeholder(): string
-    {
-        return <<<'HTML'
-        <flux:card size="sm">
-            <flux:heading size="lg">Plex Servers</flux:heading>
-            <flux:text class="mt-2 text-zinc-500">Checking server status...</flux:text>
-        </flux:card>
-        HTML;
-    }
-
     /**
      * @return array{servers: Collection<int, PlexMediaServer>, cached_at: Carbon}
      */
@@ -66,44 +56,45 @@ new class extends Component {
 
 <flux:card size="sm">
     <div class="flex items-center justify-between">
-        <flux:heading size="lg">Servers</flux:heading>
+        <p class="font-semibold text-white">Servers</p>
         <flux:text size="xs" class="text-zinc-400">{{ $this->cachedAtDiff() }} ago</flux:text>
     </div>
 
     @if ($this->getServers()->isEmpty())
         <flux:text class="mt-2 text-zinc-500">No servers available.</flux:text>
     @else
-        <flux:table class="mt-3">
-            <flux:table.rows>
-                @foreach ($this->getServers() as $server)
-                    <flux:table.row :key="$server->client_identifier">
-                        <flux:table.cell variant="strong">
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="{{ $server->is_online ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
-                                ></div>
-                                <flux:avatar size="xs" circle :src="$server->owner_thumb" :name="$server->name" />
-                                {{ $server->name }}
-                                @unless ($server->is_online)
-                                    <flux:text size="xs">
-                                        {{ $this->lastSeenDiff($server) }}
-                                    </flux:text>
-                                @endunless
-                            </div>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            <flux:button
-                                variant="ghost"
-                                size="sm"
-                                icon="arrow-top-right-on-square"
-                                href="{{ $server->webUrl() }}"
-                                target="_blank"
-                                inset="top bottom"
-                            />
-                        </flux:table.cell>
-                    </flux:table.row>
-                @endforeach
-            </flux:table.rows>
-        </flux:table>
+        <x-dashboard.list>
+            @foreach ($this->getServers() as $server)
+                <x-dashboard.list-row
+                    :href="$server->webUrl()"
+                    :wire-key="'plex-server-' . $server->client_identifier"
+                    :navigate="false"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    <x-slot:leading>
+                        <flux:avatar size="xs" circle :src="$server->owner_thumb" :name="$server->name" />
+                        <span
+                            @class([
+                                'size-2 shrink-0 self-center rounded-full',
+                                'bg-green-500' => $server->is_online,
+                                'bg-red-500' => ! $server->is_online,
+                            ])
+                        ></span>
+                    </x-slot>
+
+                    <span class="block truncate font-serif tracking-wide">
+                        {{ $server->name }}
+                        @unless ($server->is_online)
+                            <span class="ml-1 text-sm text-zinc-400">{{ $this->lastSeenDiff($server) }}</span>
+                        @endunless
+                    </span>
+
+                    <x-slot:trailing>
+                        <flux:icon name="arrow-top-right-on-square" variant="mini" class="shrink-0 text-zinc-400" />
+                    </x-slot>
+                </x-dashboard.list-row>
+            @endforeach
+        </x-dashboard.list>
     @endif
 </flux:card>
