@@ -61,7 +61,7 @@ new class extends Component {
     </div>
 
     @if ($this->getServers()->isEmpty())
-        <flux:text class="mt-2 text-zinc-500">No servers available.</flux:text>
+        <x-lundbergh-bubble variant="error" :message="__('lundbergh.error.no_servers')" />
     @else
         <x-dashboard.list>
             @foreach ($this->getServers() as $server)

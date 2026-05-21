@@ -23,15 +23,7 @@ class Formatters
         $hours = intdiv($minutes, 60);
         $mins = $minutes % 60;
 
-        if ($hours > 0 && $mins > 0) {
-            return "{$prefix}{$hours}h{$mins}m";
-        }
-
-        if ($hours > 0) {
-            return "{$prefix}{$hours}h";
-        }
-
-        return "{$prefix}{$mins}m";
+        return "{$prefix}{$hours}h{$mins}m";
     }
 
     public static function runtimeFor(Show|Movie $item): ?string
@@ -99,7 +91,12 @@ class Formatters
         $end = $episodes[count($episodes) - 1];
 
         $startCode = strtoupper((string) $start->code);
-        $endSuffix = ($end->isSpecial() ? 'S' : 'E').sprintf('%02d', $end->number);
+
+        if ($end->isSpecial() || $end->season !== $start->season) {
+            $endSuffix = sprintf('S%02d', $end->season).($end->isSpecial() ? 'S' : 'E').sprintf('%02d', $end->number);
+        } else {
+            $endSuffix = 'E'.sprintf('%02d', $end->number);
+        }
 
         return $startCode.'-'.$endSuffix;
     }
@@ -110,6 +107,31 @@ class Formatters
     public static function formatSeason(int $season): string
     {
         return sprintf('S%02d', $season);
+    }
+
+    /**
+     * Format a grouped seasons/runs structure into a list of labels for inline display.
+     *
+     * @param  array<int, array{season: int, is_full: bool, runs: array<int, Collection<int, Episode>>}>  $seasons
+     * @return list<string>
+     */
+    public static function seasonRunLabels(array $seasons): array
+    {
+        $labels = [];
+
+        foreach ($seasons as $seasonData) {
+            if ($seasonData['is_full']) {
+                $labels[] = self::formatSeason($seasonData['season']);
+
+                continue;
+            }
+
+            foreach ($seasonData['runs'] as $run) {
+                $labels[] = self::formatRun($run);
+            }
+        }
+
+        return $labels;
     }
 
     public static function formatResolution(?string $resolution): ?string

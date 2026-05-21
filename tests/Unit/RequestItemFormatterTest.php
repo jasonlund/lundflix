@@ -69,7 +69,7 @@ it('formats a run ending with a special episode', function () {
         ]),
     ]);
 
-    expect(Formatters::formatRun($episodes))->toBe('S01E07-S01');
+    expect(Formatters::formatRun($episodes))->toBe('S01E07-S01S01');
 });
 
 it('formats a run of consecutive special episodes', function () {
@@ -84,7 +84,7 @@ it('formats a run of consecutive special episodes', function () {
         'type' => 'significant_special',
     ]);
 
-    expect(Formatters::formatRun($episodes))->toBe('S01S01-S03');
+    expect(Formatters::formatRun($episodes))->toBe('S01S01-S01S03');
 });
 
 it('formats a run starting with a special episode', function () {

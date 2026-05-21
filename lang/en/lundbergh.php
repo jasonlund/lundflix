@@ -38,6 +38,7 @@ return [
     ],
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
+        'no_servers' => "Yeah… so, I can't find any servers right now. That's… not great.",
     ],
     'toast' => [
         'cart_added' => "Yeah… so, :title has been added to your cart. If you could add more or check out, that'd be great.",

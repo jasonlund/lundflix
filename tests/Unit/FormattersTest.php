@@ -11,11 +11,11 @@ it('formats runtime in hours and minutes', function () {
 });
 
 it('formats runtime with only minutes', function () {
-    expect(Formatters::runtime(45))->toBe('45m');
+    expect(Formatters::runtime(45))->toBe('0h45m');
 });
 
 it('formats runtime with exactly one hour', function () {
-    expect(Formatters::runtime(60))->toBe('1h');
+    expect(Formatters::runtime(60))->toBe('1h0m');
 });
 
 it('formats runtime with one hour and one minute', function () {
@@ -139,7 +139,7 @@ it('formats compact year label for a show with only premiere date', function () 
 });
 
 it('formats approximate runtime with tilde prefix', function () {
-    expect(Formatters::runtime(49, approximate: true))->toBe('~49m');
+    expect(Formatters::runtime(49, approximate: true))->toBe('~0h49m');
 });
 
 it('formats approximate runtime in hours and minutes', function () {
@@ -155,13 +155,13 @@ it('formats runtime for a movie', function () {
 it('formats exact runtime for a show', function () {
     $show = Show::factory()->make(['runtime' => 60, 'average_runtime' => 60]);
 
-    expect(Formatters::runtimeFor($show))->toBe('1h');
+    expect(Formatters::runtimeFor($show))->toBe('1h0m');
 });
 
 it('formats approximate runtime for a show with only average_runtime', function () {
     $show = Show::factory()->make(['runtime' => null, 'average_runtime' => 49]);
 
-    expect(Formatters::runtimeFor($show))->toBe('~49m');
+    expect(Formatters::runtimeFor($show))->toBe('~0h49m');
 });
 
 it('returns null runtime for a show with no runtime', function () {

@@ -12,24 +12,20 @@ use Livewire\Component;
 new class extends Component {
     public Movie $movie;
 
-    public function placeholder(): string
+    public bool $plexLoaded = false;
+
+    public function loadPlex(): void
     {
-        return <<<'HTML'
-        <div>
-            <flux:card class="cursor-wait overflow-hidden p-3">
-                <div class="flex w-full items-center">
-                    <div class="flex items-center gap-2">
-                        <flux:icon.loading class="size-4 text-zinc-400" />
-                    </div>
-                </div>
-            </flux:card>
-        </div>
-        HTML;
+        $this->plexLoaded = true;
     }
 
     #[Computed]
     public function servers(): Collection
     {
+        if (! $this->plexLoaded) {
+            return collect();
+        }
+
         $user = auth()->user();
         if (! $user?->plex_token) {
             return collect();
@@ -92,8 +88,8 @@ new class extends Component {
 };
 ?>
 
-<div>
-    <x-section heading="Availability" collapsible>
+<div wire:init="loadPlex">
+    <x-section collapsible>
         <x-slot:badge>
             <div class="flex items-center gap-1.5 text-sm">
                 @php
@@ -130,9 +126,12 @@ new class extends Component {
                     <x-middot />
                 @endif
 
-                @if (count($this->serverDisplayData) > 0)
-                    <div class="flex items-center gap-1.5 text-zinc-400">
-                        <x-plex-icon class="size-4" />
+                <div class="flex items-center gap-1.5 text-zinc-400">
+                    <x-plex-icon class="size-4" />
+
+                    @if (! $plexLoaded)
+                        <flux:icon.loading class="size-3" />
+                    @elseif (count($this->serverDisplayData) > 0)
                         @foreach ($this->serverDisplayData as $server)
                             @if (! $loop->first)
                                 <x-middot />
@@ -142,26 +141,35 @@ new class extends Component {
                                 <flux:avatar
                                     size="xs"
                                     circle
+                                    class="size-4"
                                     :src="$server['ownerThumb']"
                                     :name="$server['name']"
                                     :tooltip="$server['tooltip']"
                                 />
                             </div>
                         @endforeach
-                    </div>
-                @else
-                    <div class="flex items-center gap-1.5 text-zinc-400">
-                        <x-plex-icon class="size-4" />
-                        <span class="text-sm font-semibold">Unavailable</span>
-                    </div>
-                @endif
+                    @else
+                        <flux:icon.no-symbol variant="micro" class="text-zinc-500" />
+                    @endif
+                </div>
             </div>
         </x-slot>
 
-        @if (count($this->serverDisplayData) > 0)
+        @if (! $plexLoaded)
+            <div class="mt-4 flex items-center gap-2 text-sm text-zinc-500">
+                <flux:icon.loading class="size-4" />
+            </div>
+        @elseif (count($this->serverDisplayData) > 0)
             <x-dashboard.list>
                 @foreach ($this->serverDisplayData as $server)
-                    <x-dashboard.list-row :wire-key="'row-' . $server['clientIdentifier']">
+                    <x-dashboard.list-row
+                        :href="$server['webUrl']"
+                        :navigate="false"
+                        target="_blank"
+                        rel="noopener"
+                        class="text-sm"
+                        :wire-key="'row-' . $server['clientIdentifier']"
+                    >
                         <x-slot:leading>
                             <div class="mt-1 flex shrink-0 items-center gap-2 sm:mt-0">
                                 <span
@@ -194,14 +202,7 @@ new class extends Component {
                         @endif
 
                         <x-slot:trailing>
-                            <flux:button
-                                variant="ghost"
-                                size="sm"
-                                icon="arrow-top-right-on-square"
-                                href="{{ $server['webUrl'] }}"
-                                target="_blank"
-                                inset="top bottom"
-                            />
+                            <flux:icon name="arrow-top-right-on-square" variant="mini" class="shrink-0 text-zinc-400" />
                         </x-slot>
                     </x-dashboard.list-row>
                 @endforeach
@@ -227,7 +228,10 @@ new class extends Component {
                             ->join('');
                     @endphp
 
-                    <x-dashboard.list-row :wire-key="'release-' . $release['country'] . '-' . $release['type']->value">
+                    <x-dashboard.list-row
+                        class="text-sm"
+                        :wire-key="'release-' . $release['country'] . '-' . $release['type']->value"
+                    >
                         <span class="block truncate sm:inline sm:overflow-visible sm:whitespace-normal">
                             {{ $flag }} {{ $release['type']->label() }}
                         </span>
