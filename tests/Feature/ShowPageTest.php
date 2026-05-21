@@ -87,7 +87,7 @@ it('displays approximate runtime when only average_runtime is set', function () 
     ]);
 
     Livewire::test('shows.show', ['show' => $show])
-        ->assertSee('~49m');
+        ->assertSee('~0h49m');
 });
 
 it('displays exact runtime without tilde when runtime is set', function () {
