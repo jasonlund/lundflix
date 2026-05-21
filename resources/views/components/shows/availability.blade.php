@@ -180,9 +180,18 @@ new class extends Component {
 
         foreach ($bySeason as $seasonNum => $seasonEpisodes) {
             $seasonRegulars = $regularsBySeason->get($seasonNum, collect());
-            $isFull = $seasonRegulars->isNotEmpty()
-                && $seasonEpisodes->pluck('id')->sort()->values()->toArray()
-                    === $seasonRegulars->pluck('id')->sort()->values()->toArray();
+            $isFull =
+                $seasonRegulars->isNotEmpty() &&
+                $seasonEpisodes
+                    ->pluck('id')
+                    ->sort()
+                    ->values()
+                    ->toArray() ===
+                    $seasonRegulars
+                        ->pluck('id')
+                        ->sort()
+                        ->values()
+                        ->toArray();
 
             $runs = $this->findEpisodeRuns($seasonEpisodes, $seasonRegulars);
 
