@@ -21,6 +21,8 @@ new class extends Component {
 
     public string $view = 'upcoming';
 
+    private ?Collection $loadedSubscriptions = null;
+
     protected function perPagePreferenceKey(): string
     {
         return 'dashboard.subscriptions.per_page';
@@ -66,10 +68,9 @@ new class extends Component {
     #[Computed]
     public function hasSubscriptions(): bool
     {
-        return auth()
-            ->user()
-            ->subscriptions()
-            ->exists();
+        $this->allRows;
+
+        return $this->loadedSubscriptions?->isNotEmpty() ?? false;
     }
 
     /**
@@ -105,6 +106,8 @@ new class extends Component {
             ])
             ->latest()
             ->get();
+
+        $this->loadedSubscriptions = $subscriptions;
 
         return $subscriptions
             ->flatMap(function ($subscription): array {
@@ -150,6 +153,8 @@ new class extends Component {
             ])
             ->latest()
             ->get();
+
+        $this->loadedSubscriptions = $subscriptions;
 
         return $subscriptions
             ->map(function ($subscription): ?array {
