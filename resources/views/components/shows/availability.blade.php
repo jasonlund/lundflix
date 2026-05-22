@@ -5,6 +5,7 @@ use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
 use App\Support\EpisodeCode;
+use App\Support\EpisodeGrouping;
 use App\Support\Formatters;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
@@ -110,7 +111,6 @@ new class extends Component {
         $episodesByCode = $regularEpisodes->keyBy(
             fn (Episode $ep): string => strtoupper(EpisodeCode::generate($ep->season, $ep->number)),
         );
-        $regularsBySeason = $regularEpisodes->groupBy('season');
 
         return $this->servers
             ->filter(fn (array $server): bool => $plexServers->has($server['clientIdentifier']))
@@ -119,7 +119,7 @@ new class extends Component {
                 $airedEpisodeCodes,
                 $plexServers,
                 $episodesByCode,
-                $regularsBySeason,
+                $regularEpisodes,
             ): array {
                 $plexCodes = collect($server['episodes'])
                     ->map(
@@ -137,7 +137,7 @@ new class extends Component {
                     ->filter()
                     ->values();
 
-                $seasons = $this->buildSeasonsFromEpisodes($matchedEpisodes, $regularsBySeason);
+                $seasons = EpisodeGrouping::groupBySeason($matchedEpisodes, $regularEpisodes);
 
                 $tooltip = $hasAllAired
                     ? "{$server['name']} — All episodes"
@@ -160,82 +160,6 @@ new class extends Component {
                 ];
             })
             ->all();
-    }
-
-    /**
-     * Build season groupings (is_full + runs) matching cart shape, comparing against regulars only.
-     *
-     * @param  Collection<int, Episode>  $matched
-     * @param  Collection<int, Collection<int, Episode>>  $regularsBySeason
-     * @return list<array{season: int, is_full: bool, runs: list<Collection<int, Episode>>}>
-     */
-    private function buildSeasonsFromEpisodes(Collection $matched, Collection $regularsBySeason): array
-    {
-        if ($matched->isEmpty()) {
-            return [];
-        }
-
-        $bySeason = $matched->groupBy('season');
-        $result = [];
-
-        foreach ($bySeason as $seasonNum => $seasonEpisodes) {
-            $seasonRegulars = $regularsBySeason->get($seasonNum, collect());
-            $isFull =
-                $seasonRegulars->isNotEmpty() &&
-                $seasonEpisodes
-                    ->pluck('id')
-                    ->sort()
-                    ->values()
-                    ->toArray() ===
-                    $seasonRegulars
-                        ->pluck('id')
-                        ->sort()
-                        ->values()
-                        ->toArray();
-
-            $runs = $this->findEpisodeRuns($seasonEpisodes, $seasonRegulars);
-
-            $result[] = [
-                'season' => (int) $seasonNum,
-                'is_full' => $isFull,
-                'runs' => $runs,
-            ];
-        }
-
-        usort($result, fn (array $a, array $b): int => $a['season'] <=> $b['season']);
-
-        return $result;
-    }
-
-    /**
-     * Find consecutive runs of matched episodes within a season, by episode number order.
-     *
-     * @param  Collection<int, Episode>  $matched
-     * @param  Collection<int, Episode>  $seasonRegulars
-     * @return list<Collection<int, Episode>>
-     */
-    private function findEpisodeRuns(Collection $matched, Collection $seasonRegulars): array
-    {
-        $sortedAll = $seasonRegulars->sortBy('number')->values();
-        $matchedIds = $matched->pluck('id')->all();
-
-        $runs = [];
-        $currentRun = collect();
-
-        foreach ($sortedAll as $episode) {
-            if (in_array($episode->id, $matchedIds, true)) {
-                $currentRun->push($episode);
-            } elseif ($currentRun->isNotEmpty()) {
-                $runs[] = $currentRun;
-                $currentRun = collect();
-            }
-        }
-
-        if ($currentRun->isNotEmpty()) {
-            $runs[] = $currentRun;
-        }
-
-        return $runs;
     }
 
     /**

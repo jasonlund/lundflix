@@ -73,6 +73,10 @@ class Formatters
      *      "S01E07-S01" (regular to special)
      *      "S01S01-S03" (special to special)
      *
+     * Grammar: each segment is `S##` (season prefix, always two digits) followed by either
+     * `E##` (regular episode) or `S##` (special). The fixed-width `S##` prefix means
+     * `S01S01-S02E03` parses unambiguously as season 01 / special 01 → season 02 / episode 03.
+     *
      * @param  Collection<int, Episode>|array<int, Episode>  $episodes
      */
     public static function formatRun(Collection|array $episodes): string
@@ -152,7 +156,7 @@ class Formatters
      */
     public static function shortDate(Carbon $date): string
     {
-        $format = $date->year === now()->year ? 'n/j' : 'n/j/y';
+        $format = $date->year === now(UserTime::timezone())->year ? 'n/j' : 'n/j/y';
 
         return $date->format($format);
     }
@@ -185,6 +189,10 @@ class Formatters
 
     /**
      * Compact relative time string using the highest-order unit.
+     *
+     * Boundaries roll over to the next unit: 60 minutes becomes "1h", 48 hours becomes "2d",
+     * 7 days becomes "1w", and 30 days becomes "1mo". Thus "60m", "48h", "7d", and "30d"
+     * are intentionally never returned.
      */
     private static function compactDiff(Carbon $target): string
     {

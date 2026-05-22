@@ -8,7 +8,7 @@ use Carbon\Carbon;
 
 class AirDateTime
 {
-    public const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+    private const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 
     /**
      * Streaming service release time overrides, keyed by TVMaze web channel ID.

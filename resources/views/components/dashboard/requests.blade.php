@@ -320,7 +320,7 @@ new class extends Component {
 
                 <flux:pagination
                     :paginator="$this->rows"
-                    :per-page-options="[5, 10, 20]"
+                    :per-page-options="$this->perPageOptions()"
                     per-page-model="perPage"
                     class="-mx-4 px-4"
                 />

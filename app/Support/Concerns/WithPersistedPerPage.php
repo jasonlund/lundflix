@@ -23,7 +23,7 @@ trait WithPersistedPerPage
     /**
      * @return list<int>
      */
-    protected function perPageOptions(): array
+    public function perPageOptions(): array
     {
         return [5, 10, 20];
     }

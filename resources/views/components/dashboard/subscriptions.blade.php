@@ -87,19 +87,21 @@ new class extends Component {
      */
     private function upcomingRows(): Collection
     {
-        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+        $recentFloor = now()
+            ->subDays(3)
+            ->format('Y-m-d');
 
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
+                'subscribable' => function (MorphTo $morphTo) use ($recentFloor): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->whereRaw("airdate > {$cutoffSql}", $cutoffBindings)
+                                ->where('airdate', '>=', $recentFloor)
                                 ->orderBy('airdate')
-                                ->limit(3),
+                                ->limit(6),
                         ],
                     ]);
                 },
@@ -239,25 +241,13 @@ new class extends Component {
     {
         $rows = [];
 
-        $recentCandidates = $show
-            ->episodes()
-            ->where(
-                'airdate',
-                '>=',
-                now()
-                    ->subDays(3)
-                    ->format('Y-m-d'),
-            )
-            ->where(
-                'airdate',
-                '<=',
-                now()
-                    ->addDay()
-                    ->format('Y-m-d'),
-            )
-            ->orderByDesc('airdate')
-            ->limit(3)
-            ->get();
+        $recentWindowStart = now()->subDays(3)->startOfDay();
+        $recentWindowEnd = now()->addDay()->endOfDay();
+
+        $recentCandidates = $show->episodes
+            ->filter(fn (Episode $ep): bool => $ep->airdate->between($recentWindowStart, $recentWindowEnd))
+            ->sortByDesc('airdate')
+            ->take(3);
 
         foreach ($recentCandidates as $candidate) {
             $resolved = AirDateTime::resolve(
@@ -404,7 +394,7 @@ new class extends Component {
             }
         }
 
-        return $this->shortDate($releaseDate);
+        return Formatters::shortDate($releaseDate);
     }
 
     private function formatEpisodeDetail(Carbon $resolvedUtc, bool $isUpcoming): string
@@ -424,7 +414,7 @@ new class extends Component {
             }
         }
 
-        return $this->shortDate($userDate) . ' ' . $time;
+        return Formatters::shortDate($userDate) . ' ' . $time;
     }
 
     private function compactTime(Carbon $date): string
@@ -432,13 +422,6 @@ new class extends Component {
         $suffix = $date->format('a')[0];
 
         return (int) $date->format('i') === 0 ? $date->format('g') . $suffix : $date->format('g:i') . $suffix;
-    }
-
-    private function shortDate(Carbon $date): string
-    {
-        $format = $date->year === now()->year ? 'n/j' : 'n/j/y';
-
-        return $date->format($format);
     }
 
     private function shortWeekday(Carbon $date): string
@@ -465,7 +448,7 @@ new class extends Component {
         $releaseDay = Carbon::parse($releaseDate->format('Y-m-d'));
 
         if ($userToday->isSameDay($releaseDay)) {
-            return $this->shortDate($releaseDate);
+            return Formatters::shortDate($releaseDate);
         }
 
         return $this->shortWeekday($releaseDate);
@@ -545,7 +528,7 @@ new class extends Component {
 
             <flux:pagination
                 :paginator="$this->rows"
-                :per-page-options="[5, 10, 20]"
+                :per-page-options="$this->perPageOptions()"
                 per-page-model="perPage"
                 class="-mx-4 px-4"
             />

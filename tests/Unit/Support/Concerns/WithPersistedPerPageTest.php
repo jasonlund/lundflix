@@ -22,7 +22,7 @@ function stubPerPageComponent(?array $options = null, ?int $default = null): obj
             return 'tests.stub.per_page';
         }
 
-        protected function perPageOptions(): array
+        public function perPageOptions(): array
         {
             return $this->options ?? [5, 10, 20];
         }

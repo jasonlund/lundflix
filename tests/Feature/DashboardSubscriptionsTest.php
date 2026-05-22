@@ -750,6 +750,20 @@ it('shows recently aired episode in upcoming view within 48h', function () {
         ->and($rows->first()['recently_aired'])->toBeTrue();
 });
 
+it('hydrates perPage from persisted user preference via Livewire lifecycle hook', function () {
+    $user = User::factory()->create();
+    $user->preferences->set('dashboard.subscriptions.per_page', 20);
+    $user->save();
+
+    Livewire::actingAs($user)->test('dashboard.subscriptions')->assertSet('perPage', 20);
+});
+
+it('falls back to default perPage when no preference is stored', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)->test('dashboard.subscriptions')->assertSet('perPage', 5);
+});
+
 it('shows both recently aired and next upcoming episode for same show', function () {
     // June 10 noon UTC = June 10 8 AM ET
     $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));

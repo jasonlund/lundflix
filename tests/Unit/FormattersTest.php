@@ -267,3 +267,11 @@ it('formats short date as n/j/y when in a different year', function () {
     expect(Formatters::shortDate(Carbon::parse('2025-12-31')))->toBe('12/31/25');
     expect(Formatters::shortDate(Carbon::parse('2024-07-04')))->toBe('7/4/24');
 });
+
+it('formats short date using the user timezone year across the UTC year boundary', function () {
+    $this->actingAs(User::factory()->make(['timezone' => 'America/Los_Angeles']));
+    // 2026-01-01 01:30 UTC == 2025-12-31 17:30 PT. UTC year is 2026, user-TZ year is 2025.
+    $this->travelTo(Carbon::parse('2026-01-01 01:30:00', 'UTC'));
+
+    expect(Formatters::shortDate(Carbon::parse('2025-12-31 17:00:00', 'America/Los_Angeles')))->toBe('12/31');
+});

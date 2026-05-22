@@ -62,7 +62,8 @@ class Show extends Model
         $array = [
             'id' => (string) $this->id,
             'imdb_id' => (string) $this->imdb_id,
-            'name' => (string) $this->name,
+            'name' => (string) $this->getRawOriginal('name'),
+            'country' => $this->displayCountryCode(),
             'num_votes' => (int) $this->num_votes,
             'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
@@ -164,7 +165,7 @@ class Show extends Model
         })->shouldCache();
     }
 
-    private function displayCountryCode(): ?string
+    public function displayCountryCode(): ?string
     {
         /** @var array<string, mixed>|null $network */
         $network = $this->network;
@@ -220,9 +221,9 @@ class Show extends Model
         /** @var Collection<int, string> $names */
         $names = static::query()
             ->selectRaw('LOWER(TRIM(name)) AS base_name')
-            ->whereRaw("COALESCE(network->>'$.country.code', web_channel->>'$.country.code') IS NOT NULL")
+            ->whereRaw("COALESCE(json_extract(network, '$.country.code'), json_extract(web_channel, '$.country.code')) IS NOT NULL")
             ->groupBy('base_name')
-            ->havingRaw("COUNT(DISTINCT COALESCE(network->>'$.country.code', web_channel->>'$.country.code')) > 1")
+            ->havingRaw("COUNT(DISTINCT COALESCE(json_extract(network, '$.country.code'), json_extract(web_channel, '$.country.code'))) > 1")
             ->pluck('base_name');
 
         return $names;
