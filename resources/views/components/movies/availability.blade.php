@@ -246,10 +246,7 @@ new class extends Component {
                                     class="flex shrink-0 flex-wrap items-center justify-end gap-2 text-sm text-zinc-400"
                                 >
                                     @if ($release['certification'])
-                                        <x-rating-badge
-                                            :certification="$release['certification']"
-                                            :country="$release['country']"
-                                        />
+                                        <x-rating-badge :certification="$release['certification']" />
                                     @endif
 
                                     @if ($release['note'])
