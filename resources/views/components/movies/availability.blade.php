@@ -222,15 +222,12 @@ new class extends Component {
             <flux:table>
                 <flux:table.rows>
                     @foreach ($allReleases as $release)
-                        @php
-                            $flag = collect(str_split(strtoupper($release['country'])))
-                                ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
-                                ->join('');
-                        @endphp
-
                         <flux:table.row wire:key="release-{{ $release['country'] }}-{{ $release['type']->value }}">
                             <flux:table.cell variant="strong">
-                                {{ $flag }} {{ $release['type']->label() }}
+                                <span class="inline-flex items-center gap-1.5">
+                                    <x-emoji :country="$release['country']" />
+                                    {{ $release['type']->label() }}
+                                </span>
                             </flux:table.cell>
                             <flux:table.cell>
                                 {{ $release['date']->format('M j, Y') }}
