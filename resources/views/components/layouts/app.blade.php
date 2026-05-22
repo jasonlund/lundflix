@@ -89,7 +89,11 @@
                     <footer
                         class="flex items-center justify-center gap-2 border-t border-zinc-800/70 bg-black p-1 text-xs text-zinc-400 [grid-area:footer] md:border-x"
                     >
-                        <span class="font-[Josefin_Slab] font-semibold">Made with 🤠 in Wyoming</span>
+                        <span class="flex items-center gap-1 font-[Josefin_Slab] font-semibold">
+                            Made with
+                            <x-emoji char="🤠" />
+                            in Wyoming
+                        </span>
                         <span>·</span>
                         <flux:modal.trigger name="credits">
                             <button
@@ -113,11 +117,13 @@
                                     <!-- prettier-ignore -->
                                     <p>This product uses the TMDB API but is not endorsed or certified by <span class="not-prose"><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer" class="transition-opacity hover:opacity-80"><img src="{{ Vite::image('logos/services/tmdb.svg') }}" alt="TMDB" class="inline h-3 align-baseline" /></a></span>.</p>
                                     <!-- prettier-ignore -->
-                                    <p>Show data from TVMaze — <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>)</p>
+                                    <p>Show data from TVMaze, <a href="https://www.tvmaze.com" target="_blank" rel="noopener noreferrer">https://www.tvmaze.com</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).</p>
                                     <!-- prettier-ignore -->
                                     <p>Information courtesy of IMDb. Sourced from the <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener noreferrer">IMDb Non-Commercial Datasets</a>.</p>
                                     <!-- prettier-ignore -->
-                                    <p>Network logos by Tapio Sinnertwin — <a href="https://github.com/tv-logo/tv-logos" target="_blank" rel="noopener noreferrer">github.com/tv-logo/tv-logos</a></p>
+                                    <p>Network logos by Tapio Sinnertwin, <a href="https://github.com/tv-logo/tv-logos" target="_blank" rel="noopener noreferrer">github.com/tv-logo/tv-logos</a>.</p>
+                                    <!-- prettier-ignore -->
+                                    <p>Emoji artwork &copy; Apple Inc., sourced via <a href="https://emojipedia.org" target="_blank" rel="noopener noreferrer">Emojipedia</a>.</p>
                                 </blockquote>
                             </div>
                         </div>
