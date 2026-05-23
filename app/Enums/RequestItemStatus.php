@@ -43,4 +43,24 @@ enum RequestItemStatus: string implements HasColor, HasLabel
             self::NotFound => 'amber',
         };
     }
+
+    public function getIcon(): string
+    {
+        return match ($this) {
+            self::Pending => 'clock',
+            self::Fulfilled => 'check-circle',
+            self::Rejected => 'x-circle',
+            self::NotFound => 'question-mark-circle',
+        };
+    }
+
+    public function getIconColorClass(): string
+    {
+        return match ($this) {
+            self::Pending => 'text-zinc-400',
+            self::Fulfilled => 'text-green-400',
+            self::Rejected => 'text-red-400',
+            self::NotFound => 'text-amber-400',
+        };
+    }
 }

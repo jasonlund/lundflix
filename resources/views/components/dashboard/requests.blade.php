@@ -4,6 +4,7 @@ use App\Enums\EpisodeType;
 use App\Enums\RequestItemStatus;
 use App\Models\Episode;
 use App\Models\Movie;
+use App\Support\Concerns\WithPersistedPerPage;
 use App\Support\EpisodeCode;
 use App\Support\Formatters;
 use App\Support\UserTime;
@@ -15,10 +16,15 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 new class extends Component {
-    use WithPagination;
+    use WithPagination, WithPersistedPerPage;
 
     /** @var array<int, string> */
     public array $statusFilters = [];
+
+    protected function perPagePreferenceKey(): string
+    {
+        return 'dashboard.requests.per_page';
+    }
 
     public function updatedStatusFilters(): void
     {
@@ -42,7 +48,7 @@ new class extends Component {
     }
 
     /**
-     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, created_at: \Carbon\Carbon}>
+     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, updated_at: \Carbon\Carbon, url: string}>
      */
     #[Computed]
     public function filteredRows(): Collection
@@ -64,16 +70,16 @@ new class extends Component {
         $filteredRows = $this->filteredRows;
 
         return new LengthAwarePaginator(
-            items: $filteredRows->forPage($this->getPage(), 5),
+            items: $filteredRows->forPage($this->getPage(), $this->perPage),
             total: $filteredRows->count(),
-            perPage: 5,
+            perPage: $this->perPage,
             currentPage: $this->getPage(),
             options: ['path' => request()->url()],
         );
     }
 
     /**
-     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, created_at: \Carbon\Carbon}>
+     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, updated_at: \Carbon\Carbon, url: string}>
      */
     #[Computed]
     public function allRows(): Collection
@@ -95,7 +101,7 @@ new class extends Component {
             fn ($request) => $request->items->map(
                 fn ($item) => [
                     'item' => $item,
-                    'created_at' => $request->created_at,
+                    'updated_at' => $item->updated_at,
                 ],
             ),
         );
@@ -105,7 +111,8 @@ new class extends Component {
                 'status' => $entry['item']->status,
                 'title' => $entry['item']->requestable->title . ' (' . $entry['item']->requestable->year . ')',
                 'subtitle' => null,
-                'created_at' => $entry['created_at'],
+                'updated_at' => $entry['updated_at'],
+                'url' => route('movies.show', $entry['item']->requestable),
             ],
         );
 
@@ -115,13 +122,13 @@ new class extends Component {
 
         return $movieRows
             ->concat($episodeRows)
-            ->sortByDesc('created_at')
+            ->sortByDesc('updated_at')
             ->values();
     }
 
     /**
-     * @param  Collection<int, array{item: \App\Models\RequestItem, created_at: \Carbon\Carbon}>  $entries
-     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, created_at: \Carbon\Carbon}>
+     * @param  Collection<int, array{item: \App\Models\RequestItem, updated_at: \Carbon\Carbon}>  $entries
+     * @return Collection<int, array{status: RequestItemStatus, title: string, subtitle: string|null, updated_at: \Carbon\Carbon, url: string}>
      */
     private function consolidateEpisodes(Collection $entries): Collection
     {
@@ -140,16 +147,18 @@ new class extends Component {
 
         return $byShow
             ->flatMap(function ($showEntries, $showId) use ($allShowEpisodes) {
-                $showName = $showEntries->first()['item']->requestable->show->name;
+                $show = $showEntries->first()['item']->requestable->show;
+                $showUrl = route('shows.show', $show);
                 $allEpisodesForShow = $allShowEpisodes->get($showId, collect());
 
                 return $showEntries
                     ->groupBy(fn ($entry) => $entry['item']->requestable->season)
-                    ->flatMap(function ($seasonEntries, $seasonNum) use ($showName, $allEpisodesForShow) {
+                    ->flatMap(function ($seasonEntries, $seasonNum) use ($show, $showUrl, $allEpisodesForShow) {
                         $allSeasonEpisodes = $allEpisodesForShow->where('season', $seasonNum);
 
                         return $this->buildRuns($seasonEntries, $allSeasonEpisodes)->map(function ($run) use (
-                            $showName,
+                            $show,
+                            $showUrl,
                             $allSeasonEpisodes,
                             $seasonNum,
                         ) {
@@ -160,11 +169,12 @@ new class extends Component {
 
                             return [
                                 'status' => $run['status'] ?? RequestItemStatus::Pending,
-                                'title' => $showName,
+                                'title' => $show->name,
                                 'subtitle' => $isFullSeason
                                     ? Formatters::formatSeason($seasonNum)
                                     : Formatters::formatRun($run['episodes']),
-                                'created_at' => $run['created_at'],
+                                'updated_at' => $run['updated_at'],
+                                'url' => $showUrl,
                             ];
                         });
                     });
@@ -175,9 +185,9 @@ new class extends Component {
     /**
      * Build episode runs split by status and contiguity.
      *
-     * @param  Collection<int, array{item: \App\Models\RequestItem, created_at: \Carbon\Carbon}>  $seasonEntries
+     * @param  Collection<int, array{item: \App\Models\RequestItem, updated_at: \Carbon\Carbon}>  $seasonEntries
      * @param  Collection<int, Episode>  $allSeasonEpisodes
-     * @return Collection<int, array{episodes: Collection<int, Episode>, status: RequestItemStatus|null, created_at: \Carbon\Carbon}>
+     * @return Collection<int, array{episodes: Collection<int, Episode>, status: RequestItemStatus|null, updated_at: \Carbon\Carbon}>
      */
     private function buildRuns(Collection $seasonEntries, Collection $allSeasonEpisodes): Collection
     {
@@ -185,7 +195,7 @@ new class extends Component {
             fn ($entry) => [
                 'episode' => $entry['item']->requestable,
                 'status' => $entry['item']->status,
-                'created_at' => $entry['created_at'],
+                'updated_at' => $entry['updated_at'],
             ],
         );
 
@@ -208,7 +218,7 @@ new class extends Component {
                 fn (Collection $chunk) => [
                     'episodes' => $chunk->values(),
                     'status' => $episodeData[$chunk->first()->id]['status'],
-                    'created_at' => $chunk->max(fn ($ep) => $episodeData[$ep->id]['created_at']),
+                    'updated_at' => $chunk->max(fn ($ep) => $episodeData[$ep->id]['updated_at']),
                 ],
             )
             ->values();
@@ -229,11 +239,11 @@ new class extends Component {
 ?>
 
 <div>
-    @if ($this->allRows->isNotEmpty())
-        <flux:card size="sm">
-            <div class="flex items-center justify-between">
-                <p class="font-semibold text-white">Requests</p>
+    <flux:card size="sm">
+        <div class="flex items-center justify-between">
+            <p class="font-semibold text-white">Requests</p>
 
+            @if ($this->allRows->isNotEmpty())
                 <flux:dropdown align="end">
                     <flux:button variant="subtle" size="sm" icon:trailing="funnel">
                         <span class="font-mono">{{ count($statusFilters) }}</span>
@@ -243,52 +253,78 @@ new class extends Component {
                         <flux:menu.checkbox.group wire:model.live="statusFilters">
                             @foreach (RequestItemStatus::cases() as $status)
                                 <flux:menu.checkbox value="{{ $status->value }}" keep-open>
-                                    {{ $status->getLabel() }}
+                                    <span class="flex items-center gap-2">
+                                        <flux:icon
+                                            :name="$status->getIcon()"
+                                            variant="mini"
+                                            :class="$status->getIconColorClass()"
+                                        />
+                                        <span>{{ $status->getLabel() }}</span>
+                                    </span>
                                 </flux:menu.checkbox>
                             @endforeach
                         </flux:menu.checkbox.group>
                     </flux:menu>
                 </flux:dropdown>
-            </div>
+            @endif
+        </div>
 
+        @if ($this->allRows->isEmpty())
+            <x-lundbergh-bubble :message="__('lundbergh.empty.requests')" />
+        @else
             @if ($this->rows->isEmpty())
                 <flux:text class="mt-2 text-zinc-500">
                     {{ __('lundbergh.dashboard.no_matching_requests') }}
                 </flux:text>
             @else
-                <flux:table :paginate="$this->rows" class="mt-3">
-                    <flux:table.rows>
-                        @foreach ($this->rows as $row)
-                            <flux:table.row
-                                wire:key="request-row-{{ $loop->index }}-{{ $this->rows->currentPage() }}"
+                <x-dashboard.list>
+                    @foreach ($this->rows as $row)
+                        <x-dashboard.list-row
+                            :href="$row['url']"
+                            :wire-key="'request-row-' . $loop->index . '-' . $this->rows->currentPage()"
+                        >
+                            <x-slot:leading>
+                                <flux:tooltip :content="$row['status']->getLabel()">
+                                    <flux:icon
+                                        :name="$row['status']->getIcon()"
+                                        variant="mini"
+                                        :class="'mt-0.5 shrink-0 sm:mt-0 ' . $row['status']->getIconColorClass()"
+                                    />
+                                </flux:tooltip>
+                            </x-slot>
+
+                            <span
+                                class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
                             >
-                                <flux:table.cell variant="strong">
-                                    <div class="flex items-center gap-2">
-                                        <flux:badge
-                                            size="sm"
-                                            :color="$row['status']->getFluxColor()"
-                                            inset="top bottom"
-                                        >
-                                            {{ $row['status']->getLabel() }}
-                                        </flux:badge>
-                                        <span>
-                                            {{ $row['title'] }}
-                                            @if ($row['subtitle'])
-                                                <span class="text-sm text-zinc-400">{{ $row['subtitle'] }}</span>
-                                            @endif
-                                        </span>
-                                    </div>
-                                </flux:table.cell>
-                                <flux:table.cell class="text-right">
-                                    <span class="text-sm text-zinc-400">
-                                        {{ UserTime::format($row['created_at']) }}
+                                {{ $row['title'] }}
+                            </span>
+                            @if ($row['subtitle'])
+                                <span class="hidden text-zinc-500 sm:inline">·</span>
+                                <span class="block text-sm text-zinc-400 sm:inline">
+                                    {{ $row['subtitle'] }}
+                                </span>
+                            @endif
+
+                            <x-slot:trailing>
+                                <span class="shrink-0 text-right text-sm text-zinc-400">
+                                    {{ Formatters::shortDate(UserTime::toUserTz($row['updated_at'])) }}
+                                    <span class="hidden text-zinc-500 sm:inline">·</span>
+                                    <span class="block text-zinc-500 sm:inline sm:text-xs">
+                                        {{ Formatters::timeSince($row['updated_at']) }}
                                     </span>
-                                </flux:table.cell>
-                            </flux:table.row>
-                        @endforeach
-                    </flux:table.rows>
-                </flux:table>
+                                </span>
+                            </x-slot>
+                        </x-dashboard.list-row>
+                    @endforeach
+                </x-dashboard.list>
+
+                <flux:pagination
+                    :paginator="$this->rows"
+                    :per-page-options="$this->perPageOptions()"
+                    per-page-model="perPage"
+                    class="-mx-4 px-4"
+                />
             @endif
-        </flux:card>
-    @endif
+        @endif
+    </flux:card>
 </div>

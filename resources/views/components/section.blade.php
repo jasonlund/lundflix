@@ -31,7 +31,7 @@
                 </div>
             </button>
 
-            <div x-show="open" x-collapse>
+            <div x-show="open" x-collapse x-cloak>
                 {{ $slot }}
             </div>
         </div>

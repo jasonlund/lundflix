@@ -262,25 +262,25 @@ new class extends Component {
                                     />
                                 </div>
 
-                                <div class="flex min-w-0 flex-1 flex-col gap-1">
+                                @php
+                                    $seasonLabels = Formatters::seasonRunLabels($showGroup['seasons']);
+                                @endphp
+
+                                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                                     <p class="truncate font-serif text-base leading-6 tracking-wide text-white">
                                         {{ $showGroup['show']->name }}
                                     </p>
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach ($showGroup['seasons'] as $seasonData)
-                                            @if ($seasonData['is_full'])
-                                                <flux:badge size="sm" color="zinc">
-                                                    {{ $this->formatSeason($seasonData['season']) }}
-                                                </flux:badge>
-                                            @else
-                                                @foreach ($seasonData['runs'] as $run)
-                                                    <flux:badge size="sm" color="zinc">
-                                                        {{ $this->formatRun($run) }}
-                                                    </flux:badge>
-                                                @endforeach
-                                            @endif
-                                        @endforeach
-                                    </div>
+                                    @if (! empty($seasonLabels))
+                                        <div class="text-sm text-zinc-400">
+                                            @foreach ($seasonLabels as $label)
+                                                @if (! $loop->first)
+                                                    <span class="text-zinc-500">·</span>
+                                                @endif
+
+                                                <span>{{ $label }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="flex shrink-0 items-center pe-1">

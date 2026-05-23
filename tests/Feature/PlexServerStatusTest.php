@@ -86,7 +86,7 @@ it('shows empty state when no servers are visible', function () {
     $this->actingAs($user);
 
     Livewire::test('plex.server-status')
-        ->assertSee('No servers available');
+        ->assertSee(__('lundbergh.error.no_servers'));
 });
 
 it('displays owner thumb avatar when available', function () {

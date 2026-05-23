@@ -10,7 +10,7 @@
             <p class="text-3xl text-balance text-zinc-400">
                 <span class="font-mono font-semibold text-white">{{ $status }}</span>
                 <span class="mx-2 text-zinc-600">&middot;</span>
-                <span class="font-serif">{{ $message }}</span>
+                <span class="font-serif tracking-wide">{{ $message }}</span>
             </p>
             <p class="mt-2 font-sans text-sm text-zinc-500">
                 {{ $description }}

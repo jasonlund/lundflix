@@ -4,23 +4,38 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Support\AirDateTime;
+use App\Support\Concerns\WithPersistedPerPage;
 use App\Support\Formatters;
+use App\Support\UserTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 new class extends Component {
-    use WithPagination;
+    use WithPagination, WithPersistedPerPage;
 
     public string $view = 'upcoming';
+
+    private ?Collection $loadedSubscriptions = null;
+
+    protected function perPagePreferenceKey(): string
+    {
+        return 'dashboard.subscriptions.per_page';
+    }
 
     public function updatedView(): void
     {
         $this->resetPage();
+    }
+
+    #[On('profile-updated')]
+    public function refresh(): void
+    {
     }
 
     public function placeholder(): string
@@ -42,16 +57,24 @@ new class extends Component {
         $allRows = $this->allRows;
 
         return new LengthAwarePaginator(
-            items: $allRows->forPage($this->getPage(), 5),
+            items: $allRows->forPage($this->getPage(), $this->perPage),
             total: $allRows->count(),
-            perPage: 5,
+            perPage: $this->perPage,
             currentPage: $this->getPage(),
             options: ['path' => request()->url()],
         );
     }
 
+    #[Computed]
+    public function hasSubscriptions(): bool
+    {
+        $this->allRows;
+
+        return $this->loadedSubscriptions?->isNotEmpty() ?? false;
+    }
+
     /**
-     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}>
+     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}>
      */
     #[Computed]
     public function allRows(): Collection
@@ -60,23 +83,25 @@ new class extends Component {
     }
 
     /**
-     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}>
+     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}>
      */
     private function upcomingRows(): Collection
     {
-        [$cutoffSql, $cutoffBindings] = $this->airedCutoffSubquery();
+        $recentFloor = now()
+            ->subDays(3)
+            ->format('Y-m-d');
 
         $subscriptions = auth()
             ->user()
             ->subscriptions()
             ->with([
-                'subscribable' => function (MorphTo $morphTo) use ($cutoffSql, $cutoffBindings): void {
+                'subscribable' => function (MorphTo $morphTo) use ($recentFloor): void {
                     $morphTo->morphWith([
                         Show::class => [
                             'episodes' => fn ($q) => $q
-                                ->whereRaw("airdate > {$cutoffSql}", $cutoffBindings)
+                                ->where('airdate', '>=', $recentFloor)
                                 ->orderBy('airdate')
-                                ->limit(3),
+                                ->limit(6),
                         ],
                     ]);
                 },
@@ -84,27 +109,30 @@ new class extends Component {
             ->latest()
             ->get();
 
+        $this->loadedSubscriptions = $subscriptions;
+
         return $subscriptions
-            ->map(function ($subscription): ?array {
+            ->flatMap(function ($subscription): array {
                 $subscribable = $subscription->subscribable;
 
                 if ($subscribable instanceof Movie) {
-                    return $this->buildUpcomingMovieRow($subscribable);
+                    $row = $this->buildUpcomingMovieRow($subscribable);
+
+                    return $row ? [$row] : [];
                 }
 
                 if ($subscribable instanceof Show) {
-                    return $this->buildUpcomingShowRow($subscribable);
+                    return $this->buildUpcomingShowRows($subscribable);
                 }
 
-                return null;
+                return [];
             })
-            ->filter()
-            ->sortBy(fn (array $row) => $row['sort_date'] ?? Carbon::create(9999, 12, 31))
+            ->sortBy(fn (array $row) => $row['sort_date']?->timestamp ?? PHP_INT_MAX)
             ->values();
     }
 
     /**
-     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}>
+     * @return Collection<int, array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}>
      */
     private function recentRows(): Collection
     {
@@ -128,6 +156,8 @@ new class extends Component {
             ->latest()
             ->get();
 
+        $this->loadedSubscriptions = $subscriptions;
+
         return $subscriptions
             ->map(function ($subscription): ?array {
                 $subscribable = $subscription->subscribable;
@@ -143,7 +173,7 @@ new class extends Component {
                 return null;
             })
             ->filter()
-            ->sortByDesc(fn (array $row) => $row['sort_date'] ?? Carbon::create(1, 1, 1))
+            ->sortByDesc(fn (array $row) => $row['sort_date']?->timestamp ?? 0)
             ->values();
     }
 
@@ -174,81 +204,156 @@ new class extends Component {
     }
 
     /**
-     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}
+     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}|null
      */
-    private function buildUpcomingMovieRow(Movie $movie): array
+    private function buildUpcomingMovieRow(Movie $movie): ?array
     {
+        $recentlyAired = $movie->digital_release_date?->isPast();
+
+        if ($recentlyAired && $movie->digital_release_date->diffInHours(now(), absolute: true) >= 48) {
+            return null;
+        }
+
         return [
-            'title' => $movie->title . ' (' . $movie->year . ')',
-            'subtitle' => null,
-            'detail' => $movie->digital_release_date ? Formatters::timeUntil($movie->digital_release_date) : 'Unknown',
+            'title' => $movie->title,
+            'subtitle' => (string) $movie->year,
+            'detail' => $movie->digital_release_date
+                ? ($recentlyAired
+                    ? $this->formatRecentlyAiredMovieDetail($movie->digital_release_date)
+                    : $this->formatMovieDetail($movie->digital_release_date, true))
+                : 'TBD',
             'type' => 'movie',
             'sort_date' => $movie->digital_release_date,
+            'url' => route('movies.show', $movie),
+            'relative' => $movie->digital_release_date
+                ? ($recentlyAired
+                    ? Formatters::timeSince($movie->digital_release_date)
+                    : Formatters::relativeTime($movie->digital_release_date))
+                : null,
+            'recently_aired' => (bool) $recentlyAired,
         ];
     }
 
     /**
-     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}
+     * @return list<array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}>
      */
-    private function buildUpcomingShowRow(Show $show): array
+    private function buildUpcomingShowRows(Show $show): array
     {
+        $rows = [];
+
+        $recentWindowStart = now()
+            ->subDays(3)
+            ->startOfDay();
+        $recentWindowEnd = now()
+            ->addDay()
+            ->endOfDay();
+
+        $recentCandidates = $show->episodes
+            ->filter(fn (Episode $ep): bool => $ep->airdate->between($recentWindowStart, $recentWindowEnd))
+            ->sortByDesc('airdate')
+            ->take(3);
+
+        foreach ($recentCandidates as $candidate) {
+            $resolved = AirDateTime::resolve(
+                $candidate->airdate->format('Y-m-d'),
+                $candidate->airtime,
+                $show->web_channel,
+                $show->network,
+            );
+
+            if ($resolved->isPast() && $resolved->diffInHours(now(), absolute: true) < 48) {
+                $rows[] = [
+                    'title' => $show->name,
+                    'subtitle' => Formatters::formatRun([$candidate]),
+                    'detail' => $this->formatRecentlyAiredDetail($resolved),
+                    'type' => 'show',
+                    'sort_date' => $resolved,
+                    'url' => route('shows.show', $show),
+                    'relative' => Formatters::timeSince($resolved),
+                    'recently_aired' => true,
+                ];
+
+                break;
+            }
+        }
+
         $episodes = $show->episodes;
 
-        if ($episodes->isEmpty()) {
+        if ($episodes->isNotEmpty()) {
+            $grouped = $episodes->groupBy(fn (Episode $ep): string => $ep->airdate->format('Y-m-d'));
+
+            foreach ($grouped as $group) {
+                $firstEpisode = $group->first();
+
+                $resolved = AirDateTime::resolve(
+                    $firstEpisode->airdate->format('Y-m-d'),
+                    $firstEpisode->airtime,
+                    $show->web_channel,
+                    $show->network,
+                );
+
+                if ($resolved->isPast()) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'title' => $show->name,
+                    'subtitle' => Formatters::formatRun($group),
+                    'detail' => $this->formatEpisodeDetail($resolved, true),
+                    'type' => 'show',
+                    'sort_date' => $resolved,
+                    'url' => route('shows.show', $show),
+                    'relative' => Formatters::relativeTime($resolved),
+                    'recently_aired' => false,
+                ];
+
+                break;
+            }
+        }
+
+        if (empty($rows)) {
             return [
-                'title' => $show->name,
-                'subtitle' => null,
-                'detail' => 'Unknown',
-                'type' => 'show',
-                'sort_date' => null,
+                [
+                    'title' => $show->name,
+                    'subtitle' => null,
+                    'detail' => 'TBD',
+                    'type' => 'show',
+                    'sort_date' => null,
+                    'url' => route('shows.show', $show),
+                    'relative' => null,
+                    'recently_aired' => false,
+                ],
             ];
         }
 
-        $grouped = $episodes->groupBy(fn (Episode $ep): string => $ep->airdate->format('Y-m-d'));
-        $firstGroup = $grouped->first();
-
-        $subtitle = Formatters::formatRun($firstGroup);
-
-        $firstEpisode = $firstGroup->first();
-        $resolved = AirDateTime::resolve(
-            $firstEpisode->airdate->format('Y-m-d'),
-            $firstEpisode->airtime,
-            $show->web_channel,
-            $show->network,
-        );
-        $detail = Formatters::timeUntil($resolved);
-
-        return [
-            'title' => $show->name,
-            'subtitle' => $subtitle,
-            'detail' => $detail,
-            'type' => 'show',
-            'sort_date' => $firstEpisode->airdate,
-        ];
+        return $rows;
     }
 
     /**
-     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}|null
+     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}|null
      */
     private function buildRecentMovieRow(Movie $movie): ?array
     {
         $releaseDate = $movie->digital_release_date ?? $movie->release_date;
 
-        if (! $releaseDate || $releaseDate->isFuture()) {
+        if (! $releaseDate || $releaseDate->isFuture() || $releaseDate->diffInHours(now(), absolute: true) >= 48) {
             return null;
         }
 
         return [
-            'title' => $movie->title . ' (' . $movie->year . ')',
-            'subtitle' => null,
-            'detail' => Formatters::timeSince($releaseDate),
+            'title' => $movie->title,
+            'subtitle' => (string) $movie->year,
+            'detail' => $this->formatMovieDetail($releaseDate, false),
             'type' => 'movie',
             'sort_date' => $releaseDate,
+            'url' => route('movies.show', $movie),
+            'relative' => Formatters::relativeTime($releaseDate),
+            'recently_aired' => false,
         ];
     }
 
     /**
-     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null}|null
+     * @return array{title: string, subtitle: string|null, detail: string|null, type: string, sort_date: \Carbon\Carbon|null, url: string, relative: string|null, recently_aired: bool}|null
      */
     private function buildRecentShowRow(Show $show): ?array
     {
@@ -258,66 +363,179 @@ new class extends Component {
             return null;
         }
 
+        $resolved = AirDateTime::resolve(
+            $episode->airdate->format('Y-m-d'),
+            $episode->airtime,
+            $show->web_channel,
+            $show->network,
+        );
+
+        if ($resolved->diffInHours(now(), absolute: true) >= 48) {
+            return null;
+        }
+
         return [
             'title' => $show->name,
             'subtitle' => Formatters::formatRun([$episode]),
-            'detail' => Formatters::timeSince(
-                AirDateTime::resolve(
-                    $episode->airdate->format('Y-m-d'),
-                    $episode->airtime,
-                    $show->web_channel,
-                    $show->network,
-                ),
-            ),
+            'detail' => $this->formatEpisodeDetail($resolved, false),
             'type' => 'show',
-            'sort_date' => $episode->airdate,
+            'sort_date' => $resolved,
+            'url' => route('shows.show', $show),
+            'relative' => Formatters::relativeTime($resolved),
+            'recently_aired' => false,
         ];
+    }
+
+    private function formatMovieDetail(Carbon $releaseDate, bool $isUpcoming): string
+    {
+        if ($isUpcoming) {
+            $userToday = Carbon::parse(now(UserTime::timezone())->format('Y-m-d'));
+            $releaseDay = Carbon::parse($releaseDate->format('Y-m-d'));
+            $daysAway = (int) $userToday->diffInDays($releaseDay, absolute: false);
+
+            if ($daysAway >= 0 && $daysAway < 7) {
+                return $this->shortWeekday($releaseDate);
+            }
+        }
+
+        return Formatters::shortDate($releaseDate);
+    }
+
+    private function formatEpisodeDetail(Carbon $resolvedUtc, bool $isUpcoming): string
+    {
+        $userDate = UserTime::toUserTz($resolvedUtc);
+        $time = $this->compactTime($userDate);
+
+        if ($isUpcoming) {
+            $hoursAway = (int) now()->diffInHours($resolvedUtc, absolute: true);
+
+            if ($hoursAway < 24) {
+                return $time;
+            }
+
+            if ($hoursAway < 168) {
+                return $this->shortWeekday($userDate) . ' ' . $time;
+            }
+        }
+
+        return Formatters::shortDate($userDate) . ' ' . $time;
+    }
+
+    private function compactTime(Carbon $date): string
+    {
+        $suffix = $date->format('a')[0];
+
+        return (int) $date->format('i') === 0 ? $date->format('g') . $suffix : $date->format('g:i') . $suffix;
+    }
+
+    private function shortWeekday(Carbon $date): string
+    {
+        return substr($date->format('D'), 0, 2);
+    }
+
+    private function formatRecentlyAiredDetail(Carbon $resolvedUtc): string
+    {
+        $userDate = UserTime::toUserTz($resolvedUtc);
+        $time = $this->compactTime($userDate);
+        $userToday = now(UserTime::timezone())->format('Y-m-d');
+
+        if ($userDate->format('Y-m-d') === $userToday) {
+            return $time;
+        }
+
+        return $this->shortWeekday($userDate) . ' ' . $time;
+    }
+
+    private function formatRecentlyAiredMovieDetail(Carbon $releaseDate): string
+    {
+        $userToday = Carbon::parse(now(UserTime::timezone())->format('Y-m-d'));
+        $releaseDay = Carbon::parse($releaseDate->format('Y-m-d'));
+
+        if ($userToday->isSameDay($releaseDay)) {
+            return Formatters::shortDate($releaseDate);
+        }
+
+        return $this->shortWeekday($releaseDate);
     }
 };
 ?>
 
 <div>
-    @if ($this->allRows->isNotEmpty())
-        <flux:card size="sm">
-            <div class="flex items-center justify-between">
-                <p class="font-semibold text-white">Subscriptions</p>
+    <flux:card size="sm">
+        <div class="flex items-center justify-between">
+            <p class="font-semibold text-white">Subscriptions</p>
 
+            @if ($this->hasSubscriptions)
                 <flux:select wire:model.live="view" size="sm" class="max-w-fit" aria-label="Subscription view">
                     <flux:select.option value="upcoming">Upcoming</flux:select.option>
                     <flux:select.option value="recent">Recent</flux:select.option>
                 </flux:select>
-            </div>
+            @endif
+        </div>
 
-            <flux:table :paginate="$this->rows">
-                <flux:table.rows>
-                    @foreach ($this->rows as $row)
-                        <flux:table.row
-                            wire:key="subscription-row-{{ $loop->index }}-{{ $this->rows->currentPage() }}"
+        @if (! $this->hasSubscriptions)
+            <x-lundbergh-bubble :message="__('lundbergh.empty.subscriptions')" />
+        @elseif ($this->rows->isEmpty())
+            <x-lundbergh-bubble :message="__('lundbergh.dashboard.no_recent_subscriptions')" />
+        @else
+            <x-dashboard.list>
+                @foreach ($this->rows as $row)
+                    <x-dashboard.list-row
+                        :href="$row['url']"
+                        :wire-key="'subscription-row-' . $loop->index . '-' . $this->rows->currentPage()"
+                        :muted="$row['detail'] === 'TBD'"
+                    >
+                        <x-slot:leading>
+                            <flux:icon
+                                :name="$row['type'] === 'movie' ? 'film' : 'tv'"
+                                variant="mini"
+                                class="mt-0.5 shrink-0 text-zinc-400 sm:mt-0"
+                            />
+                        </x-slot>
+
+                        <span
+                            class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
                         >
-                            <flux:table.cell variant="strong">
-                                <div class="flex items-center gap-2">
-                                    <flux:icon
-                                        :name="$row['type'] === 'movie' ? 'film' : 'tv'"
-                                        variant="mini"
-                                        class="shrink-0 text-zinc-400"
-                                    />
-                                    <span>
-                                        {{ $row['title'] }}
-                                        @if ($row['subtitle'])
-                                            <span class="text-sm text-zinc-400">{{ $row['subtitle'] }}</span>
-                                        @endif
+                            {{ $row['title'] }}
+                        </span>
+                        @if ($row['subtitle'])
+                            <span class="hidden text-zinc-500 sm:inline">·</span>
+                            <span
+                                class="{{ $row['type'] === 'movie' ? 'font-mono' : 'font-sans' }} block text-sm text-zinc-400 sm:inline"
+                            >
+                                {{ $row['subtitle'] }}
+                            </span>
+                        @endif
+
+                        <x-slot:trailing>
+                            <span class="shrink-0 text-right text-sm text-zinc-400">
+                                @if ($row['recently_aired'])
+                                    ({{ $row['detail'] }}
+                                    <span class="hidden text-zinc-500 sm:inline">·</span>
+                                    <span class="block text-zinc-500 sm:inline sm:text-xs">
+                                        {{ $row['relative'] }})
                                     </span>
-                                </div>
-                            </flux:table.cell>
-                            <flux:table.cell class="text-right">
-                                <span class="text-sm text-zinc-400">
+                                @else
                                     {{ $row['detail'] }}
-                                </span>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
-        </flux:card>
-    @endif
+                                    @if ($row['relative'])
+                                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                                        <span class="block text-zinc-500 sm:inline sm:text-xs">
+                                            {{ $row['relative'] }}
+                                        </span>
+                                    @endif
+                                @endif
+                            </span>
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
+
+            <flux:pagination
+                :paginator="$this->rows"
+                :per-page-options="$this->perPageOptions()"
+                per-page-model="perPage"
+                class="-mx-4 px-4"
+            />
+        @endif
+    </flux:card>
 </div>

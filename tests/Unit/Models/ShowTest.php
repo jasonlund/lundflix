@@ -5,8 +5,13 @@ use App\Models\Episode;
 use App\Models\Media;
 use App\Models\Show;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    Cache::forget(Show::AMBIGUOUS_NAMES_CACHE_KEY);
+});
 
 describe('most_recent_season attribute', function () {
     it('returns currently airing season (has both past and future episodes)', function () {
@@ -142,5 +147,87 @@ describe('art helpers', function () {
 
         expect($showWithTmdbId->canHaveArt())->toBeTrue()
             ->and($showWithoutTmdbId->canHaveArt())->toBeFalse();
+    });
+});
+
+describe('name accessor', function () {
+    $network = function (string $code): array {
+        return ['id' => 1, 'name' => 'Net', 'country' => ['name' => 'X', 'code' => $code, 'timezone' => 'UTC']];
+    };
+
+    it('returns raw name when no collision exists', function () use ($network) {
+        Show::factory()->create(['name' => 'Solo Show', 'network' => $network('US')]);
+        Show::recomputeAmbiguousNames();
+
+        $show = Show::firstWhere('name', 'Solo Show');
+        expect($show->name)->toBe('Solo Show');
+    });
+
+    it('appends country code when the base name collides across countries', function () use ($network) {
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('GB')]);
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('AU')]);
+        Show::recomputeAmbiguousNames();
+
+        $uk = Show::where('network->country->code', 'GB')->first();
+        $au = Show::where('network->country->code', 'AU')->first();
+
+        expect($uk->name)->toBe('Taskmaster UK')
+            ->and($au->name)->toBe('Taskmaster AU');
+    });
+
+    it('does not double up when the name already contains the code', function () use ($network) {
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('GB')]);
+        Show::factory()->create(['name' => 'Taskmaster NZ', 'network' => $network('NZ')]);
+        Show::recomputeAmbiguousNames();
+
+        $nz = Show::where('network->country->code', 'NZ')->first();
+        expect($nz->name)->toBe('Taskmaster NZ');
+    });
+
+    it('falls back to web_channel country code when network is null', function () {
+        Show::factory()->create([
+            'name' => 'Streamer',
+            'network' => null,
+            'web_channel' => ['id' => 310, 'name' => 'Apple TV+', 'country' => ['code' => 'US']],
+        ]);
+        Show::factory()->create(['name' => 'Streamer', 'network' => ['id' => 1, 'name' => 'Net', 'country' => ['code' => 'CA']]]);
+        Show::recomputeAmbiguousNames();
+
+        $us = Show::where('web_channel->country->code', 'US')->first();
+        expect($us->name)->toBe('Streamer US');
+    });
+
+    it('returns raw name when no country code is available', function () {
+        Show::factory()->create(['name' => 'Foo', 'network' => null, 'web_channel' => null]);
+        Show::factory()->create(['name' => 'Foo', 'network' => null, 'web_channel' => null]);
+        Show::recomputeAmbiguousNames();
+
+        $shows = Show::where('name', 'Foo')->get();
+        foreach ($shows as $show) {
+            expect($show->name)->toBe('Foo');
+        }
+    });
+
+    it('exposes the raw column via getRawOriginal', function () use ($network) {
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('GB')]);
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('AU')]);
+        Show::recomputeAmbiguousNames();
+
+        $uk = Show::where('network->country->code', 'GB')->first();
+        expect($uk->name)->toBe('Taskmaster UK')
+            ->and($uk->getRawOriginal('name'))->toBe('Taskmaster');
+    });
+
+    it('recomputes the cache when sync explicitly refreshes it', function () use ($network) {
+        Show::factory()->create(['name' => 'Survivor', 'network' => $network('US')]);
+        Show::recomputeAmbiguousNames();
+
+        $us = Show::where('network->country->code', 'US')->first();
+        expect($us->fresh()->name)->toBe('Survivor');
+
+        Show::factory()->create(['name' => 'Survivor', 'network' => $network('AU')]);
+        Show::recomputeAmbiguousNames();
+
+        expect($us->fresh()->name)->toBe('Survivor US');
     });
 });

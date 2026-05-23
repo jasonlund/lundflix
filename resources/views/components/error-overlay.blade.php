@@ -51,7 +51,7 @@
         <p class="text-3xl text-balance text-zinc-400">
             <span x-text="status" class="font-mono font-semibold text-white"></span>
             <span class="mx-2 text-zinc-600">&middot;</span>
-            <span x-text="message" class="font-serif"></span>
+            <span x-text="message" class="font-serif tracking-wide"></span>
         </p>
         <template x-if="description">
             <p x-text="description" class="mt-2 font-sans text-sm text-zinc-500"></p>
