@@ -63,15 +63,15 @@ class Show extends Model
             'id' => (string) $this->id,
             'imdb_id' => (string) $this->imdb_id,
             'name' => (string) $this->getRawOriginal('name'),
-            'country' => $this->displayCountryCode(),
             'num_votes' => (int) $this->num_votes,
             'language' => $this->language ? (string) $this->language->value : null, // @phpstan-ignore property.nonObject (casted to Language enum)
         ];
 
-        // `year` is a computed field for the Typesense index. The database
-        // Scout driver used locally treats every key as a real column, so we
-        // omit it unless an index-backed engine is configured.
+        // `country` and `year` are computed fields for the Typesense index.
+        // The database Scout driver used locally treats every key as a real
+        // column, so we omit them unless an index-backed engine is configured.
         if (config('scout.driver') !== 'database') {
+            $array['country'] = $this->displayCountryCode();
             $array['year'] = $this->premiered ? (string) $this->premiered->year : null; // @phpstan-ignore property.nonObject (casted to date)
         }
 
