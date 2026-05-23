@@ -241,8 +241,12 @@ new class extends Component {
     {
         $rows = [];
 
-        $recentWindowStart = now()->subDays(3)->startOfDay();
-        $recentWindowEnd = now()->addDay()->endOfDay();
+        $recentWindowStart = now()
+            ->subDays(3)
+            ->startOfDay();
+        $recentWindowEnd = now()
+            ->addDay()
+            ->endOfDay();
 
         $recentCandidates = $show->episodes
             ->filter(fn (Episode $ep): bool => $ep->airdate->between($recentWindowStart, $recentWindowEnd))

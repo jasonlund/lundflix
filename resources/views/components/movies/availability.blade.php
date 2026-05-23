@@ -222,18 +222,13 @@ new class extends Component {
             <flux:separator class="my-4" />
             <x-dashboard.list>
                 @foreach ($allReleases as $release)
-                    @php
-                        $flag = collect(str_split(strtoupper($release['country'])))
-                            ->map(fn ($c) => mb_chr(ord($c) - ord('A') + 0x1f1e6))
-                            ->join('');
-                    @endphp
-
                     <x-dashboard.list-row
                         class="text-sm"
                         :wire-key="'release-' . $release['country'] . '-' . $release['type']->value"
                     >
                         <span class="block truncate sm:inline sm:overflow-visible sm:whitespace-normal">
-                            {{ $flag }} {{ $release['type']->label() }}
+                            <x-emoji :country="$release['country']" />
+                            {{ $release['type']->label() }}
                         </span>
                         <span class="hidden text-zinc-500 sm:inline">·</span>
                         <span class="block text-sm text-zinc-400 sm:inline">
