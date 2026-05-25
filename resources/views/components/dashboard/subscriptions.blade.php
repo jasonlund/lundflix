@@ -353,15 +353,19 @@ new class extends Component {
             return null;
         }
 
+        $recentlyAired = $releasedAt->isPast() && $releasedAt->diffInHours(now(), absolute: true) < 48;
+
         return [
             'title' => $movie->title,
             'subtitle' => (string) $movie->year,
-            'detail' => $this->formatMovieDetail($releasedAt, false),
+            'detail' => $recentlyAired
+                ? $this->formatRecentlyAiredMovieDetail($releasedAt)
+                : $this->formatMovieDetail($releasedAt, false),
             'type' => 'movie',
             'sort_date' => $releasedAt,
             'url' => route('movies.show', $movie),
             'relative' => Formatters::timeSince($releasedAt),
-            'recently_aired' => false,
+            'recently_aired' => $recentlyAired,
         ];
     }
 
