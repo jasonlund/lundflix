@@ -28,22 +28,23 @@ new class extends Component {
         }
 
         $userId = auth()->id();
-        $subscribedShowIds = $userId
-            ? Subscription::query()
+        $subscribedShowIds = [];
+        $subscribedMovieIds = [];
+
+        if ($userId) {
+            $subs = Subscription::query()
                 ->active()
-                ->forShows()
                 ->where('user_id', $userId)
+                ->whereIn('subscribable_type', [Show::class, Movie::class])
+                ->get(['subscribable_type', 'subscribable_id']);
+
+            $subscribedShowIds = $subs->where('subscribable_type', Show::class)
                 ->pluck('subscribable_id')
-                ->all()
-            : [];
-        $subscribedMovieIds = $userId
-            ? Subscription::query()
-                ->active()
-                ->forMovies()
-                ->where('user_id', $userId)
+                ->all();
+            $subscribedMovieIds = $subs->where('subscribable_type', Movie::class)
                 ->pluck('subscribable_id')
-                ->all()
-            : [];
+                ->all();
+        }
 
         return $this->search($this->query, 'all', $this->language ?: null)
             ->take(8)
@@ -375,7 +376,9 @@ new class extends Component {
                                 <flux:icon.bell
                                     variant="solid"
                                     class="text-lundflix absolute -right-1 -bottom-1 size-3"
+                                    aria-hidden="true"
                                 />
+                                <span class="sr-only">(subscribed)</span>
                             @endif
                         </div>
 
