@@ -337,7 +337,7 @@ it('resets pagination when filters change', function () {
     }
 
     Livewire::test('dashboard.requests')
-        ->call('nextPage')
+        ->call('nextPage', 'requestsPage')
         ->set('statusFilters', [RequestItemStatus::Pending->value])
-        ->assertSet('paginators.page', 1);
+        ->assertSet('paginators.requestsPage', 1);
 });

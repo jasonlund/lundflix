@@ -50,6 +50,18 @@ class Movie extends Model
         ];
     }
 
+    public function releasedAt(): ?Carbon
+    {
+        if (! $this->digital_release_date) {
+            return null;
+        }
+
+        return Carbon::parse(
+            $this->digital_release_date->format('Y-m-d'),
+            'America/Los_Angeles'
+        )->startOfDay()->utc();
+    }
+
     /**
      * @return Attribute<MovieStatus|null, never>
      */

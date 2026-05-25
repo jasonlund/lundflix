@@ -4,6 +4,8 @@ use App\Enums\ArtworkType;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Models\Subscription;
+use App\Models\User;
 use App\Support\Formatters;
 use Livewire\Livewire;
 
@@ -397,6 +399,43 @@ it('does not display original title when it matches the display title', function
         ->set('language', 'foreign')
         ->set('query', 'Amélie')
         ->assertSee('Amélie');
+});
+
+it('decorates subscribed shows with a bell icon in search results', function () {
+    $user = User::factory()->create();
+    $subscribed = Show::factory()->create(['name' => 'Bellish Show Subscribed', 'language' => 'English']);
+    $unsubscribed = Show::factory()->create(['name' => 'Bellish Show Plain', 'language' => 'English']);
+
+    Subscription::factory()->create([
+        'user_id' => $user->id,
+        'subscribable_type' => Show::class,
+        'subscribable_id' => $subscribed->id,
+    ]);
+
+    $this->actingAs($user);
+
+    $html = Livewire::test('media-search')->set('query', 'Bellish')->html();
+
+    $extractRow = function (string $html, int $id): string {
+        $start = strpos($html, 'wire:key="search-result-show-'.$id.'"');
+        expect($start)->not->toBeFalse();
+        $end = strpos($html, 'wire:key="search-result-', $start + 10);
+        $end = $end === false ? strlen($html) : $end;
+
+        return substr($html, $start, $end - $start);
+    };
+
+    expect($extractRow($html, $subscribed->id))->toContain('text-lundflix');
+    expect($extractRow($html, $unsubscribed->id))->not->toContain('text-lundflix');
+});
+
+it('does not query subscriptions for guests', function () {
+    Show::factory()->create(['name' => 'Guest Visible Show', 'language' => 'English']);
+
+    Livewire::test('media-search')
+        ->set('query', 'Guest Visible')
+        ->assertSee('Guest Visible Show')
+        ->assertDontSeeHtml('text-lundflix');
 });
 
 it('does not display original title for english movies', function () {

@@ -111,10 +111,7 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                 </span>
                 <span>per page</span>
                 <span class="text-zinc-500">·</span>
-                <span>
-                    {{ $paginator->total() }} total
-                    {{ \Illuminate\Support\Str::plural('result', $paginator->total()) }}
-                </span>
+                <span>{{ $paginator->total() }} total</span>
             </div>
         @elseif ($paginator->total() > 0)
             <div class="text-xs font-medium whitespace-nowrap text-zinc-400">
