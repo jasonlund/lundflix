@@ -32,6 +32,11 @@ function stubPerPageComponent(?array $options = null, ?int $default = null): obj
             return $this->default ?? $this->perPageOptions()[0];
         }
 
+        protected function paginatorPageName(): string
+        {
+            return 'stub_page';
+        }
+
         public function resetPage(): void
         {
             $this->resetPageCalled = true;

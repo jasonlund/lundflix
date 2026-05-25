@@ -36,10 +36,7 @@ trait WithPersistedPerPage
     /**
      * Livewire pagination name used when resetting the page.
      */
-    protected function paginatorPageName(): string
-    {
-        return 'page';
-    }
+    abstract protected function paginatorPageName(): string;
 
     public function mountWithPersistedPerPage(): void
     {
