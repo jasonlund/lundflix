@@ -10,6 +10,7 @@ use App\Enums\MovieStatus;
 use App\Enums\TMDBReleaseType;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
+use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Database\Factories\MovieFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,7 +59,7 @@ class Movie extends Model
 
         return Carbon::parse(
             $this->digital_release_date->format('Y-m-d'),
-            'America/Los_Angeles'
+            AirDateTime::DEFAULT_TIMEZONE
         )->startOfDay()->utc();
     }
 

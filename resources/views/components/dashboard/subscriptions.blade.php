@@ -387,7 +387,19 @@ new class extends Component {
             $show->network,
         );
 
-        if ($resolved->diffInDays(now(), absolute: true) >= 30) {
+        $resolvedDay = Carbon::parse(
+            $resolved
+                ->copy()
+                ->utc()
+                ->format('Y-m-d'),
+        );
+        $today = Carbon::parse(
+            now()
+                ->utc()
+                ->format('Y-m-d'),
+        );
+
+        if ($resolvedDay->diffInDays($today, absolute: true) >= 30) {
             return null;
         }
 

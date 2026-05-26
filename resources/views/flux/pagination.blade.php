@@ -94,6 +94,8 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
     >
         @if ($perPageOptions && $perPageModel && $paginator->total() > 0)
             <div class="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-zinc-400">
+                <span>{{ $paginator->total() }} {{ Str::plural('result', $paginator->total()) }}</span>
+                <span class="text-zinc-500">·</span>
                 <span class="relative inline-flex items-center text-white">
                     <select
                         wire:model.live="{{ $perPageModel }}"
@@ -110,8 +112,6 @@ extract(Flux::forwardedAttributes($attributes, ['scrollTo']));
                     />
                 </span>
                 <span>per page</span>
-                <span class="text-zinc-500">·</span>
-                <span>{{ $paginator->total() }} total</span>
             </div>
         @elseif ($paginator->total() > 0)
             <div class="text-xs font-medium whitespace-nowrap text-zinc-400">

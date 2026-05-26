@@ -8,20 +8,19 @@ use App\Enums\MovieStatus;
 use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
 use App\Models\Subscription;
+use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class ProcessMovieSubscriptions extends Command
 {
-    private const RELEASE_TIMEZONE = 'America/Los_Angeles';
-
     protected $signature = 'process:movie-subscriptions';
 
     protected $description = 'Notify subscribers when subscribed movies release digitally';
 
     public function handle(): int
     {
-        $today = Carbon::today(self::RELEASE_TIMEZONE);
+        $today = Carbon::today(AirDateTime::DEFAULT_TIMEZONE);
 
         $subscriptions = Subscription::query()
             ->active()

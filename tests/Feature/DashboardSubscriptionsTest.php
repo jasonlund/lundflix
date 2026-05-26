@@ -107,6 +107,8 @@ it('shows Unknown when show has no upcoming episodes', function () {
 });
 
 it('excludes ended shows with no recently aired episode from upcoming view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
@@ -116,7 +118,7 @@ it('excludes ended shows with no recently aired episode from upcoming view', fun
         'show_id' => $show->id,
         'season' => 4,
         'number' => 8,
-        'airdate' => now()->subDays(30),
+        'airdate' => '2026-05-31',
     ]);
     Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
 
@@ -150,6 +152,57 @@ it('shows ended show last episode in recent view within 30 days', function () {
     expect($rows)->toHaveCount(1)
         ->and($rows->first()['title'])->toBe('The Boys')
         ->and($rows->first()['subtitle'])->toBe('S04E08');
+});
+
+it('excludes ended show finale exactly 30 calendar days old even when late-UTC airtime', function () {
+    // Anchor June 10 12:00 UTC. Episode May 11 17:00 ET → May 11 21:00 UTC.
+    // Time-based diff = 29d 15h (< 30), but calendar-day diff = 30.
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-11',
+        'airtime' => '17:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
+
+it('includes ended show finale 29 calendar days old in recent view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-12',
+        'airtime' => '12:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()['title'])->toBe('The Boys');
 });
 
 it('excludes ended show finale older than 30 days from recent view', function () {

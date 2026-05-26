@@ -38,10 +38,12 @@ new class extends Component {
                 ->whereIn('subscribable_type', [Show::class, Movie::class])
                 ->get(['subscribable_type', 'subscribable_id']);
 
-            $subscribedShowIds = $subs->where('subscribable_type', Show::class)
+            $subscribedShowIds = $subs
+                ->where('subscribable_type', Show::class)
                 ->pluck('subscribable_id')
                 ->all();
-            $subscribedMovieIds = $subs->where('subscribable_type', Movie::class)
+            $subscribedMovieIds = $subs
+                ->where('subscribable_type', Movie::class)
                 ->pluck('subscribable_id')
                 ->all();
         }
