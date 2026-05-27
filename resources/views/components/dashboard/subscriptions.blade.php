@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ShowStatus;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
@@ -28,9 +29,14 @@ new class extends Component {
         return 'dashboard.subscriptions.per_page';
     }
 
+    protected function paginatorPageName(): string
+    {
+        return 'subscriptionsPage';
+    }
+
     public function updatedView(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->paginatorPageName());
     }
 
     #[On('profile-updated')]
@@ -56,12 +62,14 @@ new class extends Component {
     {
         $allRows = $this->allRows;
 
+        $pageName = $this->paginatorPageName();
+
         return new LengthAwarePaginator(
-            items: $allRows->forPage($this->getPage(), $this->perPage),
+            items: $allRows->forPage($this->getPage($pageName), $this->perPage),
             total: $allRows->count(),
             perPage: $this->perPage,
-            currentPage: $this->getPage(),
-            options: ['path' => request()->url()],
+            currentPage: $this->getPage($pageName),
+            options: ['path' => request()->url(), 'pageName' => $pageName],
         );
     }
 
@@ -208,27 +216,28 @@ new class extends Component {
      */
     private function buildUpcomingMovieRow(Movie $movie): ?array
     {
-        $recentlyAired = $movie->digital_release_date?->isPast();
+        $releasedAt = $movie->releasedAt();
+        $recentlyAired = $releasedAt?->isPast();
 
-        if ($recentlyAired && $movie->digital_release_date->diffInHours(now(), absolute: true) >= 48) {
+        if ($recentlyAired && $releasedAt->diffInHours(now(), absolute: true) >= 48) {
             return null;
         }
 
         return [
             'title' => $movie->title,
             'subtitle' => (string) $movie->year,
-            'detail' => $movie->digital_release_date
+            'detail' => $releasedAt
                 ? ($recentlyAired
-                    ? $this->formatRecentlyAiredMovieDetail($movie->digital_release_date)
-                    : $this->formatMovieDetail($movie->digital_release_date, true))
+                    ? $this->formatRecentlyAiredMovieDetail($releasedAt)
+                    : $this->formatMovieDetail($releasedAt, true))
                 : 'TBD',
             'type' => 'movie',
-            'sort_date' => $movie->digital_release_date,
+            'sort_date' => $releasedAt,
             'url' => route('movies.show', $movie),
-            'relative' => $movie->digital_release_date
+            'relative' => $releasedAt
                 ? ($recentlyAired
-                    ? Formatters::timeSince($movie->digital_release_date)
-                    : Formatters::relativeTime($movie->digital_release_date))
+                    ? Formatters::timeSince($releasedAt)
+                    : Formatters::relativeTime($releasedAt))
                 : null,
             'recently_aired' => (bool) $recentlyAired,
         ];
@@ -312,6 +321,10 @@ new class extends Component {
         }
 
         if (empty($rows)) {
+            if ($show->status === ShowStatus::Ended) {
+                return [];
+            }
+
             return [
                 [
                     'title' => $show->name,
@@ -334,21 +347,25 @@ new class extends Component {
      */
     private function buildRecentMovieRow(Movie $movie): ?array
     {
-        $releaseDate = $movie->digital_release_date ?? $movie->release_date;
+        $releasedAt = $movie->releasedAt();
 
-        if (! $releaseDate || $releaseDate->isFuture() || $releaseDate->diffInHours(now(), absolute: true) >= 48) {
+        if (! $releasedAt || $releasedAt->isFuture() || $releasedAt->diffInDays(now(), absolute: true) >= 30) {
             return null;
         }
+
+        $recentlyAired = $releasedAt->isPast() && $releasedAt->diffInHours(now(), absolute: true) < 48;
 
         return [
             'title' => $movie->title,
             'subtitle' => (string) $movie->year,
-            'detail' => $this->formatMovieDetail($releaseDate, false),
+            'detail' => $recentlyAired
+                ? $this->formatRecentlyAiredMovieDetail($releasedAt)
+                : $this->formatMovieDetail($releasedAt, false),
             'type' => 'movie',
-            'sort_date' => $releaseDate,
+            'sort_date' => $releasedAt,
             'url' => route('movies.show', $movie),
-            'relative' => Formatters::relativeTime($releaseDate),
-            'recently_aired' => false,
+            'relative' => Formatters::timeSince($releasedAt),
+            'recently_aired' => $recentlyAired,
         ];
     }
 
@@ -370,7 +387,19 @@ new class extends Component {
             $show->network,
         );
 
-        if ($resolved->diffInHours(now(), absolute: true) >= 48) {
+        $resolvedDay = Carbon::parse(
+            $resolved
+                ->copy()
+                ->utc()
+                ->format('Y-m-d'),
+        );
+        $today = Carbon::parse(
+            now()
+                ->utc()
+                ->format('Y-m-d'),
+        );
+
+        if ($resolvedDay->diffInDays($today, absolute: true) >= 30) {
             return null;
         }
 
@@ -381,24 +410,26 @@ new class extends Component {
             'type' => 'show',
             'sort_date' => $resolved,
             'url' => route('shows.show', $show),
-            'relative' => Formatters::relativeTime($resolved),
+            'relative' => Formatters::timeSince($resolved),
             'recently_aired' => false,
         ];
     }
 
-    private function formatMovieDetail(Carbon $releaseDate, bool $isUpcoming): string
+    private function formatMovieDetail(Carbon $releasedAt, bool $isUpcoming): string
     {
+        $userReleaseDate = UserTime::toUserTz($releasedAt);
+
         if ($isUpcoming) {
             $userToday = Carbon::parse(now(UserTime::timezone())->format('Y-m-d'));
-            $releaseDay = Carbon::parse($releaseDate->format('Y-m-d'));
+            $releaseDay = Carbon::parse($userReleaseDate->format('Y-m-d'));
             $daysAway = (int) $userToday->diffInDays($releaseDay, absolute: false);
 
             if ($daysAway >= 0 && $daysAway < 7) {
-                return $this->shortWeekday($releaseDate);
+                return $this->shortWeekday($userReleaseDate);
             }
         }
 
-        return Formatters::shortDate($releaseDate);
+        return Formatters::shortDate($userReleaseDate);
     }
 
     private function formatEpisodeDetail(Carbon $resolvedUtc, bool $isUpcoming): string
@@ -446,16 +477,17 @@ new class extends Component {
         return $this->shortWeekday($userDate) . ' ' . $time;
     }
 
-    private function formatRecentlyAiredMovieDetail(Carbon $releaseDate): string
+    private function formatRecentlyAiredMovieDetail(Carbon $releasedAt): string
     {
+        $userReleaseDate = UserTime::toUserTz($releasedAt);
         $userToday = Carbon::parse(now(UserTime::timezone())->format('Y-m-d'));
-        $releaseDay = Carbon::parse($releaseDate->format('Y-m-d'));
+        $releaseDay = Carbon::parse($userReleaseDate->format('Y-m-d'));
 
         if ($userToday->isSameDay($releaseDay)) {
-            return Formatters::shortDate($releaseDate);
+            return Formatters::shortDate($userReleaseDate);
         }
 
-        return $this->shortWeekday($releaseDate);
+        return $this->shortWeekday($userReleaseDate);
     }
 };
 ?>

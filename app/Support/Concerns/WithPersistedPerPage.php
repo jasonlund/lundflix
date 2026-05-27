@@ -33,6 +33,11 @@ trait WithPersistedPerPage
         return $this->perPageOptions()[0];
     }
 
+    /**
+     * Livewire pagination name used when resetting the page.
+     */
+    abstract protected function paginatorPageName(): string;
+
     public function mountWithPersistedPerPage(): void
     {
         $user = auth()->user();
@@ -58,7 +63,7 @@ trait WithPersistedPerPage
         }
 
         if (method_exists($this, 'resetPage')) {
-            $this->resetPage();
+            $this->resetPage($this->paginatorPageName());
         }
     }
 }

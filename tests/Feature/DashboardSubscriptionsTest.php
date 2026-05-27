@@ -88,7 +88,10 @@ it('shows weekday and time for upcoming episode within a week', function () {
 
 it('shows Unknown when show has no upcoming episodes', function () {
     $user = User::factory()->create();
-    $show = Show::factory()->create(['name' => 'Old Show']);
+    $show = Show::factory()->create([
+        'name' => 'Old Show',
+        'status' => App\Enums\ShowStatus::Running->value,
+    ]);
     Episode::factory()->create([
         'show_id' => $show->id,
         'season' => 1,
@@ -101,6 +104,154 @@ it('shows Unknown when show has no upcoming episodes', function () {
     $rows = $component->get('allRows');
 
     expect($rows->first()['detail'])->toBe('TBD');
+});
+
+it('excludes ended shows with no recently aired episode from upcoming view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-31',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
+
+it('shows ended show last episode in recent view within 30 days', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-20',
+        'airtime' => '20:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()['title'])->toBe('The Boys')
+        ->and($rows->first()['subtitle'])->toBe('S04E08');
+});
+
+it('excludes ended show finale exactly 30 calendar days old even when late-UTC airtime', function () {
+    // Anchor June 10 12:00 UTC. Episode May 11 17:00 ET → May 11 21:00 UTC.
+    // Time-based diff = 29d 15h (< 30), but calendar-day diff = 30.
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-11',
+        'airtime' => '17:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
+
+it('includes ended show finale 29 calendar days old in recent view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-05-12',
+        'airtime' => '12:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()['title'])->toBe('The Boys');
+});
+
+it('excludes ended show finale older than 30 days from recent view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2025-09-15',
+        'airtime' => '20:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toBeEmpty();
+});
+
+it('shows ended show finale that aired within the 48h window in upcoming view', function () {
+    $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create([
+        'name' => 'The Boys',
+        'status' => App\Enums\ShowStatus::Ended->value,
+    ]);
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 4,
+        'number' => 8,
+        'airdate' => '2026-06-09',
+        'airtime' => '20:00',
+    ]);
+    Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()['title'])->toBe('The Boys')
+        ->and($rows->first()['recently_aired'])->toBeTrue();
 });
 
 it('shows episode run as subtitle for single episode', function () {
@@ -224,10 +375,11 @@ it('shows date for recently released movies in recent view', function () {
 
     expect($rows->first()['title'])->toBe('Released Movie')
         ->and($rows->first()['subtitle'])->toBe('2026')
-        ->and($rows->first()['detail'])->toBe('6/10');
+        ->and($rows->first()['detail'])->toBe('6/10')
+        ->and($rows->first()['relative'])->not->toStartWith('(');
 });
 
-it('falls back to release_date for recent movies without digital_release_date', function () {
+it('excludes movies without digital_release_date from recent view even when release_date is past', function () {
     $this->travelTo(Carbon::create(2026, 6, 7, 12, 0, 0, 'UTC'));
 
     $user = User::factory()->create();
@@ -243,9 +395,7 @@ it('falls back to release_date for recent movies without digital_release_date', 
     $component->set('view', 'recent');
     $rows = $component->get('allRows');
 
-    expect($rows->first()['title'])->toBe('Theater Movie')
-        ->and($rows->first()['subtitle'])->toBe('2026')
-        ->and($rows->first()['detail'])->toBe('6/7');
+    expect($rows)->toBeEmpty();
 });
 
 it('excludes movies with no past release date from recent view', function () {
@@ -358,7 +508,7 @@ it('excludes shows with no past episodes from recent view', function () {
     expect($rows)->toBeEmpty();
 });
 
-it('excludes recent items older than 48h', function () {
+it('excludes recent items older than 30 days', function () {
     $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
 
     $user = User::factory()->create();
@@ -366,7 +516,7 @@ it('excludes recent items older than 48h', function () {
     $oldMovie = Movie::factory()->create([
         'title' => 'Old Movie',
         'year' => 2026,
-        'digital_release_date' => '2026-06-07',
+        'digital_release_date' => '2026-05-01',
     ]);
     $recentMovie = Movie::factory()->create([
         'title' => 'Recent Movie',
@@ -688,14 +838,14 @@ it('sorts recent subscriptions by most recent first', function () {
         ->and($rows[1]['title'])->toBe('Older Movie');
 });
 
-it('shows empty state in recent view when no items within 48h', function () {
+it('shows empty state in recent view when no items within 30 days', function () {
     $this->travelTo(Carbon::create(2026, 6, 10, 12, 0, 0, 'UTC'));
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
         'title' => 'Old Movie',
         'year' => 2026,
-        'digital_release_date' => '2026-06-01',
+        'digital_release_date' => '2026-04-01',
     ]);
     Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
 
@@ -762,6 +912,46 @@ it('falls back to default perPage when no preference is stored', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)->test('dashboard.subscriptions')->assertSet('perPage', 5);
+});
+
+it('shows release date in user timezone for users west of PT', function () {
+    // Midnight PT on May 23 = 07:00 UTC May 23 = 21:00 HST May 22.
+    // From Hawaii: the release falls on May 22, not May 23.
+    $this->travelTo(Carbon::parse('2026-05-22 22:00', 'Pacific/Honolulu')->utc());
+
+    $user = User::factory()->create(['timezone' => 'Pacific/Honolulu']);
+    $movie = Movie::factory()->create([
+        'title' => 'Just Out',
+        'year' => 2026,
+        'digital_release_date' => '2026-05-23',
+    ]);
+    Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $component->set('view', 'recent');
+    $rows = $component->get('allRows');
+
+    expect($rows->first()['title'])->toBe('Just Out')
+        ->and($rows->first()['detail'])->toBe('5/22');
+});
+
+it('keeps movie released exactly at midnight PT in upcoming recently-aired window', function () {
+    // 1h past midnight PT on June 10 = 08:00 UTC.
+    $this->travelTo(Carbon::parse('2026-06-10 01:00', 'America/Los_Angeles')->utc());
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'Fresh Release',
+        'year' => 2026,
+        'digital_release_date' => '2026-06-10',
+    ]);
+    Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $component = Livewire::actingAs($user)->test('dashboard.subscriptions');
+    $rows = $component->get('allRows');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()['recently_aired'])->toBeTrue();
 });
 
 it('shows both recently aired and next upcoming episode for same show', function () {

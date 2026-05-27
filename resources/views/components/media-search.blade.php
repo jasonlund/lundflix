@@ -3,6 +3,7 @@
 use App\Enums\Language;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Models\Subscription;
 use App\Support\Formatters;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -26,9 +27,30 @@ new class extends Component {
             return collect();
         }
 
+        $userId = auth()->id();
+        $subscribedShowIds = [];
+        $subscribedMovieIds = [];
+
+        if ($userId) {
+            $subs = Subscription::query()
+                ->active()
+                ->where('user_id', $userId)
+                ->whereIn('subscribable_type', [Show::class, Movie::class])
+                ->get(['subscribable_type', 'subscribable_id']);
+
+            $subscribedShowIds = $subs
+                ->where('subscribable_type', Show::class)
+                ->pluck('subscribable_id')
+                ->all();
+            $subscribedMovieIds = $subs
+                ->where('subscribable_type', Movie::class)
+                ->pluck('subscribable_id')
+                ->all();
+        }
+
         return $this->search($this->query, 'all', $this->language ?: null)
             ->take(8)
-            ->map(function (Movie|Show $item): array {
+            ->map(function (Movie|Show $item) use ($subscribedShowIds, $subscribedMovieIds): array {
                 $isShow = $item instanceof Show;
 
                 $title = $isShow ? $item->name : $item->title;
@@ -65,6 +87,9 @@ new class extends Component {
                             : null),
                     'genres' => $item->genres ?? [],
                     'networkInfo' => $isShow ? $this->networkInfoFor($item) : [],
+                    'isSubscribed' => $isShow
+                        ? in_array($item->id, $subscribedShowIds, true)
+                        : in_array($item->id, $subscribedMovieIds, true),
                     'model' => $item,
                 ];
             });
@@ -343,11 +368,21 @@ new class extends Component {
                     class="group/item flex h-auto w-full items-center rounded-none p-0 text-white hover:bg-zinc-700/60 focus:outline-hidden data-active:bg-zinc-700/60"
                 >
                     <div class="flex w-full items-center gap-3 px-3 py-1">
-                        <flux:icon
-                            :name="$result['type'] === 'show' ? 'tv' : 'film'"
-                            variant="mini"
-                            class="shrink-0 text-zinc-400"
-                        />
+                        <div class="relative shrink-0">
+                            <flux:icon
+                                :name="$result['type'] === 'show' ? 'tv' : 'film'"
+                                variant="mini"
+                                class="text-zinc-400"
+                            />
+                            @if ($result['isSubscribed'])
+                                <flux:icon.bell
+                                    variant="solid"
+                                    class="text-lundflix absolute -right-1 -bottom-1 size-3"
+                                    aria-hidden="true"
+                                />
+                                <span class="sr-only">(subscribed)</span>
+                            @endif
+                        </div>
 
                         <div class="flex aspect-[1000/562] w-20 shrink-0 items-center">
                             <x-artwork

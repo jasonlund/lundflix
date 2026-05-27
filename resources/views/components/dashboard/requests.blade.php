@@ -26,9 +26,14 @@ new class extends Component {
         return 'dashboard.requests.per_page';
     }
 
+    protected function paginatorPageName(): string
+    {
+        return 'requestsPage';
+    }
+
     public function updatedStatusFilters(): void
     {
-        $this->resetPage();
+        $this->resetPage($this->paginatorPageName());
     }
 
     public function placeholder(): string
@@ -69,12 +74,14 @@ new class extends Component {
     {
         $filteredRows = $this->filteredRows;
 
+        $pageName = $this->paginatorPageName();
+
         return new LengthAwarePaginator(
-            items: $filteredRows->forPage($this->getPage(), $this->perPage),
+            items: $filteredRows->forPage($this->getPage($pageName), $this->perPage),
             total: $filteredRows->count(),
             perPage: $this->perPage,
-            currentPage: $this->getPage(),
-            options: ['path' => request()->url()],
+            currentPage: $this->getPage($pageName),
+            options: ['path' => request()->url(), 'pageName' => $pageName],
         );
     }
 

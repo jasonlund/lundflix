@@ -8,6 +8,8 @@ use App\Enums\MovieStatus;
 use App\Events\SubscriptionTriggered;
 use App\Models\Movie;
 use App\Models\Subscription;
+use App\Support\AirDateTime;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class ProcessMovieSubscriptions extends Command
@@ -18,7 +20,7 @@ class ProcessMovieSubscriptions extends Command
 
     public function handle(): int
     {
-        $today = today();
+        $today = Carbon::today(AirDateTime::DEFAULT_TIMEZONE);
 
         $subscriptions = Subscription::query()
             ->active()

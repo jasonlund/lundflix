@@ -12,7 +12,7 @@ function stubPerPageComponent(?array $options = null, ?int $default = null): obj
     {
         use WithPersistedPerPage;
 
-        public bool $resetPageCalled = false;
+        public ?string $resetPageArgument = null;
 
         /** @param  list<int>|null  $options */
         public function __construct(private ?array $options, private ?int $default) {}
@@ -32,9 +32,14 @@ function stubPerPageComponent(?array $options = null, ?int $default = null): obj
             return $this->default ?? $this->perPageOptions()[0];
         }
 
-        public function resetPage(): void
+        protected function paginatorPageName(): string
         {
-            $this->resetPageCalled = true;
+            return 'stub_page';
+        }
+
+        public function resetPage(string $pageName = 'page'): void
+        {
+            $this->resetPageArgument = $pageName;
         }
     };
 }
@@ -82,7 +87,7 @@ it('writes per-page to user preferences and resets pagination on update', functi
     $user->refresh();
 
     expect((int) $user->preferences->get('tests.stub.per_page'))->toBe(10)
-        ->and($component->resetPageCalled)->toBeTrue();
+        ->and($component->resetPageArgument)->toBe('stub_page');
 });
 
 it('clamps invalid per-page values to default on update', function () {

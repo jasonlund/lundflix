@@ -234,8 +234,8 @@ it('paginates with more than 5 rows', function () {
 
     Livewire::test('dashboard.requests')
         ->assertSuccessful()
-        ->call('nextPage')
-        ->assertSuccessful();
+        ->call('nextPage', 'requestsPage')
+        ->assertSet('paginators.requestsPage', 2);
 });
 
 it('filters by a single status', function () {
@@ -337,7 +337,7 @@ it('resets pagination when filters change', function () {
     }
 
     Livewire::test('dashboard.requests')
-        ->call('nextPage')
+        ->call('nextPage', 'requestsPage')
         ->set('statusFilters', [RequestItemStatus::Pending->value])
-        ->assertSet('paginators.page', 1);
+        ->assertSet('paginators.requestsPage', 1);
 });
