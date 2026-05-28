@@ -52,9 +52,9 @@ return [
     ],
 
     'iptorrents' => [
-        'base_url' => env('IPT_BASE_URL', 'https://iptorrents.com'),
-        'uid' => env('IPT_UID'),
-        'pass' => env('IPT_PASS'),
+        'base_url' => env('SEARCH_BASE_URL', 'https://iptorrents.com'),
+        'uid' => env('SEARCH_UID'),
+        'pass' => env('SEARCH_PASS'),
     ],
 
 ];
