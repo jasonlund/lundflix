@@ -8,7 +8,14 @@ use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
+
+beforeEach(function () {
+    // Prevent the auto-download listener from running synchronously and
+    // mutating request-item status during these cart-flow assertions.
+    Queue::fake();
+});
 
 it('creates request from movies via submit', function () {
     $user = User::factory()->create();

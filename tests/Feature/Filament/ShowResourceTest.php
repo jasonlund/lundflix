@@ -61,8 +61,10 @@ it('does not show create button due to policy', function () {
 it('does not show edit action due to policy', function () {
     $show = Show::factory()->create();
 
+    // No EditShow page is registered, so no Filament record-edit action link
+    // should render. The "Edit IPT Search Terms" header action is allowed.
     Livewire::test(ViewShow::class, ['record' => $show->getRouteKey()])
-        ->assertDontSee('Edit');
+        ->assertDontSee("/shows/{$show->getRouteKey()}/edit");
 });
 
 it('shows "Fetch Episodes" button when show has no episodes', function () {

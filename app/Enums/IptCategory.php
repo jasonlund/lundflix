@@ -121,7 +121,7 @@ enum IptCategory: int implements HasLabel
     /** @return list<int> */
     public static function defaultTvValues(): array
     {
-        return [self::TvX264->value, self::TvX265->value];
+        return [self::TvX265->value, self::TvX264->value, self::TvWebDl->value];
     }
 
     /**

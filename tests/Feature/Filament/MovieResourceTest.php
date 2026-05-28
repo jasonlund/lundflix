@@ -56,8 +56,10 @@ it('does not show create button due to policy', function () {
 it('does not show edit action due to policy', function () {
     $movie = Movie::factory()->create();
 
+    // No EditMovie page is registered, so no Filament record-edit action link
+    // should render. The "Edit IPT Search Terms" header action is allowed.
     Livewire::test(ViewMovie::class, ['record' => $movie->getRouteKey()])
-        ->assertDontSee('Edit');
+        ->assertDontSee("/movies/{$movie->getRouteKey()}/edit");
 });
 
 it('can search movies by title using Scout', function () {

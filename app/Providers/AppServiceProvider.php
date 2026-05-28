@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\Torrent\Finders\EpisodeByImdbFinder;
+use App\Services\Torrent\Finders\EpisodeByNameFinder;
+use App\Services\Torrent\Finders\MovieByForeignTitleFinder;
+use App\Services\Torrent\Finders\MovieByImdbFinder;
+use App\Services\Torrent\Finders\MovieByNameFinder;
+use App\Services\Torrent\Finders\SeasonPackByImdbFinder;
+use App\Services\Torrent\Finders\SeasonPackByNameFinder;
+use App\Services\Torrent\TorrentResolver;
 use App\Support\ErrorPageResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\ConnectionException;
@@ -22,7 +30,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(TorrentResolver::class, fn ($app) => new TorrentResolver([
+            $app->make(MovieByImdbFinder::class),
+            $app->make(MovieByNameFinder::class),
+            $app->make(MovieByForeignTitleFinder::class),
+            $app->make(EpisodeByImdbFinder::class),
+            $app->make(EpisodeByNameFinder::class),
+            $app->make(SeasonPackByImdbFinder::class),
+            $app->make(SeasonPackByNameFinder::class),
+        ]));
     }
 
     /**

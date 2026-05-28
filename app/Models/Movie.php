@@ -47,6 +47,7 @@ class Movie extends Model
             'origin_country' => 'array',
             'release_dates' => 'array',
             'tmdb_synced_at' => 'datetime',
+            'ipt_search_terms' => 'array',
         ];
     }
 

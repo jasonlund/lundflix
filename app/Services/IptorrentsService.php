@@ -10,6 +10,7 @@ use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
+use App\Services\Torrent\Support\PackNameParser;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -26,7 +27,7 @@ class IptorrentsService
 
     private const RATE_LIMIT_DECAY = 60;
 
-    private const MAX_IMDB_LOOKUPS = 3;
+    private const MAX_IMDB_LOOKUPS = 5;
 
     /**
      * Search IPTorrents and return parsed results (max 50 per search).
@@ -81,18 +82,37 @@ class IptorrentsService
             IptCategory::defaultMovieValues(),
         );
 
-        $searchName = $this->sanitizeNameForSearch($movie->title);
+        $terms = $this->resolveSearchTerms($movie->ipt_search_terms, $movie->title);
 
-        if ($searchName === '') {
+        if ($terms === []) {
             return null;
         }
 
-        $query = $searchName.($movie->year ? ' '.$movie->year : '');
+        $query = $this->buildOrQuery($terms).($movie->year ? ' '.$movie->year : '');
         $results = $this->search($query, $categories);
 
-        foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
+        $seenPrefixes = [];
+        $lookups = 0;
+
+        foreach ($results as $result) {
+            $prefix = $this->prefixKey($result['name']);
+
+            if ($prefix !== null && isset($seenPrefixes[$prefix])) {
+                continue;
+            }
+
+            if ($lookups >= self::MAX_IMDB_LOOKUPS) {
+                break;
+            }
+
+            $lookups++;
+
             if ($this->fetchTorrentImdbId($result['torrent_id']) === $movie->imdb_id) {
                 return $result;
+            }
+
+            if ($prefix !== null) {
+                $seenPrefixes[$prefix] = true;
             }
         }
 
@@ -136,25 +156,192 @@ class IptorrentsService
             IptCategory::defaultTvValues(),
         );
 
-        $searchName = $episode->show->ipt_search_term
-            ?? $this->sanitizeNameForSearch($episode->show->name);
+        $existingTerms = $episode->show->ipt_search_terms ?? [];
+        $learnEnabled = $existingTerms === [];
+        $terms = $this->resolveSearchTerms($existingTerms, $episode->show->name);
 
-        if ($searchName === '') {
+        if ($terms === []) {
             return null;
         }
 
-        $query = "{$searchName} {$episode->code}";
+        $query = $this->buildOrQuery($terms)." {$episode->code}";
         $results = $this->search($query, $categories);
 
-        foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $index => $result) {
-            if ($this->fetchTorrentImdbId($result['torrent_id']) === $episode->show->imdb_id) {
-                $this->learnSearchTerm($episode, $result['name'], $index);
+        $seenPrefixes = [];
+        $lookups = 0;
 
+        foreach ($results as $index => $result) {
+            $prefix = $this->prefixKey($result['name']);
+
+            if ($prefix !== null && isset($seenPrefixes[$prefix])) {
+                continue;
+            }
+
+            if ($lookups >= self::MAX_IMDB_LOOKUPS) {
+                break;
+            }
+
+            $lookups++;
+
+            if ($this->fetchTorrentImdbId($result['torrent_id']) === $episode->show->imdb_id) {
+                if ($learnEnabled) {
+                    $this->learnSearchTerm($episode, $result['name'], $index);
+                }
+
+                return $result;
+            }
+
+            if ($prefix !== null) {
+                $seenPrefixes[$prefix] = true;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchSeasonPack(Show $show, int $season): ?array
+    {
+        if (! $show->imdb_id) {
+            return null;
+        }
+
+        $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
+        $token = sprintf('S%02d', $season);
+
+        return $this->search("{$show->imdb_id} {$token}", $categories)->first();
+    }
+
+    /**
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchSeasonPackByName(Show $show, int $season): ?array
+    {
+        if (! $show->imdb_id) {
+            return null;
+        }
+
+        $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
+        $terms = $this->resolveSearchTerms($show->ipt_search_terms, $show->name);
+
+        if ($terms === []) {
+            return null;
+        }
+
+        $token = sprintf('S%02d', $season);
+        $query = $this->buildOrQuery($terms)." {$token}";
+        $results = $this->search($query, $categories);
+
+        $seenPrefixes = [];
+        $lookups = 0;
+
+        foreach ($results as $result) {
+            $prefix = $this->prefixKey($result['name']);
+
+            if ($prefix !== null && isset($seenPrefixes[$prefix])) {
+                continue;
+            }
+
+            if ($lookups >= self::MAX_IMDB_LOOKUPS) {
+                break;
+            }
+
+            $lookups++;
+
+            if ($this->fetchTorrentImdbId($result['torrent_id']) === $show->imdb_id) {
+                return $result;
+            }
+
+            if ($prefix !== null) {
+                $seenPrefixes[$prefix] = true;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect a multi-season pack whose name claims to cover the requested season.
+     *
+     * Detection only — does NOT apply the size cap. Caller decides what to do
+     * with the match (typically: notify, do not download).
+     *
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchMultiSeasonPack(Show $show, int $season): ?array
+    {
+        if (! $show->imdb_id) {
+            return null;
+        }
+
+        $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
+        $results = $this->search($show->imdb_id, $categories);
+
+        foreach ($results as $result) {
+            if ($this->multiSeasonPackCovers($result['name'], $season)) {
                 return $result;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Name-based fallback for multi-season pack detection.
+     *
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchMultiSeasonPackByName(Show $show, int $season): ?array
+    {
+        if (! $show->imdb_id) {
+            return null;
+        }
+
+        $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
+        $terms = $this->resolveSearchTerms($show->ipt_search_terms, $show->name);
+
+        if ($terms === []) {
+            return null;
+        }
+
+        $results = $this->search($this->buildOrQuery($terms), $categories);
+
+        $lookups = 0;
+
+        foreach ($results as $result) {
+            if (! $this->multiSeasonPackCovers($result['name'], $season)) {
+                continue;
+            }
+
+            if ($lookups >= self::MAX_IMDB_LOOKUPS) {
+                break;
+            }
+
+            $lookups++;
+
+            if ($this->fetchTorrentImdbId($result['torrent_id']) === $show->imdb_id) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+
+    private function multiSeasonPackCovers(string $name, int $season): bool
+    {
+        $parsed = PackNameParser::parse($name);
+
+        if ($parsed === null) {
+            return false;
+        }
+
+        return match ($parsed['type']) {
+            'range' => $season >= $parsed['start'] && $season <= $parsed['end'],
+            'complete' => true,
+            default => false,
+        };
     }
 
     /**
@@ -217,7 +404,7 @@ class IptorrentsService
 
     private function learnSearchTerm(Episode $episode, string $torrentName, int $matchIndex): void
     {
-        if ($episode->show->ipt_search_term !== null || $matchIndex === 0) {
+        if ($matchIndex === 0) {
             return;
         }
 
@@ -257,8 +444,50 @@ class IptorrentsService
 
         Show::query()
             ->where('id', $episode->show->id)
-            ->whereNull('ipt_search_term')
-            ->update(['ipt_search_term' => $showTitle]);
+            ->where(fn ($q) => $q->whereNull('ipt_search_terms')->orWhere('ipt_search_terms', '[]'))
+            ->update(['ipt_search_terms' => json_encode([$showTitle])]);
+    }
+
+    /**
+     * @param  mixed  $stored
+     * @return list<string>
+     */
+    private function resolveSearchTerms($stored, ?string $fallbackName): array
+    {
+        $terms = is_array($stored) ? array_values(array_filter(
+            array_map(static fn ($t): string => is_string($t) ? trim($t) : '', $stored),
+            static fn (string $t): bool => $t !== '',
+        )) : [];
+
+        if ($terms !== []) {
+            return $terms;
+        }
+
+        $sanitized = $this->sanitizeNameForSearch((string) $fallbackName);
+
+        return $sanitized === '' ? [] : [$sanitized];
+    }
+
+    /**
+     * @param  list<string>  $terms
+     */
+    private function buildOrQuery(array $terms): string
+    {
+        if (count($terms) === 1) {
+            return $terms[0];
+        }
+
+        return implode('|', array_map(
+            static fn (string $t): string => '"'.str_replace('"', '', $t).'"',
+            $terms,
+        ));
+    }
+
+    private function prefixKey(string $torrentName): ?string
+    {
+        $title = $this->extractShowTitle($torrentName);
+
+        return $title === null ? null : mb_strtolower($title);
     }
 
     private function extractShowTitle(string $torrentName): ?string

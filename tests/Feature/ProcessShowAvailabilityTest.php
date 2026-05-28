@@ -8,7 +8,8 @@ use App\Models\RequestItem;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\IptorrentsService;
+use App\Services\Torrent\PlanResult;
+use App\Services\Torrent\RequestDownloadPlanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -25,31 +26,38 @@ beforeEach(function () {
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
     Bus::fake([DownloadTorrents::class]);
+
+    config([
+        'services.slack.enabled' => false,
+    ]);
 });
 
-function fakeEpisodeTorrentResult(string $name): array
+function fakeShowPlanDownload(string $filename): PlanResult
 {
-    $filename = str_replace(' ', '.', $name);
+    return new PlanResult(
+        downloads: [['torrent_id' => 1, 'filename' => $filename]],
+        notFound: [],
+        oversize: [],
+        multiSeasonReview: [],
+        packCovered: [],
+    );
+}
 
-    return [
-        'torrent_id' => 1,
-        'name' => $name,
-        'size' => '500 MB',
-        'seeders' => 30,
-        'leechers' => 3,
-        'snatches' => 80,
-        'uploaded' => '2024-01-01',
-        'download_url' => "https://iptorrents.com/download.php/1/{$filename}.torrent",
-    ];
+function mockShowPlanner(\Closure $callback): void
+{
+    $mock = Mockery::mock(RequestDownloadPlanner::class);
+    $callback($mock);
+    app()->instance(RequestDownloadPlanner::class, $mock);
 }
 
 it('creates a request for episodes with available torrents', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->once()
+            ->andReturn(fakeShowPlanDownload('Severance.S02E01.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Severance']);
@@ -85,8 +93,9 @@ it('creates a request for episodes with available torrents', function () {
 it('does not request an episode already in subscription_episode', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchEpisodeByName');
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Lost']);
@@ -118,8 +127,9 @@ it('does not request an episode already in subscription_episode', function () {
 it('skips episodes that aired more than 24 hours ago', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchEpisodeByName');
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Old Show']);
@@ -138,13 +148,14 @@ it('skips episodes that aired more than 24 hours ago', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
-it('dedupes API calls across multiple subscriptions on the same show', function () {
+it('plans per subscription when multiple users subscribe to the same show', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->andReturn(fakeEpisodeTorrentResult('Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP'));
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->times(3)
+            ->andReturn(fakeShowPlanDownload('Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $show = Show::factory()->create(['name' => 'Game Of Thrones']);
 
@@ -172,10 +183,11 @@ it('dedupes API calls across multiple subscriptions on the same show', function 
 it('marks newly requested episodes in the pivot table', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->andReturn(fakeEpisodeTorrentResult('The.Wire.S01E01.1080p.WEB-DL.x264-GROUP'));
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->once()
+            ->andReturn(fakeShowPlanDownload('The.Wire.S01E01.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'The Wire']);
@@ -197,12 +209,12 @@ it('marks newly requested episodes in the pivot table', function () {
     expect($pivot->pivot->requested_at)->not->toBeNull();
 });
 
-it('bails early when the IPTorrents rate limit is reached', function () {
+it('bails early when the planner throws IptorrentsRateLimitExceededException', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 10) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andThrow(new \App\Exceptions\IptorrentsRateLimitExceededException);
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Whatever']);
@@ -212,8 +224,8 @@ it('bails early when the IPTorrents rate limit is reached', function () {
         'show_id' => $show->id,
         'season' => 1,
         'number' => 1,
-        'airdate' => today(),
-        'airtime' => now()->subHours(2)->format('H:i'),
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
     ]);
 
     $this->artisan('process:show-availability')->assertSuccessful();
@@ -221,16 +233,16 @@ it('bails early when the IPTorrents rate limit is reached', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
-it('groups batch-premiere episodes and only searches the first by number', function () {
+it('puts all aired-window episodes into a single request per subscription', function () {
     Event::fake([MediaAvailable::class]);
 
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->withArgs(fn (Episode $e) => $e->season === 1 && $e->number === 1)
-        ->andReturn(fakeEpisodeTorrentResult('Stranger.Things.S01E01.1080p.WEB-DL.x264-GROUP'));
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->once()
+            ->andReturn(fakeShowPlanDownload('Stranger.Things.S01.COMPLETE.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Stranger Things']);
@@ -257,10 +269,11 @@ it('groups batch-premiere episodes and only searches the first by number', funct
 it('still picks up episodes that were already notified by the subscriptions command', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->once()
+            ->andReturn(fakeShowPlanDownload('Severance.S02E01.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Severance']);
@@ -286,4 +299,42 @@ it('still picks up episodes that were already notified by the subscriptions comm
     $pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episode->id)->first();
     expect($pivot->pivot->requested_at)->not->toBeNull();
     expect($pivot->pivot->notified_at)->not->toBeNull();
+});
+
+it('does not dispatch MediaAvailable when planner returns no downloads', function () {
+    Event::fake([MediaAvailable::class]);
+
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andReturnUsing(function ($request): PlanResult {
+            return new PlanResult(
+                downloads: [],
+                notFound: $request->items->all(),
+                oversize: [],
+                multiSeasonReview: [],
+                packCovered: [],
+            );
+        });
+    });
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Severance']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+
+    // pivot should NOT be updated since no download occurred
+    expect($sub->fresh()->processedEpisodes()->wherePivotNotNull('requested_at')->count())->toBe(0);
 });

@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Notifications\MediaAvailableNotification;
+use App\Notifications\MultiSeasonPackReviewNotification;
 use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
 use App\Notifications\SubscriptionMediaNotification;
 use App\Notifications\TorrentIgnoredNotification;
+use App\Notifications\TorrentNotFoundNotification;
+use App\Notifications\TorrentOversizeNotification;
 use App\Notifications\TorrentRejectedNotification;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
@@ -23,6 +26,9 @@ enum SlackNotificationType: string implements HasColor, HasLabel
     case PlexLibrary = 'plex_library';
     case TorrentRejected = 'torrent_rejected';
     case TorrentIgnored = 'torrent_ignored';
+    case TorrentNotFound = 'torrent_not_found';
+    case TorrentOversize = 'torrent_oversize';
+    case MultiSeasonPackReview = 'multi_season_pack_review';
 
     public function getLabel(): string
     {
@@ -34,6 +40,9 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::PlexLibrary => 'Added to Library',
             self::TorrentRejected => 'Torrent Rejected',
             self::TorrentIgnored => 'Torrent Ignored',
+            self::TorrentNotFound => 'Torrent Not Found',
+            self::TorrentOversize => 'Torrent Oversize',
+            self::MultiSeasonPackReview => 'Multi-Season Pack Review',
         };
     }
 
@@ -47,6 +56,9 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::PlexLibrary => 'gray',
             self::TorrentRejected => 'danger',
             self::TorrentIgnored => 'warning',
+            self::TorrentNotFound => 'warning',
+            self::TorrentOversize => 'warning',
+            self::MultiSeasonPackReview => 'info',
         };
     }
 
@@ -72,6 +84,9 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             PlexLibraryNotification::class => self::PlexLibrary,
             TorrentRejectedNotification::class => self::TorrentRejected,
             TorrentIgnoredNotification::class => self::TorrentIgnored,
+            TorrentNotFoundNotification::class => self::TorrentNotFound,
+            TorrentOversizeNotification::class => self::TorrentOversize,
+            MultiSeasonPackReviewNotification::class => self::MultiSeasonPackReview,
             default => null,
         };
     }

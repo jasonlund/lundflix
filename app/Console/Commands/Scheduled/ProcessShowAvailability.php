@@ -10,15 +10,15 @@ use App\Enums\MediaType;
 use App\Events\MediaAvailable;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
-use App\Jobs\DownloadTorrents;
 use App\Models\Episode;
+use App\Models\RequestItem;
 use App\Models\Show;
 use App\Models\Subscription;
-use App\Services\IptorrentsService;
+use App\Services\Torrent\ApplyDownloadPlan;
+use App\Services\Torrent\RequestDownloadPlanner;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ProcessShowAvailability extends Command
@@ -32,7 +32,8 @@ class ProcessShowAvailability extends Command
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly IptorrentsService $ipt,
+        private readonly RequestDownloadPlanner $planner,
+        private readonly ApplyDownloadPlan $applyDownloadPlan,
     ) {
         parent::__construct();
     }
@@ -115,14 +116,8 @@ class ProcessShowAvailability extends Command
             ];
         }
 
-        $byShow = collect($bySub)->groupBy(fn ($e) => $e['show']->id);
-
-        /** @var array<int, Collection<int, Episode>|null> $showAvailable keyed by show id */
-        $showAvailable = [];
-        /** @var array<int, array<int, Episode>> $newlyRequested keyed by show id, episode id */
-        $newlyRequested = [];
-        /** @var list<array{torrent_id: int, filename: string}> $torrentDownloads */
-        $torrentDownloads = [];
+        /** @var array<int, array<int, Episode>> $newlyAvailable keyed by show id, episode id */
+        $newlyAvailable = [];
         $processed = 0;
 
         foreach ($bySub as $entry) {
@@ -130,88 +125,81 @@ class ProcessShowAvailability extends Command
             $show = $entry['show'];
             /** @var Subscription $subscription */
             $subscription = $entry['subscription'];
-            /** @var Collection<int, Episode> $candidates */
+            /** @var \Illuminate\Support\Collection<int, Episode> $candidates */
             $candidates = $entry['candidates'];
-
-            if (! array_key_exists($show->id, $showAvailable)) {
-                $allCandidates = $byShow[$show->id]
-                    ->flatMap(fn ($e) => $e['candidates'])
-                    ->unique('id')
-                    ->values();
-
-                try {
-                    $available = collect();
-                    $groups = $allCandidates->groupBy(
-                        fn (Episode $e): string => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
-                    );
-
-                    foreach ($groups as $episodes) {
-                        $probe = $episodes->sortBy('number')->first();
-                        $result = $this->ipt->searchEpisodeByName($probe);
-
-                        if ($result !== null) {
-                            $torrentDownloads[] = [
-                                'torrent_id' => $result['torrent_id'],
-                                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
-                            ];
-
-                            foreach ($episodes as $episode) {
-                                $available->push($episode);
-                            }
-                        }
-                    }
-
-                    $showAvailable[$show->id] = $available->isEmpty() ? null : $available;
-                } catch (IptorrentsRateLimitExceededException) {
-                    $this->warn('IPTorrents rate limit reached, stopping.');
-                    break;
-                } catch (IptorrentsAuthException $e) {
-                    $this->warn($e->getMessage());
-                    break;
-                } catch (\Throwable $e) {
-                    Log::warning('IPTorrents availability check failed', [
-                        'show_id' => $show->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $showAvailable[$show->id] = null;
-                }
-            }
-
-            $available = $showAvailable[$show->id];
-
-            if (! $available instanceof Collection || $available->isEmpty()) {
-                continue;
-            }
-
-            $availableIds = $available->pluck('id')->all();
-
-            $subAvailable = $candidates
-                ->filter(fn (Episode $e): bool => in_array($e->id, $availableIds, true))
-                ->sortBy([['season', 'asc'], ['number', 'asc']])
-                ->values();
-
-            if ($subAvailable->isEmpty()) {
-                continue;
-            }
 
             $request = $this->createRequest->create($subscription->user);
             $this->createRequestItems->create(
                 $request,
-                $subAvailable->map(fn (Episode $e): array => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
+                $candidates->map(fn (Episode $e): array => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
             );
+
+            $request->load(['items.requestable' => function ($morphTo): void {
+                $morphTo->morphWith([
+                    Episode::class => ['show.episodes'],
+                ]);
+            }]);
+
+            try {
+                $plan = $this->planner->plan($request);
+            } catch (IptorrentsRateLimitExceededException) {
+                $this->warn('IPTorrents rate limit reached, stopping.');
+                break;
+            } catch (IptorrentsAuthException $e) {
+                $this->warn($e->getMessage());
+                break;
+            } catch (\Throwable $e) {
+                Log::warning('IPTorrents availability check failed', [
+                    'show_id' => $show->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+
+            $this->applyDownloadPlan->apply($request, $plan);
+
+            $unavailableItemIds = [];
+            foreach ($plan->notFound as $item) {
+                $unavailableItemIds[$item->id] = true;
+            }
+            foreach ($plan->oversize as $item) {
+                $unavailableItemIds[$item->id] = true;
+            }
+
+            /** @var array<int, Episode> $availableEpisodes */
+            $availableEpisodes = [];
+            foreach ($request->items as $item) {
+                /** @var RequestItem $item */
+                if (isset($unavailableItemIds[$item->id])) {
+                    continue;
+                }
+
+                $episode = $item->requestable;
+
+                if ($episode instanceof Episode) {
+                    $availableEpisodes[$episode->id] = $episode;
+                }
+            }
+
+            if ($availableEpisodes === []) {
+                continue;
+            }
 
             $subscription->processedEpisodes()->syncWithoutDetaching(
-                $subAvailable->pluck('id')->mapWithKeys(fn ($id): array => [$id => ['requested_at' => now()]])->all(),
+                collect(array_keys($availableEpisodes))
+                    ->mapWithKeys(fn ($id): array => [$id => ['requested_at' => now()]])
+                    ->all(),
             );
 
-            foreach ($subAvailable as $episode) {
-                $newlyRequested[$show->id][$episode->id] = $episode;
+            foreach ($availableEpisodes as $id => $episode) {
+                $newlyAvailable[$show->id][$id] = $episode;
             }
 
             $processed++;
         }
 
-        foreach ($newlyRequested as $showId => $episodesById) {
+        foreach ($newlyAvailable as $showId => $episodesById) {
             /** @var Show $show */
             $show = $shows->get($showId);
 
@@ -220,10 +208,6 @@ class ProcessShowAvailability extends Command
                 ->values();
 
             MediaAvailable::dispatch(null, $show, $episodes);
-        }
-
-        if ($torrentDownloads !== []) {
-            DownloadTorrents::dispatch($torrentDownloads);
         }
 
         $this->info("Processed {$processed} show availability check(s).");

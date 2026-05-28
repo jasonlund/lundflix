@@ -55,7 +55,8 @@ it('returns default movie values', function () {
 
 it('returns default TV values', function () {
     expect(IptCategory::defaultTvValues())->toBe([
-        IptCategory::TvX264->value,
         IptCategory::TvX265->value,
+        IptCategory::TvX264->value,
+        IptCategory::TvWebDl->value,
     ]);
 });

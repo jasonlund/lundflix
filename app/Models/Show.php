@@ -35,6 +35,7 @@ class Show extends Model
             'schedule' => 'array',
             'network' => 'array',
             'web_channel' => 'array',
+            'ipt_search_terms' => 'array',
             'premiered' => 'date',
             'ended' => 'date',
             'num_votes' => 'integer',

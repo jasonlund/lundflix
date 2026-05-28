@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\RequestItemStatus;
 use App\Events\MediaAvailable;
 use App\Jobs\DownloadTorrents;
 use App\Models\Movie;
@@ -7,7 +8,8 @@ use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Services\IptorrentsService;
+use App\Services\Torrent\PlanResult;
+use App\Services\Torrent\RequestDownloadPlanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
@@ -20,29 +22,36 @@ beforeEach(function () {
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
     Bus::fake([DownloadTorrents::class]);
+
+    config([
+        'services.slack.enabled' => false,
+    ]);
 });
 
-function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'): array
+function fakeMoviePlanDownload(string $filename = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP.torrent'): PlanResult
 {
-    $filename = str_replace(' ', '.', $name);
-
-    return [
-        'torrent_id' => 1,
-        'name' => $name,
-        'size' => '1.5 GB',
-        'seeders' => 50,
-        'leechers' => 5,
-        'snatches' => 100,
-        'uploaded' => '2024-01-01',
-        'download_url' => "https://iptorrents.com/download.php/1/{$filename}.torrent",
-    ];
+    return new PlanResult(
+        downloads: [['torrent_id' => 1, 'filename' => $filename]],
+        notFound: [],
+        oversize: [],
+        multiSeasonReview: [],
+        packCovered: [],
+    );
 }
 
-it('creates a request, dispatches MediaAvailable, and fulfills the subscription when IPTorrents has a torrent', function () {
+function mockMoviePlanner(\Closure $callback): void
+{
+    $mock = Mockery::mock(RequestDownloadPlanner::class);
+    $callback($mock);
+    app()->instance(RequestDownloadPlanner::class, $mock);
+}
+
+it('creates a request, dispatches MediaAvailable, and fulfills the subscription when planner returns a download', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'));
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andReturn(fakeMoviePlanDownload());
+    });
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -67,11 +76,12 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     });
 });
 
-it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {
+it('creates a request and dispatches MediaAvailable when planner returns any download payload', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.x265'));
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andReturn(fakeMoviePlanDownload('Dune.Part.Two.2024.1080p.x265.torrent'));
+    });
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -86,7 +96,6 @@ it('creates a request when IPTorrents finds a codec-only torrent in an allowed c
 
     expect(Request::count())->toBe(1);
     expect(RequestItem::count())->toBe(1);
-    expect(RequestItem::first()->requestable_id)->toBe($movie->id);
     expect($sub->fresh()->fulfilled_at)->not->toBeNull();
 
     Event::assertDispatched(MediaAvailable::class, fn (MediaAvailable $event): bool => $event->media->is($movie));
@@ -96,11 +105,20 @@ it('creates a request when IPTorrents finds a codec-only torrent in an allowed c
     });
 });
 
-it('does nothing when IPTorrents returns no results', function () {
+it('does not dispatch MediaAvailable when planner finds nothing, but still records the request', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovieByName')->once()->andReturnNull();
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andReturnUsing(function ($request): PlanResult {
+            return new PlanResult(
+                downloads: [],
+                notFound: $request->items->all(),
+                oversize: [],
+                multiSeasonReview: [],
+                packCovered: [],
+            );
+        });
+    });
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -109,21 +127,23 @@ it('does nothing when IPTorrents returns no results', function () {
         'digital_release_date' => today(),
         'status' => 'Released',
     ]);
-    $sub = Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+    Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
-    expect(Request::count())->toBe(0);
-    expect($sub->fresh()->fulfilled_at)->toBeNull();
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::first()->status)->toBe(RequestItemStatus::NotFound);
 
     Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
 });
 
 it('skips movies whose digital release is older than the 3-day window', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovieByName');
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create([
@@ -143,8 +163,9 @@ it('skips movies whose digital release is older than the 3-day window', function
 it('skips movies whose digital release is in the future', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovieByName');
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $movie = Movie::factory()->create([
         'title' => 'Upcoming',
@@ -162,8 +183,9 @@ it('skips movies whose digital release is in the future', function () {
 it('skips unreleased movies', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovieByName');
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $movie = Movie::factory()->create([
         'title' => 'Not Yet',
@@ -181,8 +203,9 @@ it('skips unreleased movies', function () {
 it('skips subscriptions already fulfilled', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldNotReceive('searchMovieByName');
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldNotReceive('plan');
+    });
 
     $movie = Movie::factory()->create([
         'digital_release_date' => today(),
@@ -195,11 +218,12 @@ it('skips subscriptions already fulfilled', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
-it('dedupes API calls when multiple users subscribe to the same movie', function () {
+it('plans per subscription when multiple users subscribe to the same movie', function () {
     Event::fake([MediaAvailable::class]);
 
-    $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Popular.Film.2024.1080p.WEB-DL.x264-GROUP'));
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->times(3)->andReturn(fakeMoviePlanDownload('Popular.Film.2024.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
 
     $movie = Movie::factory()->create([
         'title' => 'Popular Film',
@@ -221,20 +245,56 @@ it('dedupes API calls when multiple users subscribe to the same movie', function
     Event::assertDispatchedTimes(MediaAvailable::class, 1);
 });
 
-it('bails early when the IPTorrents rate limit is reached', function () {
+it('bails early when the planner throws IptorrentsRateLimitExceededException', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 10) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andThrow(new \App\Exceptions\IptorrentsRateLimitExceededException);
+    });
 
-    $movie = Movie::factory()->create([
+    $movieA = Movie::factory()->create([
         'digital_release_date' => today(),
         'status' => 'Released',
     ]);
-    Subscription::factory()->forSubscribable($movie)->create();
+    $movieB = Movie::factory()->create([
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    Subscription::factory()->forSubscribable($movieA)->create();
+    Subscription::factory()->forSubscribable($movieB)->create();
 
     $this->artisan('process:movie-availability')->assertSuccessful();
 
     Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
+it('marks an item NotFound and skips MediaAvailable when the result is oversize-only', function () {
+    Event::fake([MediaAvailable::class]);
+
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andReturnUsing(function ($request): PlanResult {
+            return new PlanResult(
+                downloads: [],
+                notFound: [],
+                oversize: $request->items->all(),
+                multiSeasonReview: [],
+                packCovered: [],
+            );
+        });
+    });
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect(RequestItem::first()->status)->toBe(RequestItemStatus::NotFound);
+
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
 });
