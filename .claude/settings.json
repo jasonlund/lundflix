@@ -12,6 +12,19 @@
       "mcp__laravel-boost*",
       "mcp__chrome-devtools*",
       "mcp__linear-server*"
+    ],
+    "ask": [
+      "Edit(./CLAUDE.md)",
+      "Edit(./CLAUDE.project.md)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Edit(./.claude/agents/**)",
+      "Write(./.claude/agents/**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./auth.json)"
     ]
   }
 }
