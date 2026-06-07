@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Models\RequestItem;
+use App\Models\Show;
 use App\Support\TorrentSize;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -15,7 +17,7 @@ class MultiSeasonPackReviewNotification extends Notification
     use Queueable;
 
     /**
-     * @param  list<array{show: \App\Models\Show, season: int, pack: array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}, requestItems: list<\App\Models\RequestItem>}>  $entries
+     * @param  list<array{show: Show, season: int, pack: array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}, requestItems: list<RequestItem>}>  $entries
      */
     public function __construct(public array $entries) {}
 

@@ -28,7 +28,7 @@ final class TorrentSize
             throw new InvalidArgumentException('Cannot parse empty size string.');
         }
 
-        if (! preg_match('/^([0-9]+(?:\.[0-9]+)?)\s*([A-Za-z]+)$/', $trimmed, $matches)) {
+        if (! preg_match('/^(\d+(?:\.\d+)?)\s*([A-Za-z]+)$/', $trimmed, $matches)) {
             throw new InvalidArgumentException(sprintf('Unparseable size string: "%s".', $human));
         }
 

@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(TorrentResolver::class, fn ($app) => new TorrentResolver([
+        $this->app->singleton(TorrentResolver::class, fn ($app): TorrentResolver => new TorrentResolver([
             $app->make(MovieByImdbFinder::class),
             $app->make(MovieByNameFinder::class),
             $app->make(MovieByForeignTitleFinder::class),

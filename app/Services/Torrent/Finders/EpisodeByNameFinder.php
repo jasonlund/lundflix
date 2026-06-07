@@ -13,11 +13,11 @@ use App\Services\Torrent\Support\VerifiedResultPicker;
 use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
 
-final class EpisodeByNameFinder implements TorrentFinder
+final readonly class EpisodeByNameFinder implements TorrentFinder
 {
     public function __construct(
-        private readonly IptorrentsService $iptorrents,
-        private readonly VerifiedResultPicker $picker,
+        private IptorrentsService $iptorrents,
+        private VerifiedResultPicker $picker,
     ) {}
 
     public function supports(TorrentRequest $request): bool

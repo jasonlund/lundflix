@@ -10,11 +10,11 @@ use App\Support\TorrentSize;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
-final class VerifiedResultPicker
+final readonly class VerifiedResultPicker
 {
     public const MAX_IMDB_LOOKUPS = 5;
 
-    public function __construct(private readonly IptorrentsService $iptorrents) {}
+    public function __construct(private IptorrentsService $iptorrents) {}
 
     /**
      * Iterate results in order, dedupe by show-title prefix, size-check, IMDB-verify.
@@ -50,7 +50,7 @@ final class VerifiedResultPicker
                 continue;
             }
 
-            if (! $this->fits($result['size'], $maxBytes)) {
+            if (! self::fits($result['size'], $maxBytes)) {
                 $skippedOversize[] = $result;
 
                 continue;

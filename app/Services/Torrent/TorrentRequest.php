@@ -9,12 +9,12 @@ use App\Models\Movie;
 use App\Models\Show;
 use InvalidArgumentException;
 
-final class TorrentRequest
+final readonly class TorrentRequest
 {
     public function __construct(
-        public readonly Kind $kind,
-        public readonly Movie|Episode|SeasonPackTarget $target,
-        public readonly int $maxBytes,
+        public Kind $kind,
+        public Movie|Episode|SeasonPackTarget $target,
+        public int $maxBytes,
     ) {
         $valid = match ($kind) {
             Kind::Movie => $target instanceof Movie,

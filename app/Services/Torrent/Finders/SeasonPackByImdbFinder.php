@@ -19,9 +19,9 @@ use App\Services\Torrent\TorrentRequest;
  * This trades a small risk of a wrong-title pack for avoiding an HTTP round-trip
  * per candidate; mismatched packs cost more wasted bandwidth than movies.
  */
-final class SeasonPackByImdbFinder implements TorrentFinder
+final readonly class SeasonPackByImdbFinder implements TorrentFinder
 {
-    public function __construct(private readonly IptorrentsService $iptorrents) {}
+    public function __construct(private IptorrentsService $iptorrents) {}
 
     public function supports(TorrentRequest $request): bool
     {

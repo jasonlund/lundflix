@@ -63,7 +63,7 @@ return new class extends Migration
                     ->whereNotNull('ipt_search_terms')
                     ->orderBy('id')
                     ->each(function (object $row): void {
-                        $terms = json_decode($row->ipt_search_terms, true);
+                        $terms = json_decode((string) $row->ipt_search_terms, true);
 
                         if (! is_array($terms) || $terms === []) {
                             return;

@@ -12,9 +12,9 @@ use App\Services\Torrent\Support\VerifiedResultPicker;
 use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
 
-final class MovieByImdbFinder implements TorrentFinder
+final readonly class MovieByImdbFinder implements TorrentFinder
 {
-    public function __construct(private readonly IptorrentsService $iptorrents) {}
+    public function __construct(private IptorrentsService $iptorrents) {}
 
     public function supports(TorrentRequest $request): bool
     {

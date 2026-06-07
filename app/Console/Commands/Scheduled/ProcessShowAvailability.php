@@ -19,6 +19,7 @@ use App\Services\Torrent\RequestDownloadPlanner;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ProcessShowAvailability extends Command
@@ -127,7 +128,7 @@ class ProcessShowAvailability extends Command
             $show = $entry['show'];
             /** @var Subscription $subscription */
             $subscription = $entry['subscription'];
-            /** @var \Illuminate\Support\Collection<int, Episode> $candidates */
+            /** @var Collection<int, Episode> $candidates */
             $candidates = $entry['candidates'];
 
             $request = $this->createRequest->create($subscription->user);
