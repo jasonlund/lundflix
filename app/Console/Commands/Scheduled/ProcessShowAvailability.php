@@ -118,6 +118,8 @@ class ProcessShowAvailability extends Command
 
         /** @var array<int, array<int, Episode>> $newlyAvailable keyed by show id, episode id */
         $newlyAvailable = [];
+        /** @var array<int, true> $dispatchedTorrentIds */
+        $dispatchedTorrentIds = [];
         $processed = 0;
 
         foreach ($bySub as $entry) {
@@ -157,14 +159,14 @@ class ProcessShowAvailability extends Command
                 continue;
             }
 
-            $this->applyDownloadPlan->apply($request, $plan);
+            $this->applyDownloadPlan->apply($request, $plan, $dispatchedTorrentIds);
 
             $unavailableItemIds = [];
             foreach ($plan->notFound as $item) {
                 $unavailableItemIds[$item->id] = true;
             }
-            foreach ($plan->oversize as $item) {
-                $unavailableItemIds[$item->id] = true;
+            foreach ($plan->oversize as $entry) {
+                $unavailableItemIds[$entry['item']->id] = true;
             }
 
             /** @var array<int, Episode> $availableEpisodes */

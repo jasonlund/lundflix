@@ -2,6 +2,8 @@
 
 use App\Enums\RequestItemStatus;
 use App\Events\RequestSubmitted;
+use App\Exceptions\IptorrentsAuthException;
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
 use App\Listeners\DispatchRequestDownloads;
 use App\Models\Episode;
@@ -34,6 +36,13 @@ function mockListenerPlanner(PlanResult $plan): void
     app()->instance(RequestDownloadPlanner::class, $mock);
 }
 
+function mockThrowingListenerPlanner(Throwable $exception): void
+{
+    $mock = Mockery::mock(RequestDownloadPlanner::class);
+    $mock->shouldReceive('plan')->andThrow($exception);
+    app()->instance(RequestDownloadPlanner::class, $mock);
+}
+
 function makeListenerRequestWithMovie(): Request
 {
     $request = Request::factory()->create();
@@ -42,6 +51,55 @@ function makeListenerRequestWithMovie(): Request
 
     return $request->fresh(['items']);
 }
+
+function capturePlannedRequest(): Closure
+{
+    $captured = new stdClass;
+    $mock = Mockery::mock(RequestDownloadPlanner::class);
+    $mock->shouldReceive('plan')
+        ->andReturnUsing(function (Request $request) use ($captured): PlanResult {
+            $captured->request = $request;
+
+            return PlanResult::empty();
+        });
+    app()->instance(RequestDownloadPlanner::class, $mock);
+
+    return fn (): Request => $captured->request;
+}
+
+it('eager-loads show.episodes for episode items', function () {
+    Queue::fake();
+    Notification::fake();
+
+    $show = Show::factory()->create();
+    $episode = Episode::factory()->create(['show_id' => $show->id]);
+    $request = Request::factory()->create();
+    RequestItem::factory()->forRequestable($episode)->create(['request_id' => $request->id]);
+
+    $getRequest = capturePlannedRequest();
+
+    app(DispatchRequestDownloads::class)->handle(new RequestSubmitted($request->fresh()));
+
+    $loaded = $getRequest()->items->first()->requestable;
+
+    expect($loaded->relationLoaded('show'))->toBeTrue()
+        ->and($loaded->show->relationLoaded('episodes'))->toBeTrue();
+});
+
+it('does not issue the episode morph constraint for movie-only requests', function () {
+    Queue::fake();
+    Notification::fake();
+
+    $request = Request::factory()->create();
+    $movie = Movie::factory()->create();
+    RequestItem::factory()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    $getRequest = capturePlannedRequest();
+
+    app(DispatchRequestDownloads::class)->handle(new RequestSubmitted($request->fresh()));
+
+    expect($getRequest()->items->first()->relationLoaded('requestable'))->toBeTrue();
+});
 
 it('is registered as a listener for RequestSubmitted', function () {
     Event::fake([RequestSubmitted::class]);
@@ -101,6 +159,47 @@ it('does not dispatch DownloadTorrents when no downloads', function () {
     Queue::assertNotPushed(DownloadTorrents::class);
 });
 
+it('releases for 60 seconds and dispatches nothing on IPT rate limit', function () {
+    Queue::fake();
+    Notification::fake();
+
+    mockThrowingListenerPlanner(new IptorrentsRateLimitExceededException);
+
+    $request = makeListenerRequestWithMovie();
+
+    $job = Mockery::mock(Illuminate\Contracts\Queue\Job::class);
+    $job->shouldReceive('release')->once()->with(60);
+    $job->shouldReceive('fail')->never();
+
+    $listener = app(DispatchRequestDownloads::class);
+    $listener->setJob($job);
+    $listener->handle(new RequestSubmitted($request));
+
+    Queue::assertNothingPushed();
+    Notification::assertNothingSent();
+});
+
+it('fails without retry and dispatches nothing on IPT auth error', function () {
+    Queue::fake();
+    Notification::fake();
+
+    $exception = new IptorrentsAuthException('IPTorrents auth failed');
+    mockThrowingListenerPlanner($exception);
+
+    $request = makeListenerRequestWithMovie();
+
+    $job = Mockery::mock(Illuminate\Contracts\Queue\Job::class);
+    $job->shouldReceive('fail')->once()->with($exception);
+    $job->shouldReceive('release')->never();
+
+    $listener = app(DispatchRequestDownloads::class);
+    $listener->setJob($job);
+    $listener->handle(new RequestSubmitted($request));
+
+    Queue::assertNothingPushed();
+    Notification::assertNothingSent();
+});
+
 it('marks notFound items as NotFound with actioned_at', function () {
     Queue::fake();
     Notification::fake();
@@ -136,7 +235,7 @@ it('marks oversize items as NotFound', function () {
     mockListenerPlanner(new PlanResult(
         downloads: [],
         notFound: [],
-        oversize: [$item],
+        oversize: [['item' => $item, 'maxBytes' => 15 * 1024 ** 3]],
         multiSeasonReview: [],
         packCovered: [],
     ));
@@ -206,7 +305,7 @@ it('fires TorrentOversizeNotification only when oversize is non-empty', function
     mockListenerPlanner(new PlanResult(
         downloads: [],
         notFound: [],
-        oversize: [$item],
+        oversize: [['item' => $item, 'maxBytes' => 15 * 1024 ** 3]],
         multiSeasonReview: [],
         packCovered: [],
     ));

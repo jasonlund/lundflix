@@ -23,6 +23,13 @@ it('parses season-range tokens', function (string $name, int $start, int $end) {
     ['Show.S05-S08.x265', 5, 8],
 ]);
 
+it('returns null for reversed season ranges', function (string $name) {
+    expect(PackNameParser::parse($name))->toBeNull();
+})->with([
+    ['Show.S02-S01.1080p'],
+    ['Show Seasons 5 to 2 WEB-DL'],
+]);
+
 it('parses complete-series tokens', function (string $name) {
     expect(PackNameParser::parse($name))->toBe(['type' => 'complete', 'start' => null, 'end' => null]);
 })->with([

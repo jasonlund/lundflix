@@ -6,13 +6,14 @@ namespace App\Services\Torrent\Finders;
 
 use App\Enums\IptCategory;
 use App\Services\IptorrentsService;
-use App\Services\Torrent\DetailedTorrentFinder;
 use App\Services\Torrent\FinderResult;
 use App\Services\Torrent\Kind;
+use App\Services\Torrent\Support\SearchTermBuilder;
 use App\Services\Torrent\Support\VerifiedResultPicker;
+use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
 
-final class MovieByNameFinder implements DetailedTorrentFinder
+final class MovieByNameFinder implements TorrentFinder
 {
     public function __construct(
         private readonly IptorrentsService $iptorrents,
@@ -36,7 +37,7 @@ final class MovieByNameFinder implements DetailedTorrentFinder
         $movie = $request->movie();
         $categories = array_map(IptCategory::from(...), IptCategory::defaultMovieValues());
 
-        $term = self::sanitize($movie->title);
+        $term = SearchTermBuilder::sanitize($movie->title);
 
         if ($term === '') {
             return FinderResult::none();
@@ -46,12 +47,5 @@ final class MovieByNameFinder implements DetailedTorrentFinder
         $results = $this->iptorrents->search($query, $categories);
 
         return $this->picker->pickDetailed($results, $movie->imdb_id, $request->maxBytes);
-    }
-
-    private static function sanitize(string $name): string
-    {
-        $name = (string) preg_replace('/[\x{2010}-\x{2015}\x{2D}]+/u', ' ', $name);
-
-        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 }

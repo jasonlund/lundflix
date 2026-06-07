@@ -6,13 +6,20 @@ namespace App\Services\Torrent\Finders;
 
 use App\Enums\IptCategory;
 use App\Services\IptorrentsService;
-use App\Services\Torrent\DetailedTorrentFinder;
 use App\Services\Torrent\FinderResult;
 use App\Services\Torrent\Kind;
 use App\Services\Torrent\Support\VerifiedResultPicker;
+use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
 
-final class SeasonPackByImdbFinder implements DetailedTorrentFinder
+/**
+ * IMDB-ID searches against IPT are trusted without per-result `fetchTorrentImdbId`
+ * page verification, mirroring {@see MovieByImdbFinder}. The IMDB ID plus season
+ * token is a narrow query, so the first size-fitting hit is returned directly.
+ * This trades a small risk of a wrong-title pack for avoiding an HTTP round-trip
+ * per candidate; mismatched packs cost more wasted bandwidth than movies.
+ */
+final class SeasonPackByImdbFinder implements TorrentFinder
 {
     public function __construct(private readonly IptorrentsService $iptorrents) {}
 

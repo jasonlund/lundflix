@@ -68,6 +68,8 @@ class ProcessMovieAvailability extends Command
 
         /** @var array<int, Movie> $toDispatch */
         $toDispatch = [];
+        /** @var array<int, true> $dispatchedTorrentIds */
+        $dispatchedTorrentIds = [];
         $processed = 0;
 
         foreach ($byMovie as $movieId => $subs) {
@@ -80,9 +82,6 @@ class ProcessMovieAvailability extends Command
                 $this->createRequestItems->create($request, [
                     ['type' => MediaType::MOVIE, 'id' => $movie->id],
                 ]);
-
-                $subscription->markFulfilled();
-                $processed++;
 
                 $request->load(['items.requestable' => function ($morphTo): void {
                     $morphTo->morphWith([
@@ -107,7 +106,10 @@ class ProcessMovieAvailability extends Command
                     continue;
                 }
 
-                $this->applyDownloadPlan->apply($request, $plan);
+                $this->applyDownloadPlan->apply($request, $plan, $dispatchedTorrentIds);
+
+                $subscription->markFulfilled();
+                $processed++;
 
                 if ($plan->downloads !== []) {
                     $movieHadDownload = true;

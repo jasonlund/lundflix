@@ -3,6 +3,7 @@
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Movie;
+use App\Services\Torrent\FinderResult;
 use App\Services\Torrent\Kind;
 use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
@@ -40,9 +41,11 @@ function makeFinder(callable $supports, callable $find): TorrentFinder
             return ($this->supportsFn)($request);
         }
 
-        public function find(TorrentRequest $request): ?array
+        public function findDetailed(TorrentRequest $request): FinderResult
         {
-            return ($this->findFn)($request);
+            $match = ($this->findFn)($request);
+
+            return $match === null ? FinderResult::none() : FinderResult::hit($match);
         }
     };
 }

@@ -6,13 +6,13 @@ namespace App\Services\Torrent\Finders;
 
 use App\Enums\IptCategory;
 use App\Services\IptorrentsService;
-use App\Services\Torrent\DetailedTorrentFinder;
 use App\Services\Torrent\FinderResult;
 use App\Services\Torrent\Kind;
 use App\Services\Torrent\Support\VerifiedResultPicker;
+use App\Services\Torrent\TorrentFinder;
 use App\Services\Torrent\TorrentRequest;
 
-final class MovieByImdbFinder implements DetailedTorrentFinder
+final class MovieByImdbFinder implements TorrentFinder
 {
     public function __construct(private readonly IptorrentsService $iptorrents) {}
 

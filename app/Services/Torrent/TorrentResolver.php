@@ -25,7 +25,7 @@ class TorrentResolver
         return $this->resolveDetailed($request)->match;
     }
 
-    public function resolveDetailed(TorrentRequest $request): ResolveResult
+    public function resolveDetailed(TorrentRequest $request): FinderResult
     {
         $oversizeSeen = false;
 
@@ -35,9 +35,7 @@ class TorrentResolver
             }
 
             try {
-                $result = $finder instanceof DetailedTorrentFinder
-                    ? $finder->findDetailed($request)
-                    : new FinderResult($finder->find($request), false);
+                $result = $finder->findDetailed($request);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
                 throw $e;
             } catch (Throwable $e) {
@@ -64,9 +62,9 @@ class TorrentResolver
                 continue;
             }
 
-            return new ResolveResult($result->match, $oversizeSeen);
+            return new FinderResult($result->match, $oversizeSeen);
         }
 
-        return new ResolveResult(null, $oversizeSeen);
+        return new FinderResult(null, $oversizeSeen);
     }
 }

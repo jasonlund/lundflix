@@ -39,6 +39,7 @@ final class VerifiedResultPicker
     public function pickDetailed(Collection $results, string $expectedImdbId, int $maxBytes, int $maxLookups = self::MAX_IMDB_LOOKUPS): FinderResult
     {
         $seenPrefixes = [];
+        $seenPrefixesOversize = [];
         $lookups = 0;
         $skippedOversize = [];
 
@@ -70,12 +71,10 @@ final class VerifiedResultPicker
             }
         }
 
-        // Use remaining lookup budget to verify whether any oversize candidate was actually
-        // the right title — if so, classify as oversize rather than not-found.
         foreach ($skippedOversize as $result) {
             $prefix = self::prefixKey($result['name']);
 
-            if ($prefix !== null && isset($seenPrefixes[$prefix])) {
+            if ($prefix !== null && isset($seenPrefixesOversize[$prefix])) {
                 continue;
             }
 
@@ -90,7 +89,7 @@ final class VerifiedResultPicker
             }
 
             if ($prefix !== null) {
-                $seenPrefixes[$prefix] = true;
+                $seenPrefixesOversize[$prefix] = true;
             }
         }
 

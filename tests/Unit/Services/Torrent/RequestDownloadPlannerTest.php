@@ -7,9 +7,9 @@ use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Services\IptorrentsService;
+use App\Services\Torrent\FinderResult;
 use App\Services\Torrent\Kind;
 use App\Services\Torrent\RequestDownloadPlanner;
-use App\Services\Torrent\ResolveResult;
 use App\Services\Torrent\TorrentRequest;
 use App\Services\Torrent\TorrentResolver;
 use Mockery\MockInterface;
@@ -112,6 +112,7 @@ function mockPlanner(callable $resolverSetup, ?callable $iptSetup = null): Reque
         $iptSetup($ipt);
     } else {
         $ipt->shouldReceive('searchMultiSeasonPack')->andReturnNull()->byDefault();
+        $ipt->shouldReceive('searchMultiSeasonPackByName')->andReturnNull()->byDefault();
     }
 
     return new RequestDownloadPlanner($resolver, $ipt);
@@ -139,7 +140,7 @@ it('resolves a single movie to downloads', function () {
         $r->shouldReceive('resolveDetailed')
             ->once()
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Movie))
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(42, '4 GB', 'm.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(42, '4 GB', 'm.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest([$item]));
@@ -157,12 +158,14 @@ it('classifies movie miss with oversize signal as oversize', function () {
 
     $planner = mockPlanner(function (MockInterface $r) {
         $r->shouldReceive('resolveDetailed')->once()
-            ->andReturn(new ResolveResult(null, true));
+            ->andReturn(new FinderResult(null, true));
     });
 
     $plan = $planner->plan(makePlannerRequest([$item]));
 
     expect($plan->oversize)->toHaveCount(1)
+        ->and($plan->oversize[0]['item'])->toBe($item)
+        ->and($plan->oversize[0]['maxBytes'])->toBe((int) config('torrent.max_bytes.movie'))
         ->and($plan->notFound)->toBe([])
         ->and($plan->downloads)->toBe([]);
 });
@@ -173,7 +176,7 @@ it('classifies movie miss without oversize signal as not found', function () {
 
     $planner = mockPlanner(function (MockInterface $r) {
         $r->shouldReceive('resolveDetailed')->once()
-            ->andReturn(new ResolveResult(null, false));
+            ->andReturn(new FinderResult(null, false));
     });
 
     $plan = $planner->plan(makePlannerRequest([$item]));
@@ -197,9 +200,9 @@ it('partitions multiple movies correctly', function () {
     $planner = mockPlanner(function (MockInterface $r) {
         $r->shouldReceive('resolveDetailed')->times(3)
             ->andReturn(
-                new ResolveResult(makePlannerTorrentMatch(101), false),
-                new ResolveResult(null, true),
-                new ResolveResult(null, false),
+                new FinderResult(makePlannerTorrentMatch(101), false),
+                new FinderResult(null, true),
+                new FinderResult(null, false),
             );
     });
 
@@ -221,7 +224,7 @@ it('uses season pack when full season and pack hits', function () {
         $r->shouldReceive('resolveDetailed')
             ->once()
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(500, '8 GB', 's1.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(500, '8 GB', 's1.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest($items, [$e1, $e2]));
@@ -242,14 +245,14 @@ it('falls back to per-episode when full-season pack misses', function () {
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
             ->once()
-            ->andReturn(new ResolveResult(null, false));
+            ->andReturn(new FinderResult(null, false));
 
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
             ->times(2)
             ->andReturn(
-                new ResolveResult(makePlannerTorrentMatch(601, '2 GB', 'ep1.torrent'), false),
-                new ResolveResult(null, false),
+                new FinderResult(makePlannerTorrentMatch(601, '2 GB', 'ep1.torrent'), false),
+                new FinderResult(null, false),
             );
     });
 
@@ -272,14 +275,14 @@ it('fires multi-season pack search only for full-season episode misses', functio
             $r->shouldReceive('resolveDetailed')
                 ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
                 ->once()
-                ->andReturn(new ResolveResult(null, false));
+                ->andReturn(new FinderResult(null, false));
 
             $r->shouldReceive('resolveDetailed')
                 ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
                 ->times(2)
                 ->andReturn(
-                    new ResolveResult(null, false),
-                    new ResolveResult(null, false),
+                    new FinderResult(null, false),
+                    new FinderResult(null, false),
                 );
         },
         function (MockInterface $i) use ($show) {
@@ -287,6 +290,8 @@ it('fires multi-season pack search only for full-season episode misses', functio
                 ->once()
                 ->with(Mockery::on(fn (Show $s): bool => $s->id === $show->id), 2)
                 ->andReturn(makePlannerTorrentMatch(900, '120 GB', 'pack.torrent'));
+
+            $i->shouldReceive('searchMultiSeasonPackByName')->never();
         },
     );
 
@@ -294,6 +299,46 @@ it('fires multi-season pack search only for full-season episode misses', functio
 
     expect($plan->multiSeasonReview)->toHaveCount(1)
         ->and($plan->multiSeasonReview[0]['season'])->toBe(2)
+        ->and($plan->multiSeasonReview[0]['requestItems'])->toHaveCount(2)
+        ->and($plan->notFound)->toHaveCount(2);
+});
+
+it('falls back to multi-season pack by name when id search misses', function () {
+    $show = makePlannerShow(17, 'tt9000017', 'Nameless Show');
+    $e1 = makePlannerEpisode(311, $show, 3, 1);
+    $e2 = makePlannerEpisode(312, $show, 3, 2);
+    $items = [makePlannerItem(1, $e1), makePlannerItem(2, $e2)];
+
+    $planner = mockPlanner(
+        function (MockInterface $r) {
+            $r->shouldReceive('resolveDetailed')
+                ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
+                ->once()
+                ->andReturn(new FinderResult(null, false));
+
+            $r->shouldReceive('resolveDetailed')
+                ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
+                ->times(2)
+                ->andReturn(new FinderResult(null, false), new FinderResult(null, false));
+        },
+        function (MockInterface $i) use ($show) {
+            $i->shouldReceive('searchMultiSeasonPack')
+                ->once()
+                ->with(Mockery::on(fn (Show $s): bool => $s->id === $show->id), 3)
+                ->andReturnNull();
+
+            $i->shouldReceive('searchMultiSeasonPackByName')
+                ->once()
+                ->with(Mockery::on(fn (Show $s): bool => $s->id === $show->id), 3)
+                ->andReturn(makePlannerTorrentMatch(901, '120 GB', 'name-pack.torrent'));
+        },
+    );
+
+    $plan = $planner->plan(makePlannerRequest($items, [$e1, $e2]));
+
+    expect($plan->multiSeasonReview)->toHaveCount(1)
+        ->and($plan->multiSeasonReview[0]['season'])->toBe(3)
+        ->and($plan->multiSeasonReview[0]['pack']['torrent_id'])->toBe(901)
         ->and($plan->multiSeasonReview[0]['requestItems'])->toHaveCount(2)
         ->and($plan->notFound)->toHaveCount(2);
 });
@@ -317,10 +362,11 @@ it('does NOT call multi-season search on partial-season episode requests', funct
             $r->shouldReceive('resolveDetailed')
                 ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
                 ->times(2)
-                ->andReturn(new ResolveResult(null, false), new ResolveResult(null, false));
+                ->andReturn(new FinderResult(null, false), new FinderResult(null, false));
         },
         function (MockInterface $i) {
             $i->shouldReceive('searchMultiSeasonPack')->never();
+            $i->shouldReceive('searchMultiSeasonPackByName')->never();
         },
     );
 
@@ -338,8 +384,8 @@ it('dedupes downloads by torrent_id', function () {
     $planner = mockPlanner(function (MockInterface $r) {
         $r->shouldReceive('resolveDetailed')->times(2)
             ->andReturn(
-                new ResolveResult(makePlannerTorrentMatch(777, '4 GB', 'a.torrent'), false),
-                new ResolveResult(makePlannerTorrentMatch(777, '4 GB', 'a.torrent'), false),
+                new FinderResult(makePlannerTorrentMatch(777, '4 GB', 'a.torrent'), false),
+                new FinderResult(makePlannerTorrentMatch(777, '4 GB', 'a.torrent'), false),
             );
     });
 
@@ -360,7 +406,7 @@ it('excludes unaired episodes from full-season detection', function () {
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(800, '6 GB', 'pack.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(800, '6 GB', 'pack.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest($items, [$aired, $unaired]));
@@ -381,7 +427,7 @@ it('excludes specials from full-season detection', function () {
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(810, '6 GB', 'pack.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(810, '6 GB', 'pack.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest($items, [$regular, $special]));
@@ -405,7 +451,7 @@ it('requesting only specials is not treated as full season', function () {
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(900, '2 GB', 'sp.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(900, '2 GB', 'sp.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest($items, [$regular, $special]));
@@ -436,19 +482,19 @@ it('handles mixed request with movies + multiple shows + full + partial seasons'
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Movie))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(1, '4 GB', 'mv.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(1, '4 GB', 'mv.torrent'), false));
 
         // Show A: full season → pack hit
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::SeasonPack))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(2, '8 GB', 'pack.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(2, '8 GB', 'pack.torrent'), false));
 
         // Show B: partial → episode resolve, hit
         $r->shouldReceive('resolveDetailed')
             ->with(Mockery::on(fn (TorrentRequest $tr): bool => $tr->kind === Kind::Episode))
             ->once()
-            ->andReturn(new ResolveResult(makePlannerTorrentMatch(3, '2 GB', 'ep.torrent'), false));
+            ->andReturn(new FinderResult(makePlannerTorrentMatch(3, '2 GB', 'ep.torrent'), false));
     });
 
     $plan = $planner->plan(makePlannerRequest($items, [$a1, $a2, $b1, $b2]));

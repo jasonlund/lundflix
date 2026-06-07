@@ -11,20 +11,15 @@ use InvalidArgumentException;
 
 final class TorrentRequest
 {
-    /**
-     * @param  Movie|Episode|array<string, mixed>  $target
-     */
     public function __construct(
         public readonly Kind $kind,
-        public readonly Movie|Episode|array $target,
+        public readonly Movie|Episode|SeasonPackTarget $target,
         public readonly int $maxBytes,
     ) {
         $valid = match ($kind) {
             Kind::Movie => $target instanceof Movie,
             Kind::Episode => $target instanceof Episode,
-            Kind::SeasonPack => is_array($target)
-                && ($target['show'] ?? null) instanceof Show
-                && is_int($target['season'] ?? null),
+            Kind::SeasonPack => $target instanceof SeasonPackTarget,
         };
 
         if (! $valid) {
@@ -52,19 +47,19 @@ final class TorrentRequest
 
     public function show(): Show
     {
-        if (! is_array($this->target) || ! (($this->target['show'] ?? null) instanceof Show)) {
+        if (! $this->target instanceof SeasonPackTarget) {
             throw new InvalidArgumentException('Not a season pack request.');
         }
 
-        return $this->target['show'];
+        return $this->target->show;
     }
 
     public function season(): int
     {
-        if (! is_array($this->target) || ! is_int($this->target['season'] ?? null)) {
+        if (! $this->target instanceof SeasonPackTarget) {
             throw new InvalidArgumentException('Not a season pack request.');
         }
 
-        return $this->target['season'];
+        return $this->target->season;
     }
 }

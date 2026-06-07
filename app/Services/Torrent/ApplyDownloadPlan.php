@@ -18,14 +18,33 @@ use Illuminate\Support\Facades\Notification;
 
 class ApplyDownloadPlan
 {
-    public function apply(Request $request, PlanResult $plan): void
+    /**
+     * @param  array<int, true>  $dispatchedTorrentIds  Tracks torrent_ids already dispatched across plans in one run.
+     */
+    public function apply(Request $request, PlanResult $plan, array &$dispatchedTorrentIds = []): void
     {
-        if ($plan->downloads !== []) {
-            DownloadTorrents::dispatch($plan->downloads);
+        $downloads = array_values(array_filter(
+            $plan->downloads,
+            function (array $download) use (&$dispatchedTorrentIds): bool {
+                if (isset($dispatchedTorrentIds[$download['torrent_id']])) {
+                    return false;
+                }
+
+                $dispatchedTorrentIds[$download['torrent_id']] = true;
+
+                return true;
+            },
+        ));
+
+        if ($downloads !== []) {
+            DownloadTorrents::dispatch($downloads);
         }
 
         $this->markNotFound($plan->notFound);
-        $this->markNotFound($plan->oversize);
+        $this->markNotFound(array_map(
+            fn (array $entry): RequestItem => $entry['item'],
+            $plan->oversize,
+        ));
 
         $this->fireNotifications($plan);
     }
@@ -65,10 +84,7 @@ class ApplyDownloadPlan
         if ($plan->oversize !== []) {
             $this->sendIfChannel(
                 SlackNotificationType::TorrentOversize,
-                fn (): TorrentOversizeNotification => new TorrentOversizeNotification(
-                    $plan->oversize,
-                    (int) config('torrent.max_bytes.movie'),
-                ),
+                fn (): TorrentOversizeNotification => new TorrentOversizeNotification($plan->oversize),
             );
         }
 

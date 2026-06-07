@@ -180,6 +180,36 @@ it('plans per subscription when multiple users subscribe to the same show', func
     Event::assertDispatchedTimes(MediaAvailable::class, 1);
 });
 
+it('dispatches DownloadTorrents once when multiple subscriptions resolve the same torrent_id', function () {
+    Event::fake([MediaAvailable::class]);
+
+    mockShowPlanner(function ($mock): void {
+        $mock->shouldReceive('plan')
+            ->times(2)
+            ->andReturn(fakeShowPlanDownload('Game.Of.Thrones.S08.COMPLETE.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
+
+    $show = Show::factory()->create(['name' => 'Game Of Thrones']);
+
+    foreach (range(1, 2) as $_) {
+        Subscription::factory()->forSubscribable($show)->create([
+            'user_id' => User::factory()->create()->id,
+        ]);
+    }
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 8,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    Bus::assertDispatchedTimes(DownloadTorrents::class, 1);
+});
+
 it('marks newly requested episodes in the pivot table', function () {
     Event::fake([MediaAvailable::class]);
 

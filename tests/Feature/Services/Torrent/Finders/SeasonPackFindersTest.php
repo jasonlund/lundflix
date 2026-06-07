@@ -4,6 +4,7 @@ use App\Models\Show;
 use App\Services\Torrent\Finders\SeasonPackByImdbFinder;
 use App\Services\Torrent\Finders\SeasonPackByNameFinder;
 use App\Services\Torrent\Kind;
+use App\Services\Torrent\SeasonPackTarget;
 use App\Services\Torrent\TorrentRequest;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Support\Facades\Http;
@@ -29,7 +30,7 @@ it('SeasonPackByImdbFinder hits TV pack categories with season token', function 
     ]);
 
     $finder = app(SeasonPackByImdbFinder::class);
-    $result = $finder->find(new TorrentRequest(Kind::SeasonPack, ['show' => $show, 'season' => 3], 60_000_000_000));
+    $result = $finder->find(new TorrentRequest(Kind::SeasonPack, new SeasonPackTarget($show, 3), 60_000_000_000));
 
     expect($result['torrent_id'])->toBe(1);
     Http::assertSent(fn ($r) => str_contains($r->url(), 'q=tt6666666+S03')
@@ -47,7 +48,7 @@ it('SeasonPackByImdbFinder skips oversize pack', function () {
     ]);
 
     $finder = app(SeasonPackByImdbFinder::class);
-    expect($finder->find(new TorrentRequest(Kind::SeasonPack, ['show' => $show, 'season' => 3], 60_000_000_000)))->toBeNull();
+    expect($finder->find(new TorrentRequest(Kind::SeasonPack, new SeasonPackTarget($show, 3), 60_000_000_000)))->toBeNull();
 });
 
 it('SeasonPackByNameFinder IMDB-verifies result', function () {
@@ -64,7 +65,7 @@ it('SeasonPackByNameFinder IMDB-verifies result', function () {
     });
 
     $finder = app(SeasonPackByNameFinder::class);
-    $result = $finder->find(new TorrentRequest(Kind::SeasonPack, ['show' => $show, 'season' => 3], 60_000_000_000));
+    $result = $finder->find(new TorrentRequest(Kind::SeasonPack, new SeasonPackTarget($show, 3), 60_000_000_000));
 
     expect($result['torrent_id'])->toBe(50);
     Http::assertSent(fn ($r) => str_contains($r->url(), 'q=My+Show+s03')

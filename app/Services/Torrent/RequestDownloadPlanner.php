@@ -30,7 +30,7 @@ class RequestDownloadPlanner
         $downloadsByTorrentId = [];
         /** @var list<RequestItem> $notFound */
         $notFound = [];
-        /** @var list<RequestItem> $oversize */
+        /** @var list<array{item: RequestItem, maxBytes: int}> $oversize */
         $oversize = [];
         /** @var list<array{show: Show, season: int, pack: array<string, mixed>, requestItems: list<RequestItem>}> $multiSeasonReview */
         $multiSeasonReview = [];
@@ -56,7 +56,7 @@ class RequestDownloadPlanner
             }
 
             if ($result->oversizeCandidatesExisted) {
-                $oversize[] = $item;
+                $oversize[] = ['item' => $item, 'maxBytes' => (int) config('torrent.max_bytes.movie')];
             } else {
                 $notFound[] = $item;
             }
@@ -73,13 +73,11 @@ class RequestDownloadPlanner
             $airedRegular = $this->airedRegularEpisodesInSeason($show, $season);
             $isFullSeason = $this->isFullSeason($groupItems, $airedRegular);
 
-            $packCap = $this->packCap(count($airedRegular));
-
             if ($isFullSeason && $airedRegular !== []) {
                 $packRequest = new TorrentRequest(
                     Kind::SeasonPack,
-                    ['show' => $show, 'season' => $season],
-                    $packCap,
+                    new SeasonPackTarget($show, $season),
+                    $this->packCap(count($airedRegular)),
                 );
 
                 $packResult = $this->resolver->resolveDetailed($packRequest);
@@ -120,7 +118,7 @@ class RequestDownloadPlanner
                 }
 
                 if ($episodeResult->oversizeCandidatesExisted) {
-                    $oversize[] = $item;
+                    $oversize[] = ['item' => $item, 'maxBytes' => (int) config('torrent.max_bytes.episode')];
                 } else {
                     $notFound[] = $item;
                     $episodeMisses[] = $item;
@@ -129,6 +127,7 @@ class RequestDownloadPlanner
 
             if ($isFullSeason && $episodeMisses !== []) {
                 $multiSeason = $this->ipt->searchMultiSeasonPack($show, $season);
+                $multiSeason ??= $this->ipt->searchMultiSeasonPackByName($show, $season);
 
                 if ($multiSeason !== null) {
                     $multiSeasonReview[] = [

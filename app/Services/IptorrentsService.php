@@ -11,6 +11,7 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Services\Torrent\Support\PackNameParser;
+use App\Services\Torrent\Support\SearchTermBuilder;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -82,13 +83,13 @@ class IptorrentsService
             IptCategory::defaultMovieValues(),
         );
 
-        $terms = $this->resolveSearchTerms($movie->ipt_search_terms, $movie->title);
+        $terms = SearchTermBuilder::resolveTerms($movie->ipt_search_terms, $movie->title);
 
         if ($terms === []) {
             return null;
         }
 
-        $query = $this->buildOrQuery($terms).($movie->year ? ' '.$movie->year : '');
+        $query = SearchTermBuilder::buildOrQuery($terms).($movie->year ? ' '.$movie->year : '');
         $results = $this->search($query, $categories);
 
         $seenPrefixes = [];
@@ -158,13 +159,13 @@ class IptorrentsService
 
         $existingTerms = $episode->show->ipt_search_terms ?? [];
         $learnEnabled = $existingTerms === [];
-        $terms = $this->resolveSearchTerms($existingTerms, $episode->show->name);
+        $terms = SearchTermBuilder::resolveTerms($existingTerms, $episode->show->name);
 
         if ($terms === []) {
             return null;
         }
 
-        $query = $this->buildOrQuery($terms)." {$episode->code}";
+        $query = SearchTermBuilder::buildOrQuery($terms)." {$episode->code}";
         $results = $this->search($query, $categories);
 
         $seenPrefixes = [];
@@ -224,14 +225,14 @@ class IptorrentsService
         }
 
         $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
-        $terms = $this->resolveSearchTerms($show->ipt_search_terms, $show->name);
+        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->name);
 
         if ($terms === []) {
             return null;
         }
 
         $token = sprintf('S%02d', $season);
-        $query = $this->buildOrQuery($terms)." {$token}";
+        $query = SearchTermBuilder::buildOrQuery($terms)." {$token}";
         $results = $this->search($query, $categories);
 
         $seenPrefixes = [];
@@ -300,13 +301,13 @@ class IptorrentsService
         }
 
         $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
-        $terms = $this->resolveSearchTerms($show->ipt_search_terms, $show->name);
+        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->name);
 
         if ($terms === []) {
             return null;
         }
 
-        $results = $this->search($this->buildOrQuery($terms), $categories);
+        $results = $this->search(SearchTermBuilder::buildOrQuery($terms), $categories);
 
         $lookups = 0;
 
@@ -402,6 +403,20 @@ class IptorrentsService
         return Storage::disk('local')->path($path);
     }
 
+    /**
+     * Persist a learned IPTorrents search term for a show when its release title
+     * diverges from the canonical show name.
+     *
+     * Gating contract: callers MUST only invoke this when the show has no learned
+     * terms yet (`ipt_search_terms` empty). This method does NOT re-check that
+     * precondition before doing rate-limited work (search + IMDb lookup). The
+     * `update()` WHERE clause is a secondary net that prevents overwriting an
+     * existing learned term, but it does not save the wasted lookups.
+     *
+     * @param  Episode  $episode  Episode whose show may receive a learned term.
+     * @param  string  $torrentName  Release name a match was found under.
+     * @param  int  $matchIndex  Index of the match; 0 means the canonical name already matched.
+     */
     private function learnSearchTerm(Episode $episode, string $torrentName, int $matchIndex): void
     {
         if ($matchIndex === 0) {
@@ -414,7 +429,7 @@ class IptorrentsService
             return;
         }
 
-        if (mb_strtolower($showTitle) === mb_strtolower($this->sanitizeNameForSearch($episode->show->name))) {
+        if (mb_strtolower($showTitle) === mb_strtolower(SearchTermBuilder::sanitize($episode->show->name))) {
             return;
         }
 
@@ -448,41 +463,6 @@ class IptorrentsService
             ->update(['ipt_search_terms' => json_encode([$showTitle])]);
     }
 
-    /**
-     * @param  mixed  $stored
-     * @return list<string>
-     */
-    private function resolveSearchTerms($stored, ?string $fallbackName): array
-    {
-        $terms = is_array($stored) ? array_values(array_filter(
-            array_map(static fn ($t): string => is_string($t) ? trim($t) : '', $stored),
-            static fn (string $t): bool => $t !== '',
-        )) : [];
-
-        if ($terms !== []) {
-            return $terms;
-        }
-
-        $sanitized = $this->sanitizeNameForSearch((string) $fallbackName);
-
-        return $sanitized === '' ? [] : [$sanitized];
-    }
-
-    /**
-     * @param  list<string>  $terms
-     */
-    private function buildOrQuery(array $terms): string
-    {
-        if (count($terms) === 1) {
-            return $terms[0];
-        }
-
-        return implode('|', array_map(
-            static fn (string $t): string => '"'.str_replace('"', '', $t).'"',
-            $terms,
-        ));
-    }
-
     private function prefixKey(string $torrentName): ?string
     {
         $title = $this->extractShowTitle($torrentName);
@@ -497,13 +477,6 @@ class IptorrentsService
         }
 
         return null;
-    }
-
-    private function sanitizeNameForSearch(string $name): string
-    {
-        $name = (string) preg_replace('/[\x{2010}-\x{2015}\x{2D}]+/u', ' ', $name);
-
-        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
     private function buildSearchUrl(string $query, array $categories, string $sort): string

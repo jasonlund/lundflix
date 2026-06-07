@@ -245,6 +245,31 @@ it('plans per subscription when multiple users subscribe to the same movie', fun
     Event::assertDispatchedTimes(MediaAvailable::class, 1);
 });
 
+it('dispatches DownloadTorrents once when multiple subscriptions resolve the same torrent_id', function () {
+    Event::fake([MediaAvailable::class]);
+
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->times(2)->andReturn(fakeMoviePlanDownload('Shared.Film.2024.1080p.WEB-DL.x264-GROUP.torrent'));
+    });
+
+    $movie = Movie::factory()->create([
+        'title' => 'Shared Film',
+        'year' => 2024,
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+
+    foreach (range(1, 2) as $_) {
+        Subscription::factory()->forSubscribable($movie)->create([
+            'user_id' => User::factory()->create()->id,
+        ]);
+    }
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    Bus::assertDispatchedTimes(DownloadTorrents::class, 1);
+});
+
 it('bails early when the planner throws IptorrentsRateLimitExceededException', function () {
     Event::fake([MediaAvailable::class]);
 
@@ -269,6 +294,28 @@ it('bails early when the planner throws IptorrentsRateLimitExceededException', f
     Bus::assertNotDispatched(DownloadTorrents::class);
 });
 
+it('does not fulfill the subscription or dispatch a download when the planner throws a generic error', function () {
+    Event::fake([MediaAvailable::class]);
+
+    mockMoviePlanner(function ($mock): void {
+        $mock->shouldReceive('plan')->once()->andThrow(new \RuntimeException('boom'));
+    });
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    $sub = Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect($sub->fresh()->fulfilled_at)->toBeNull();
+
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
 it('marks an item NotFound and skips MediaAvailable when the result is oversize-only', function () {
     Event::fake([MediaAvailable::class]);
 
@@ -277,7 +324,10 @@ it('marks an item NotFound and skips MediaAvailable when the result is oversize-
             return new PlanResult(
                 downloads: [],
                 notFound: [],
-                oversize: $request->items->all(),
+                oversize: array_map(
+                    fn ($item): array => ['item' => $item, 'maxBytes' => (int) config('torrent.max_bytes.movie')],
+                    $request->items->all(),
+                ),
                 multiSeasonReview: [],
                 packCovered: [],
             );
