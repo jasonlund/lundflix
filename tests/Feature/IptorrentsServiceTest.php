@@ -953,6 +953,89 @@ describe('searchEpisodeByName', function () {
         expect($method->invoke($service, 'Daily Show 2024.11.25 720p'))->toBe('Daily Show')
             ->and($method->invoke($service, 'Late Night 2024-01-15 1080p'))->toBe('Late Night');
     });
+
+    it('uses raw DB name for search when display name has country suffix', function () {
+        $network = fn (string $code): array => [
+            'id' => 1,
+            'name' => 'Net',
+            'country' => ['name' => 'X', 'code' => $code, 'timezone' => 'UTC'],
+        ];
+
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('GB')]);
+        $show = Show::factory()->create([
+            'imdb_id' => 'tt2222222',
+            'name' => 'Taskmaster',
+            'network' => $network('AU'),
+        ]);
+        Show::recomputeAmbiguousNames();
+
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        expect($show->name)->toBe('Taskmaster AU');
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 970, name: 'Taskmaster S01E01 1080p', seeders: 50),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(970);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), 'q=Taskmaster+s01e01')
+            && ! str_contains($request->url(), 'Taskmaster+AU'));
+    });
+
+    it('skips learning when extracted title matches raw DB name', function () {
+        $network = fn (string $code): array => [
+            'id' => 1,
+            'name' => 'Net',
+            'country' => ['name' => 'X', 'code' => $code, 'timezone' => 'UTC'],
+        ];
+
+        Show::factory()->create(['name' => 'Taskmaster', 'network' => $network('GB')]);
+        $show = Show::factory()->create([
+            'imdb_id' => 'tt2222222',
+            'name' => 'Taskmaster',
+            'network' => $network('AU'),
+        ]);
+        Show::recomputeAmbiguousNames();
+
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php?id=980')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=981')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 980, name: 'Wrong.Show.S01E01.1080p', seeders: 200),
+                fakeIptTorrentRow(torrentId: 981, name: 'Taskmaster S01E01 1080p', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchEpisodeByName($episode);
+
+        expect($show->fresh()->ipt_search_terms)->toBeNull();
+
+        // 1 search + 2 IMDB lookups. No verification search because extracted
+        // title "Taskmaster" matches the raw DB name.
+        Http::assertSentCount(3);
+    });
 });
 
 describe('searchSeasonPack', function () {

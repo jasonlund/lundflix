@@ -254,7 +254,7 @@ class IptSearchLinksWidget extends TableWidget
         $seasonCode = 'S'.str_pad((string) $requestable->season, 2, '0', STR_PAD_LEFT);
 
         $suggestions = [
-            $show->name,
+            $show->getRawOriginal('name'),
             $show->imdb_id,
             $seasonCode,
         ];

@@ -3,9 +3,15 @@
 use App\Models\RequestItem;
 use App\Support\UserTime;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new class extends Component {
+    #[On('profile-updated')]
+    public function refresh(): void
+    {
+    }
+
     #[Computed]
     public function greeting(): string
     {

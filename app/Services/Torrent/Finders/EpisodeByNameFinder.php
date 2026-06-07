@@ -47,7 +47,7 @@ final class EpisodeByNameFinder implements TorrentFinder
         $show = $episode->show;
         $categories = array_map(IptCategory::from(...), IptCategory::defaultTvValues());
 
-        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->name);
+        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->getRawOriginal('name'));
 
         if ($terms === []) {
             return FinderResult::none();

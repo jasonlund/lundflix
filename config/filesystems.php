@@ -49,10 +49,10 @@ return [
 
         'torrent' => [
             'driver' => 'ftp',
-            'host' => env('TORRENT_FTP_HOST'),
-            'username' => env('TORRENT_FTP_USERNAME'),
-            'password' => env('TORRENT_FTP_PASSWORD'),
-            'root' => env('TORRENT_FTP_ROOT', '/'),
+            'host' => env('FTP_HOST'),
+            'username' => env('FTP_USERNAME'),
+            'password' => env('FTP_PASSWORD'),
+            'root' => env('FTP_ROOT', '/'),
             'throw' => true,
         ],
 

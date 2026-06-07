@@ -5,6 +5,7 @@ use App\Models\PlexMediaServer;
 use App\Models\Show;
 use App\Services\ThirdParty\PlexService;
 use App\Support\EpisodeCode;
+use App\Support\EpisodeGrouping;
 use App\Support\Formatters;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
@@ -17,28 +18,16 @@ use Livewire\Component;
 new class extends Component {
     public Show $show;
 
-    public function placeholder(): string
-    {
-        return <<<'HTML'
-        <div>
-            <flux:card class="cursor-wait overflow-hidden p-3">
-                <div class="flex w-full items-center">
-                    <div class="flex items-center gap-2">
-                        <flux:icon.loading class="size-4 text-zinc-400" />
-                    </div>
-                </div>
-            </flux:card>
-        </div>
-        HTML;
-    }
+    public bool $plexLoaded = false;
 
     public function boot(): void
     {
         $this->show->loadMissing('episodes');
     }
 
-    public function mount(): void
+    public function loadPlex(): void
     {
+        $this->plexLoaded = true;
         $this->dispatch('plex-show-loaded', availability: $this->episodeAvailability());
     }
 
@@ -46,12 +35,19 @@ new class extends Component {
     public function refreshAfterEpisodesLoaded(): void
     {
         $this->show->load('episodes');
-        $this->dispatch('plex-show-loaded', availability: $this->episodeAvailability());
+
+        if ($this->plexLoaded) {
+            $this->dispatch('plex-show-loaded', availability: $this->episodeAvailability());
+        }
     }
 
     #[Computed]
     public function servers(): Collection
     {
+        if (! $this->plexLoaded) {
+            return collect();
+        }
+
         $user = auth()->user();
         if (! $user?->plex_token || ! $this->show->imdb_id) {
             return collect();
@@ -111,20 +107,37 @@ new class extends Component {
             ->get()
             ->keyBy('client_identifier');
 
+        $regularEpisodes = $this->show->episodes->reject(fn (Episode $ep): bool => $ep->isSpecial());
+        $episodesByCode = $regularEpisodes->keyBy(
+            fn (Episode $ep): string => strtoupper(EpisodeCode::generate($ep->season, $ep->number)),
+        );
+
         return $this->servers
             ->filter(fn (array $server): bool => $plexServers->has($server['clientIdentifier']))
-            ->map(function (array $server) use ($airedCount, $airedEpisodeCodes, $plexServers): array {
-                $episodeCount = collect($server['episodes'])
+            ->map(function (array $server) use (
+                $airedCount,
+                $airedEpisodeCodes,
+                $plexServers,
+                $episodesByCode,
+                $regularEpisodes,
+            ): array {
+                $plexCodes = collect($server['episodes'])
                     ->map(
                         fn (array $episode): string => strtoupper(
                             EpisodeCode::generate($episode['season'], $episode['episode']),
                         ),
                     )
-                    ->unique()
-                    ->intersect($airedEpisodeCodes)
-                    ->count();
+                    ->unique();
 
+                $episodeCount = $plexCodes->intersect($airedEpisodeCodes)->count();
                 $hasAllAired = $airedCount > 0 && $episodeCount === $airedCount;
+
+                $matchedEpisodes = $plexCodes
+                    ->map(fn (string $code): ?Episode => $episodesByCode->get($code))
+                    ->filter()
+                    ->values();
+
+                $seasons = EpisodeGrouping::groupBySeason($matchedEpisodes, $regularEpisodes);
 
                 $tooltip = $hasAllAired
                     ? "{$server['name']} — All episodes"
@@ -141,6 +154,7 @@ new class extends Component {
                     'episodeCount' => $episodeCount,
                     'airedCount' => $airedCount,
                     'hasAllAired' => $hasAllAired,
+                    'seasons' => $seasons,
                     'tooltip' => $tooltip,
                     'webUrl' => $webUrl,
                 ];
@@ -280,8 +294,8 @@ new class extends Component {
 };
 ?>
 
-<div>
-    <x-section heading="Availability" collapsible>
+<div wire:init="loadPlex">
+    <x-section collapsible>
         <x-slot:badge>
             <div class="flex items-center gap-1.5 text-sm">
                 @php
@@ -318,9 +332,12 @@ new class extends Component {
                     <x-middot />
                 @endif
 
-                @if (count($this->serverDisplayData) > 0)
-                    <div class="flex items-center gap-1.5 text-zinc-400">
-                        <x-plex-icon class="size-4" />
+                <div class="flex items-center gap-1.5 text-zinc-400">
+                    <x-plex-icon class="size-4" />
+
+                    @if (! $plexLoaded)
+                        <flux:icon.loading class="size-3" />
+                    @elseif (count($this->serverDisplayData) > 0)
                         @foreach ($this->serverDisplayData as $server)
                             @if (! $loop->first)
                                 <x-middot />
@@ -330,6 +347,7 @@ new class extends Component {
                                 <flux:avatar
                                     size="xs"
                                     circle
+                                    class="size-4"
                                     :src="$server['ownerThumb']"
                                     :name="$server['name']"
                                     :tooltip="$server['tooltip']"
@@ -337,95 +355,123 @@ new class extends Component {
                                 <span>{{ $server['episodeCount'] }}</span>
                             </div>
                         @endforeach
-                    </div>
-                @else
-                    <div class="flex items-center gap-1.5 text-zinc-400">
-                        <x-plex-icon class="size-4" />
-                        <span class="text-sm font-semibold">Unavailable</span>
-                    </div>
-                @endif
+                    @else
+                        <flux:icon.no-symbol variant="micro" class="text-zinc-500" />
+                    @endif
+                </div>
             </div>
         </x-slot>
 
-        @if (count($this->serverDisplayData) > 0)
-            <flux:table class="mt-4">
-                <flux:table.rows>
-                    @foreach ($this->serverDisplayData as $server)
-                        <flux:table.row wire:key="row-{{ $server['clientIdentifier'] }}">
-                            <flux:table.cell variant="strong">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
-                                    ></div>
-                                    <flux:avatar
-                                        size="xs"
-                                        circle
-                                        :src="$server['ownerThumb']"
-                                        :name="$server['name']"
-                                    />
+        @if (! $plexLoaded)
+            <div class="mt-4 flex items-center gap-2 text-sm text-zinc-500">
+                <flux:icon.loading class="size-4" />
+            </div>
+        @elseif (count($this->serverDisplayData) > 0)
+            <x-dashboard.list>
+                @foreach ($this->serverDisplayData as $server)
+                    <x-dashboard.list-row
+                        :href="$server['webUrl']"
+                        :navigate="false"
+                        target="_blank"
+                        rel="noopener"
+                        class="text-sm"
+                        :wire-key="'row-' . $server['clientIdentifier']"
+                    >
+                        <x-slot:leading>
+                            <div class="mt-1 flex shrink-0 items-center gap-2 sm:mt-0">
+                                <span
+                                    class="{{ $server['isOnline'] ? 'bg-green-500' : 'bg-red-500' }} size-2 shrink-0 rounded-full"
+                                ></span>
+                                <flux:avatar size="xs" circle :src="$server['ownerThumb']" :name="$server['name']" />
+                            </div>
+                        </x-slot>
+
+                        @php
+                            $seasonLabels = Formatters::seasonRunLabels($server['seasons']);
+                        @endphp
+
+                        <div class="flex flex-col gap-0.5">
+                            <div>
+                                <span
+                                    class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
+                                >
                                     {{ $server['name'] }}
+                                </span>
+                                <span class="hidden text-zinc-500 sm:inline">·</span>
+                                <span class="text-sm text-zinc-400">
+                                    @if ($server['hasAllAired'])
+                                        All
+                                    @else
+                                        {{ $server['episodeCount'] }}
+                                    @endif
+                                </span>
+                            </div>
+
+                            @if (! empty($seasonLabels))
+                                <div class="text-sm text-zinc-400">
+                                    @foreach ($seasonLabels as $label)
+                                        @if (! $loop->first)
+                                            <span class="text-zinc-500">·</span>
+                                        @endif
+
+                                        <span>{{ $label }}</span>
+                                    @endforeach
                                 </div>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                @if ($server['hasAllAired'])
-                                    All
-                                @else
-                                    {{ $server['episodeCount'] }}
-                                @endif
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <flux:button
-                                    variant="ghost"
-                                    size="sm"
-                                    icon="arrow-top-right-on-square"
-                                    href="{{ $server['webUrl'] }}"
-                                    target="_blank"
-                                    inset="top bottom"
-                                />
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                            @endif
+                        </div>
+
+                        <x-slot:trailing>
+                            <flux:icon name="arrow-top-right-on-square" variant="mini" class="shrink-0 text-zinc-400" />
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @else
             <flux:text class="mt-4 text-zinc-500">Not available on any Plex server.</flux:text>
         @endif
 
         @if (count($this->episodeMilestones) > 0)
             <flux:separator class="my-4" />
-            <flux:heading size="xs" class="mb-2 text-zinc-400">Episodes</flux:heading>
-            <flux:table>
-                <flux:table.rows>
-                    @foreach ($this->episodeMilestones as $key => $milestone)
-                        <flux:table.row wire:key="milestone-{{ $key }}">
-                            <flux:table.cell variant="strong">
-                                {{ $milestone['label'] }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <span class="text-sm text-zinc-400">{{ $milestone['code'] }}</span>
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                {{ $milestone['name'] ?? '' }}
-                            </flux:table.cell>
-                            <flux:table.cell>
-                                <span class="text-sm text-zinc-400">
-                                    @if ($milestone['date'])
-                                        {{ $milestone['date'] }}
-                                    @endif
+            <flux:heading size="xs" class="text-zinc-400">Episodes</flux:heading>
+            <x-dashboard.list>
+                @foreach ($this->episodeMilestones as $key => $milestone)
+                    <x-dashboard.list-row class="text-sm" :wire-key="'milestone-' . $key">
+                        <span class="block truncate sm:inline sm:overflow-visible sm:whitespace-normal">
+                            {{ $milestone['label'] }}
+                        </span>
+                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                        <span class="block text-sm text-zinc-400 sm:inline">
+                            {{ $milestone['code'] }}
+                        </span>
+                        @if (! empty($milestone['name']))
+                            <span class="hidden text-zinc-500 sm:inline">·</span>
+                            <span
+                                class="block truncate font-serif tracking-wide text-zinc-400 sm:inline sm:overflow-visible sm:whitespace-normal"
+                            >
+                                {{ $milestone['name'] }}
+                            </span>
+                        @endif
 
-                                    @if ($milestone['date'] && $milestone['runtime'])
-                                        <x-middot />
-                                    @endif
+                        <x-slot:trailing>
+                            <span class="shrink-0 text-right text-sm text-zinc-400">
+                                @if ($milestone['date'])
+                                    {{ $milestone['date'] }}
+                                @endif
 
-                                    @if ($milestone['runtime'])
+                                @if ($milestone['date'] && $milestone['runtime'])
+                                    <span class="hidden text-zinc-500 sm:inline">·</span>
+                                @endif
+
+                                @if ($milestone['runtime'])
+                                    <span class="block text-zinc-500 sm:inline sm:text-xs">
                                         {{ $milestone['runtime'] }}
-                                    @endif
-                                </span>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+                                    </span>
+                                @endif
+                            </span>
+                        </x-slot>
+                    </x-dashboard.list-row>
+                @endforeach
+            </x-dashboard.list>
         @endif
     </x-section>
 </div>

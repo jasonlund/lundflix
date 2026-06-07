@@ -10,6 +10,7 @@ use App\Enums\MovieStatus;
 use App\Enums\TMDBReleaseType;
 use App\Models\Concerns\HasArtwork;
 use App\Models\Concerns\HasObfuscatedId;
+use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Database\Factories\MovieFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,6 +50,18 @@ class Movie extends Model
             'tmdb_synced_at' => 'datetime',
             'ipt_search_terms' => 'array',
         ];
+    }
+
+    public function releasedAt(): ?Carbon
+    {
+        if (! $this->digital_release_date) {
+            return null;
+        }
+
+        return Carbon::parse(
+            $this->digital_release_date->format('Y-m-d'),
+            AirDateTime::DEFAULT_TIMEZONE
+        )->startOfDay()->utc();
     }
 
     /**

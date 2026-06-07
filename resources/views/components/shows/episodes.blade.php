@@ -494,14 +494,20 @@ new class extends Component {
                     {{ __('lundbergh.plex.multi_server_outro') }}
                 </p>
 
-                <div class="mt-4 divide-y divide-zinc-700">
+                <div class="-mx-3 mt-3">
                     <template x-for="server in selectedPlexEpisode?.servers ?? []" :key="server.clientIdentifier">
-                        <div class="flex items-center justify-between py-2.5">
-                            <div class="flex items-center gap-2">
-                                <div
+                        <a
+                            href="#"
+                            target="_blank"
+                            rel="noopener"
+                            x-bind:href="server.webUrl"
+                            class="flex items-start gap-3 border-t border-white/20 px-3 py-2.5 text-sm transition-colors first:border-t-0 hover:bg-white/5 sm:items-center"
+                        >
+                            <div class="mt-1 flex shrink-0 items-center gap-2 sm:mt-0">
+                                <span
                                     class="size-2 shrink-0 rounded-full"
                                     x-bind:class="server.isOnline ? 'bg-green-500' : 'bg-red-500'"
-                                ></div>
+                                ></span>
                                 <img
                                     x-bind:src="server.ownerThumb"
                                     x-bind:alt="server.name"
@@ -513,21 +519,26 @@ new class extends Component {
                                     class="flex size-6 items-center justify-center rounded-full bg-zinc-600 text-xs font-medium text-white"
                                     x-text="server.name?.charAt(0)?.toUpperCase()"
                                 ></span>
-                                <span class="text-sm font-medium text-white" x-text="server.name"></span>
-                                <span
-                                    x-show="server.videoResolution"
-                                    class="text-xs text-zinc-400"
-                                    x-text="server.videoResolution"
-                                ></span>
                             </div>
-                            <a
-                                x-bind:href="server.webUrl"
-                                target="_blank"
-                                class="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
-                            >
-                                <flux:icon.arrow-top-right-on-square class="size-4" />
-                            </a>
-                        </div>
+
+                            <span class="min-w-0 flex-1 overflow-hidden font-medium text-white">
+                                <span
+                                    class="block truncate font-serif tracking-wide sm:inline sm:overflow-visible sm:whitespace-normal"
+                                    x-text="server.name"
+                                ></span>
+                                <template x-if="server.videoResolution">
+                                    <span>
+                                        <span class="hidden text-zinc-500 sm:inline">·</span>
+                                        <span
+                                            class="block text-sm text-zinc-400 sm:inline"
+                                            x-text="server.videoResolution"
+                                        ></span>
+                                    </span>
+                                </template>
+                            </span>
+
+                            <flux:icon name="arrow-top-right-on-square" variant="mini" class="shrink-0 text-zinc-400" />
+                        </a>
                     </template>
                 </div>
             </div>

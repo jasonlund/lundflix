@@ -34,9 +34,11 @@ return [
         'imdb_not_found' => "Yeah… so, we couldn't find that IMDb ID. I'm gonna need you to go ahead and come in tomorrow and… double-check it. That'd be great.",
         'episodes' => "Yeah… so, there aren't any episodes available right now.",
         'requests' => "Yeah… so, you haven't submitted any requests yet. I'm gonna need you to go ahead and search for something, add it to your cart, and submit a request. That'd be great.",
+        'subscriptions' => "Mmkay… you're not subscribed to anything yet. I'm gonna need you to go ahead and subscribe to a movie or show. That'd be great.",
     ],
     'error' => [
         'episodes_backoff' => "Yeah… so, we had a little trouble loading the episodes. I'm gonna need you to go ahead and try again in about an hour. That'd be great.",
+        'no_servers' => "Yeah… so, I can't find any servers right now. That's… not great.",
     ],
     'toast' => [
         'cart_added' => "Yeah… so, :title has been added to your cart. If you could add more or check out, that'd be great.",
@@ -63,6 +65,7 @@ return [
         'when_yesterday' => 'yesterday',
         'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
         'greeting_new' => "Yeah… so, welcome to lundflix. Mmkay… I don't see a request from you yet.<br>I'm gonna need you to go ahead and search for a movie or show, add it to your cart, and submit a request.<br>Oh, and make sure you use the new cover sheet on that. That'd be great.",
+        'no_recent_subscriptions' => "Mmkay… nothing's come out recently. So… yeah.",
     ],
     'loading' => [
         'skeleton' => "Yeah… so, we're loading that for you. If you could just hold on a moment, that'd be great.",

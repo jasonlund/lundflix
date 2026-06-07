@@ -207,6 +207,7 @@ return [
                         ['name' => 'id', 'type' => 'string'],
                         ['name' => 'imdb_id', 'type' => 'string'],
                         ['name' => 'name', 'type' => 'string'],
+                        ['name' => 'country', 'type' => 'string', 'optional' => true],
                         ['name' => 'year', 'type' => 'string', 'optional' => true],
                         ['name' => 'num_votes', 'type' => 'int32'],
                         ['name' => 'language', 'type' => 'string', 'optional' => true],
@@ -214,7 +215,7 @@ return [
                     'default_sorting_field' => 'num_votes',
                 ],
                 'search-parameters' => [
-                    'query_by' => 'name,year',
+                    'query_by' => 'name,country,year',
                     'sort_by' => '_text_match:desc,num_votes:desc',
                     'prioritize_exact_match' => true,
                     'prioritize_token_position' => true,

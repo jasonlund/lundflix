@@ -159,7 +159,7 @@ class IptorrentsService
 
         $existingTerms = $episode->show->ipt_search_terms ?? [];
         $learnEnabled = $existingTerms === [];
-        $terms = SearchTermBuilder::resolveTerms($existingTerms, $episode->show->name);
+        $terms = SearchTermBuilder::resolveTerms($existingTerms, $episode->show->getRawOriginal('name'));
 
         if ($terms === []) {
             return null;
@@ -429,7 +429,7 @@ class IptorrentsService
             return;
         }
 
-        if (mb_strtolower($showTitle) === mb_strtolower(SearchTermBuilder::sanitize($episode->show->name))) {
+        if (mb_strtolower($showTitle) === mb_strtolower(SearchTermBuilder::sanitize($episode->show->getRawOriginal('name')))) {
             return;
         }
 

@@ -44,7 +44,7 @@ final class SeasonPackByNameFinder implements TorrentFinder
         $season = $request->season();
         $categories = [IptCategory::TvPacks, IptCategory::TvPacksNonEnglish];
 
-        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->name);
+        $terms = SearchTermBuilder::resolveTerms($show->ipt_search_terms, $show->getRawOriginal('name'));
 
         if ($terms === []) {
             return FinderResult::none();

@@ -23,10 +23,10 @@ it('renders on the dashboard', function () {
         ->assertSeeLivewire('dashboard.requests');
 });
 
-it('hides the card when the user has no requests', function () {
+it('shows the empty state when the user has no requests', function () {
     Livewire::test('dashboard.requests')
         ->assertSuccessful()
-        ->assertDontSee('Requests');
+        ->assertSee(__('lundbergh.empty.requests'));
 });
 
 it('shows a filter-specific empty state when filters match no requests', function () {
@@ -234,8 +234,8 @@ it('paginates with more than 5 rows', function () {
 
     Livewire::test('dashboard.requests')
         ->assertSuccessful()
-        ->call('nextPage')
-        ->assertSuccessful();
+        ->call('nextPage', 'requestsPage')
+        ->assertSet('paginators.requestsPage', 2);
 });
 
 it('filters by a single status', function () {
@@ -315,6 +315,17 @@ it('shows a filter-specific empty state when no rows match the selected filters'
         ->assertDontSee(__('lundbergh.empty.requests'));
 });
 
+it('hydrates perPage from persisted user preference via Livewire lifecycle hook', function () {
+    $this->user->preferences->set('dashboard.requests.per_page', 20);
+    $this->user->save();
+
+    Livewire::test('dashboard.requests')->assertSet('perPage', 20);
+});
+
+it('falls back to default perPage when no preference is stored', function () {
+    Livewire::test('dashboard.requests')->assertSet('perPage', 5);
+});
+
 it('resets pagination when filters change', function () {
     $request = Request::factory()->for($this->user)->create();
 
@@ -326,7 +337,7 @@ it('resets pagination when filters change', function () {
     }
 
     Livewire::test('dashboard.requests')
-        ->call('nextPage')
+        ->call('nextPage', 'requestsPage')
         ->set('statusFilters', [RequestItemStatus::Pending->value])
-        ->assertSet('paginators.page', 1);
+        ->assertSet('paginators.requestsPage', 1);
 });

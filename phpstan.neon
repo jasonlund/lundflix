@@ -6,3 +6,9 @@ parameters:
         - app/
 
     level: 5
+
+    ignoreErrors:
+        -
+            identifier: trait.unused
+            path: app/Support/Concerns/WithPersistedPerPage.php
+            message: '#Trait App\\Support\\Concerns\\WithPersistedPerPage is used zero times and is not analysed\.#'

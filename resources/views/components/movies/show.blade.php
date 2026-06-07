@@ -131,13 +131,22 @@ new class extends Component {
                     >
                         <div class="relative flex items-center justify-center">
                             @if ($isSubscribed)
-                                <flux:icon.check x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
+                                <flux:icon.bell
+                                    variant="solid"
+                                    x-bind:class="syncing && 'opacity-0'"
+                                    class="size-5 text-white sm:size-4"
+                                />
                             @else
-                                <flux:icon.minus x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
+                                <flux:icon.bell x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
                             @endif
                             <flux:icon.loading x-show="syncing" x-cloak class="absolute size-5 sm:size-4" />
                         </div>
-                        <span x-bind:class="syncing && 'opacity-0'" aria-live="polite" x-bind:aria-busy="syncing">
+                        <span
+                            class="before:invisible before:block before:h-0 before:overflow-hidden before:content-['Subscribed']"
+                            x-bind:class="syncing && 'opacity-0'"
+                            aria-live="polite"
+                            x-bind:aria-busy="syncing"
+                        >
                             {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
                         </span>
                     </button>
@@ -252,7 +261,7 @@ new class extends Component {
 
     <div class="flex flex-col gap-8">
         @if ($movie->imdb_id)
-            <livewire:movies.availability :movie="$movie" lazy />
+            <livewire:movies.availability :movie="$movie" />
         @endif
     </div>
 </div>

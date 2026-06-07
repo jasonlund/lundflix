@@ -11,6 +11,7 @@ use App\Models\Movie;
 use App\Models\Show;
 use App\Support\AirDateTime;
 use App\Support\EpisodeCode;
+use App\Support\EpisodeGrouping;
 use Illuminate\Support\Collection;
 
 class CartService
@@ -132,84 +133,7 @@ class CartService
      */
     private function groupEpisodesBySeason(Collection $cartEpisodes, Collection $allShowEpisodes): array
     {
-        $bySeason = $cartEpisodes->groupBy('season');
-        $allBySeason = $allShowEpisodes->groupBy('season');
-        $result = [];
-
-        foreach ($bySeason as $seasonNum => $seasonEpisodes) {
-            $allSeasonEpisodes = $allBySeason->get($seasonNum, collect());
-
-            $isFull = $this->isFullSeason($seasonEpisodes, $allSeasonEpisodes);
-            $runs = $this->findRuns($seasonEpisodes, $allSeasonEpisodes);
-
-            $result[] = [
-                'season' => $seasonNum,
-                'is_full' => $isFull,
-                'runs' => $runs,
-                'episodes' => $seasonEpisodes,
-            ];
-        }
-
-        usort($result, fn (array $a, array $b): int => $a['season'] <=> $b['season']);
-
-        return $result;
-    }
-
-    /**
-     * Check if all episodes for a season are in the cart.
-     *
-     * @param  Collection<int, Episode>  $cartEpisodes
-     * @param  Collection<int, Episode>  $allSeasonEpisodes
-     */
-    private function isFullSeason(Collection $cartEpisodes, Collection $allSeasonEpisodes): bool
-    {
-        if ($allSeasonEpisodes->isEmpty()) {
-            return false;
-        }
-
-        $allIds = $allSeasonEpisodes->pluck('id')->sort()->values();
-        $cartIds = $cartEpisodes->pluck('id')->sort()->values();
-
-        return $allIds->toArray() === $cartIds->toArray();
-    }
-
-    /**
-     * Find consecutive runs of episodes based on airdate order.
-     *
-     * @param  Collection<int, Episode>  $cartEpisodes
-     * @param  Collection<int, Episode>  $allSeasonEpisodes
-     * @return array<int, Collection<int, Episode>>
-     */
-    private function findRuns(Collection $cartEpisodes, Collection $allSeasonEpisodes): array
-    {
-        if ($cartEpisodes->isEmpty()) {
-            return [];
-        }
-
-        $sortedAll = $allSeasonEpisodes
-            ->sort(fn ($a, $b): int => EpisodeCode::compareForSorting($a->toArray(), $b->toArray()))
-            ->values();
-
-        $cartIds = $cartEpisodes->pluck('id')->all();
-
-        $runs = [];
-        $currentRun = collect();
-
-        foreach ($sortedAll as $episode) {
-            $inCart = in_array($episode->id, $cartIds, true);
-
-            if ($inCart) {
-                $currentRun->push($episode);
-            } elseif ($currentRun->isNotEmpty()) {
-                $runs[] = $currentRun;
-                $currentRun = collect();
-            }
-        }
-
-        if ($currentRun->isNotEmpty()) {
-            $runs[] = $currentRun;
-        }
-
-        return $runs;
+        /** @var array<int, array{season: int, is_full: bool, runs: array<int, Collection<int, Episode>>, episodes: Collection<int, Episode>}> */
+        return EpisodeGrouping::groupBySeason($cartEpisodes, $allShowEpisodes, includeSelectedCollection: true);
     }
 }
