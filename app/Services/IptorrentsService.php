@@ -28,6 +28,8 @@ class IptorrentsService
 
     private const MAX_IMDB_LOOKUPS = 3;
 
+    private const MAX_RAR_CHECKS = 3;
+
     /**
      * Search IPTorrents and return parsed results (max 50 per search).
      *
@@ -64,7 +66,7 @@ class IptorrentsService
 
         $results = $this->preferH265($this->search($movie->imdb_id, $defaultCategories));
 
-        return $results->first();
+        return $this->firstNonRar($results);
     }
 
     /**
@@ -90,13 +92,21 @@ class IptorrentsService
         $query = $searchName.($movie->year ? ' '.$movie->year : '');
         $results = $this->preferH265($this->search($query, $categories));
 
+        $rarFallback = null;
+
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
-            if ($this->fetchTorrentImdbId($result['torrent_id']) === $movie->imdb_id) {
+            if ($this->fetchTorrentImdbId($result['torrent_id']) !== $movie->imdb_id) {
+                continue;
+            }
+
+            if ($this->isRarFree($result)) {
                 return $result;
             }
+
+            $rarFallback ??= $result;
         }
 
-        return null;
+        return $rarFallback;
     }
 
     /**
@@ -117,7 +127,7 @@ class IptorrentsService
 
         $results = $this->preferH265($this->search("{$episode->show->imdb_id} {$episode->code}", $categories));
 
-        return $results->first();
+        return $this->firstNonRar($results);
     }
 
     /**
@@ -146,15 +156,23 @@ class IptorrentsService
         $query = "{$searchName} {$episode->code}";
         $results = $this->preferH265($this->search($query, $categories));
 
+        $rarFallback = null;
+
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $index => $result) {
-            if ($this->fetchTorrentImdbId($result['torrent_id']) === $episode->show->imdb_id) {
+            if ($this->fetchTorrentImdbId($result['torrent_id']) !== $episode->show->imdb_id) {
+                continue;
+            }
+
+            if ($this->isRarFree($result)) {
                 $this->learnSearchTerm($episode, $result['name'], $index);
 
                 return $result;
             }
+
+            $rarFallback ??= $result;
         }
 
-        return null;
+        return $rarFallback;
     }
 
     /**
@@ -190,6 +208,40 @@ class IptorrentsService
         }
 
         return null;
+    }
+
+    /**
+     * Fetch the relative file paths listed on a torrent's file page.
+     *
+     * @return list<string>
+     */
+    public function fetchTorrentFileList(int $torrentId): array
+    {
+        $this->checkRateLimit();
+
+        $url = $this->baseUrl()."/t/{$torrentId}/files";
+        $response = $this->client()->get($url);
+        $response->throw();
+
+        $html = $response->body();
+        $this->detectAuthFailure($html);
+
+        $crawler = new Crawler($html);
+        $files = [];
+
+        try {
+            $crawler->filter('table.t1 tr')->each(function (Crawler $row) use (&$files): void {
+                $cells = $row->filter('td');
+
+                if ($cells->count() > 0) {
+                    $files[] = trim($cells->first()->text());
+                }
+            });
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $files;
     }
 
     /**
@@ -287,6 +339,92 @@ class IptorrentsService
     private function isH265(string $name): bool
     {
         return (bool) preg_match('/x\.?\s?265|h\.?\s?265|hevc/i', $name);
+    }
+
+    /**
+     * Return the first release that is not packed into RAR archives, falling
+     * back to the top result when none can be confirmed within the check cap.
+     *
+     * @param  Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>  $results
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    private function firstNonRar(Collection $results): ?array
+    {
+        $checks = 0;
+
+        foreach ($results as $result) {
+            if ($this->hasNoRarTag($result['name'])) {
+                return $result;
+            }
+
+            if ($checks >= self::MAX_RAR_CHECKS) {
+                break;
+            }
+
+            $checks++;
+
+            if ($this->isRarFree($result)) {
+                return $result;
+            }
+        }
+
+        return $results->first();
+    }
+
+    /**
+     * Determine whether a release is free of RAR-packed payload, trusting a
+     * NORAR title tag and otherwise inspecting its file list.
+     *
+     * @param  array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}  $result
+     */
+    private function isRarFree(array $result): bool
+    {
+        if ($this->hasNoRarTag($result['name'])) {
+            return true;
+        }
+
+        try {
+            return ! $this->isRarPacked($this->fetchTorrentFileList($result['torrent_id']));
+        } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
+            throw $e;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    private function hasNoRarTag(string $name): bool
+    {
+        return (bool) preg_match('/no[\s._-]*rar/i', $name);
+    }
+
+    /**
+     * Detect a RAR-packed payload from a file list. Multipart volumes (.rNN)
+     * always count; a lone .rar counts unless it is a subtitle or sample
+     * archive sitting beside the real media.
+     *
+     * @param  list<string>  $files
+     */
+    private function isRarPacked(array $files): bool
+    {
+        foreach ($files as $path) {
+            $basename = basename($path);
+
+            if (preg_match('/\.r\d{2}$/i', $basename)) {
+                return true;
+            }
+
+            if (preg_match('/\.rar$/i', $basename)) {
+                $lowerPath = mb_strtolower($path);
+
+                if (str_contains($lowerPath, 'subs/') || str_contains($lowerPath, 'sample')) {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function sanitizeNameForSearch(string $name): string

@@ -93,6 +93,30 @@ function fakeIptTorrentDetailPage(string $imdbId = 'tt7654321'): string
     HTML;
 }
 
+/**
+ * @param  list<string|array{0: string, 1: string}>  $files
+ */
+function fakeIptFileListHtml(array $files = ['Some.Movie.2024.1080p.BluRay.x264-GRP.mkv']): string
+{
+    $rows = '';
+
+    foreach ($files as $file) {
+        $path = is_array($file) ? $file[0] : $file;
+        $size = is_array($file) ? ($file[1] ?? '100 MB') : '100 MB';
+        $rows .= "<tr><td>{$path}<td class=ar>{$size}";
+    }
+
+    return <<<HTML
+        <html>
+        <head><title>IPTorrents - #1 Private Tracker</title></head>
+        <body>
+        <table id=body><tr><td>chrome</table>
+        <table class=t1><tr><th>Name<th class=ar>Size{$rows}</table>
+        </body>
+        </html>
+    HTML;
+}
+
 function fakeIptTorrentDetailPageWithoutImdb(): string
 {
     return <<<'HTML'
@@ -326,6 +350,165 @@ describe('H.265 preference', function () {
     });
 });
 
+describe('RAR detection', function () {
+    it('treats multipart .rNN volumes as rar-packed', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'blade.runner.2049.1080p.bluray.x264-sparks.nfo',
+            'blade.runner.2049.1080p.bluray.x264-sparks.r00',
+            'blade.runner.2049.1080p.bluray.x264-sparks.r01',
+        ]))->toBeTrue();
+    });
+
+    it('treats a lone .rar as rar-packed', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, ['Some.Old.Rip.2004.DVDRip.XviD-GRP.rar']))->toBeTrue();
+    });
+
+    it('does not flag a direct mkv accompanied only by a subtitle rar', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'Subs/the.martian.2015.1080p.bluray.x264-sparks.subs.rar',
+            'The.Martian.2015.1080p.BluRay.x264-SPARKS.mkv',
+        ]))->toBeFalse();
+    });
+
+    it('does not flag a sample rar', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'Sample/movie-sample.rar',
+            'Movie.2024.1080p.BluRay.x264-GRP.mkv',
+        ]))->toBeFalse();
+    });
+
+    it('does not flag a direct release whose folder name contains "NO RAR"', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'Alien Covenant 2017 1080p BluRay x264-SPARKS[NO RAR]/alien.covenant.mkv',
+        ]))->toBeFalse();
+    });
+
+    it('matches NORAR title tag variants', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'hasNoRarTag');
+
+        expect($method->invoke($service, 'Movie 2024 1080p x264-GRP[NORAR]'))->toBeTrue()
+            ->and($method->invoke($service, 'Movie 2024 1080p x264-GRP[NoRAR]'))->toBeTrue()
+            ->and($method->invoke($service, 'Top 500 PSP Games ISO-CSO NoRar IPT'))->toBeTrue()
+            ->and($method->invoke($service, 'Alien Covenant 2017 1080p x264-SPARKS[NO RAR]'))->toBeTrue()
+            ->and($method->invoke($service, '[NORAR]Pingu S01-S06 DVDRip XviD-aAF'))->toBeTrue()
+            ->and($method->invoke($service, 'Blade Runner 2049 2017 1080p BluRay x264-SPARKS'))->toBeFalse();
+    });
+
+    it('parses the file list from a torrent files page', function () {
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptFileListHtml([
+                ['Movie.2024.1080p.BluRay.x264-GRP.mkv', '8 GB'],
+                ['Movie.2024.1080p.BluRay.x264-GRP.nfo', '4 KB'],
+            ])),
+        ]);
+
+        $service = new IptorrentsService;
+        $files = $service->fetchTorrentFileList(12345);
+
+        expect($files)->toBe([
+            'Movie.2024.1080p.BluRay.x264-GRP.mkv',
+            'Movie.2024.1080p.BluRay.x264-GRP.nfo',
+        ]);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/t/12345/files'));
+    });
+
+    it('skips a rar-packed top result in favour of the next non-rar release', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/t/700/files')) {
+                return Http::response(fakeIptFileListHtml(['test.movie.2024.1080p.bluray.x264-grp.r00']));
+            }
+
+            if (str_contains($request->url(), '/t/701/files')) {
+                return Http::response(fakeIptFileListHtml(['Test.Movie.2024.1080p.BluRay.x264-GRP.mkv']));
+            }
+
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 700, name: 'Test.Movie.2024.1080p.BluRay.x264-GRP', seeders: 200),
+                fakeIptTorrentRow(torrentId: 701, name: 'Test.Movie.2024.1080p.BluRay.x264-GRP2', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(701);
+    });
+
+    it('falls back to a rar-packed match when no non-rar release is found', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml(['test.movie.2024.1080p.bluray.x264-grp.r00']));
+            }
+
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 710, name: 'Test.Movie.2024.1080p.BluRay.x264-GRP', seeders: 200),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(710);
+    });
+
+    it('trusts a NORAR title tag without fetching the file list', function () {
+        $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1234567'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 720, name: 'Test.Movie.2024.1080p.BluRay.x264-GRP[NORAR]', seeders: 200),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchMovieByName($movie);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(720);
+
+        // 1 search + 1 IMDB lookup, no file-list check (title is trusted).
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/files'));
+    });
+});
+
 describe('searchMovie', function () {
     it('returns top seeded result from IMDB ID with default categories', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
@@ -343,7 +526,8 @@ describe('searchMovie', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(500);
 
-        Http::assertSentCount(1);
+        // 1 search + 1 file-list check (untagged top result).
+        Http::assertSentCount(2);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'q=tt1234567')
             && str_contains($request->url(), '100='));
     });
@@ -392,7 +576,8 @@ describe('searchEpisode', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(501);
 
-        Http::assertSentCount(1);
+        // 1 search + 1 file-list check (untagged top result).
+        Http::assertSentCount(2);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'q=tt7654321+s01e05')
             && str_contains($request->url(), '5=')
             && str_contains($request->url(), '99='));
@@ -482,6 +667,10 @@ describe('searchMovieByName', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php')) {
                 return Http::response(fakeIptTorrentDetailPage('tt1234567'));
             }
@@ -498,7 +687,8 @@ describe('searchMovieByName', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(600);
 
-        Http::assertSentCount(2);
+        // 1 search + 1 IMDB lookup + 1 file-list check.
+        Http::assertSentCount(3);
     });
 
     it('rejects result when IMDB does not match', function () {
@@ -589,6 +779,10 @@ describe('searchMovieByName', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php?id=800')) {
                 return Http::response(fakeIptTorrentDetailPage('tt9999999'));
             }
@@ -610,7 +804,8 @@ describe('searchMovieByName', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(801);
 
-        Http::assertSentCount(3);
+        // 1 search + 2 IMDB lookups + 1 file-list check (id801).
+        Http::assertSentCount(4);
     });
 
     it('caps IMDB lookups at maximum', function () {
@@ -646,6 +841,10 @@ describe('searchEpisodeByName', function () {
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 5]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php')) {
                 return Http::response(fakeIptTorrentDetailPage('tt7654321'));
             }
@@ -662,7 +861,8 @@ describe('searchEpisodeByName', function () {
             ->not->toBeNull()
             ->and($result['torrent_id'])->toBe(700);
 
-        Http::assertSentCount(2);
+        // 1 search + 1 IMDB lookup + 1 file-list check.
+        Http::assertSentCount(3);
     });
 
     it('rejects result when IMDB does not match', function () {
@@ -758,6 +958,10 @@ describe('searchEpisodeByName', function () {
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php?id=900')) {
                 return Http::response(fakeIptTorrentDetailPage('tt1111111'));
             }
@@ -791,8 +995,8 @@ describe('searchEpisodeByName', function () {
 
         expect($show->fresh()->ipt_search_term)->toBe('Taskmaster AU');
 
-        // 1 search + 2 IMDB lookups + 1 verification search + 1 verification IMDB
-        Http::assertSentCount(5);
+        // 1 search + 2 IMDB lookups + 1 file-list check (id901) + 1 verification search + 1 verification IMDB
+        Http::assertSentCount(6);
     });
 
     it('uses ipt_search_term when set on show', function () {
@@ -851,6 +1055,10 @@ describe('searchEpisodeByName', function () {
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php?id=900')) {
                 return Http::response(fakeIptTorrentDetailPage('tt1111111'));
             }
@@ -884,8 +1092,8 @@ describe('searchEpisodeByName', function () {
 
         expect($show->fresh()->ipt_search_term)->toBeNull();
 
-        // 1 search + 2 IMDB lookups + 1 verification search + 1 verification IMDB
-        Http::assertSentCount(5);
+        // 1 search + 2 IMDB lookups + 1 file-list check (id901) + 1 verification search + 1 verification IMDB
+        Http::assertSentCount(6);
     });
 
     it('does not learn when verification search returns no results', function () {
@@ -893,6 +1101,10 @@ describe('searchEpisodeByName', function () {
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php?id=900')) {
                 return Http::response(fakeIptTorrentDetailPage('tt1111111'));
             }
@@ -920,8 +1132,8 @@ describe('searchEpisodeByName', function () {
 
         expect($show->fresh()->ipt_search_term)->toBeNull();
 
-        // 1 search + 2 IMDB lookups + 1 verification search (no IMDB lookup since empty)
-        Http::assertSentCount(4);
+        // 1 search + 2 IMDB lookups + 1 file-list check (id901) + 1 verification search (no IMDB lookup since empty)
+        Http::assertSentCount(5);
     });
 
     it('does not learn when match is at first position', function () {
@@ -1086,6 +1298,10 @@ describe('searchEpisodeByName', function () {
         $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
 
         Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
             if (str_contains($request->url(), '/torrent.php?id=980')) {
                 return Http::response(fakeIptTorrentDetailPage('tt1111111'));
             }
@@ -1105,8 +1321,8 @@ describe('searchEpisodeByName', function () {
 
         expect($show->fresh()->ipt_search_term)->toBeNull();
 
-        // 1 search + 2 IMDB lookups. No verification search because extracted
-        // title "Taskmaster" matches the raw DB name.
-        Http::assertSentCount(3);
+        // 1 search + 2 IMDB lookups + 1 file-list check (id981). No verification
+        // search because extracted title "Taskmaster" matches the raw DB name.
+        Http::assertSentCount(4);
     });
 });
