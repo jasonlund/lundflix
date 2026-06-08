@@ -267,6 +267,65 @@ it('skips malformed rows without breaking', function () {
     expect($results->first()['torrent_id'])->toBe(999);
 });
 
+describe('H.265 preference', function () {
+    it('prefers the H.265 release over a higher-seeded WEB-DL H.264 for episodes', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt3530232', 'name' => 'Last Week Tonight with John Oliver']);
+        $episode = Episode::factory()->for($show)->create(['season' => 13, 'number' => 14]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt3530232'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 1, name: 'Last Week Tonight with John Oliver S13E14 1080p AMZN WEB-DL DDP2 0 H 264-NTb', seeders: 1605),
+                fakeIptTorrentRow(torrentId: 2, name: 'Last Week Tonight with John Oliver S13E14 1080p HEVC x265-MeGusta', seeders: 705),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(2);
+    });
+
+    it('keeps seeder order when no H.265 release is present', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt3530232', 'name' => 'Last Week Tonight with John Oliver']);
+        $episode = Episode::factory()->for($show)->create(['season' => 13, 'number' => 14]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt3530232'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 10, name: 'Last Week Tonight with John Oliver S13E14 1080p AMZN WEB-DL DDP2 0 H 264-NTb', seeders: 1605),
+                fakeIptTorrentRow(torrentId: 11, name: 'Last Week Tonight with John Oliver S13E14 480p x264-mSD', seeders: 63),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(10);
+    });
+
+    it('does not treat AV1 as H.265', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isH265');
+
+        expect($method->invoke($service, 'Show S01E01 1080p AV1 10bit-MeGusta'))->toBeFalse()
+            ->and($method->invoke($service, 'Show S01E01 1080p AMZN WEB-DL H 264-NTb'))->toBeFalse()
+            ->and($method->invoke($service, 'Show S01E01 1080p HEVC x265-MeGusta'))->toBeTrue()
+            ->and($method->invoke($service, 'Show S01E01 720p WEBRip 2CH x265 HEVC-PSA'))->toBeTrue()
+            ->and($method->invoke($service, 'Show S01E01 2160p WEB-DL H 265-SCOPE'))->toBeTrue();
+    });
+});
+
 describe('searchMovie', function () {
     it('returns top seeded result from IMDB ID with default categories', function () {
         $movie = Movie::factory()->create(['imdb_id' => 'tt1234567', 'title' => 'Test Movie', 'year' => 2024]);

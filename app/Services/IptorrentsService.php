@@ -62,7 +62,7 @@ class IptorrentsService
             IptCategory::defaultMovieValues(),
         );
 
-        $results = $this->search($movie->imdb_id, $defaultCategories);
+        $results = $this->preferH265($this->search($movie->imdb_id, $defaultCategories));
 
         return $results->first();
     }
@@ -88,7 +88,7 @@ class IptorrentsService
         }
 
         $query = $searchName.($movie->year ? ' '.$movie->year : '');
-        $results = $this->search($query, $categories);
+        $results = $this->preferH265($this->search($query, $categories));
 
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
             if ($this->fetchTorrentImdbId($result['torrent_id']) === $movie->imdb_id) {
@@ -115,7 +115,7 @@ class IptorrentsService
             IptCategory::defaultTvValues(),
         );
 
-        $results = $this->search("{$episode->show->imdb_id} {$episode->code}", $categories);
+        $results = $this->preferH265($this->search("{$episode->show->imdb_id} {$episode->code}", $categories));
 
         return $results->first();
     }
@@ -144,7 +144,7 @@ class IptorrentsService
         }
 
         $query = "{$searchName} {$episode->code}";
-        $results = $this->search($query, $categories);
+        $results = $this->preferH265($this->search($query, $categories));
 
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $index => $result) {
             if ($this->fetchTorrentImdbId($result['torrent_id']) === $episode->show->imdb_id) {
@@ -268,6 +268,25 @@ class IptorrentsService
         }
 
         return null;
+    }
+
+    /**
+     * Reorder results to prefer H.265/HEVC encodes over H.264/WEB-DL,
+     * keeping the original seeder order within each group.
+     *
+     * @param  Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>  $results
+     * @return Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>
+     */
+    private function preferH265(Collection $results): Collection
+    {
+        return $results
+            ->sortBy(fn (array $result): int => $this->isH265($result['name']) ? 0 : 1)
+            ->values();
+    }
+
+    private function isH265(string $name): bool
+    {
+        return (bool) preg_match('/x\.?\s?265|h\.?\s?265|hevc/i', $name);
     }
 
     private function sanitizeNameForSearch(string $name): string

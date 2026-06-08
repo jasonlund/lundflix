@@ -50,6 +50,7 @@ it('returns default movie values', function () {
         IptCategory::MovieX265->value,
         IptCategory::MovieWebDl->value,
         IptCategory::MovieBdRip->value,
+        IptCategory::MovieHdBluray->value,
     ]);
 });
 
@@ -57,5 +58,7 @@ it('returns default TV values', function () {
     expect(IptCategory::defaultTvValues())->toBe([
         IptCategory::TvX264->value,
         IptCategory::TvX265->value,
+        IptCategory::TvWebDl->value,
+        IptCategory::Tv480p->value,
     ]);
 });
