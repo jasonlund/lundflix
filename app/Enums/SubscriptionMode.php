@@ -25,11 +25,16 @@ enum SubscriptionMode: string
         };
     }
 
-    public function iconVariant(): string
+    public function icon(): string
     {
         return match ($this) {
-            self::Download => 'solid',
-            self::Notify => 'outline',
+            self::Download => 'heart',
+            self::Notify => 'bell',
         };
+    }
+
+    public function isFilled(): bool
+    {
+        return $this === self::Download;
     }
 }
