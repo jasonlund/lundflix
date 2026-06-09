@@ -38,6 +38,24 @@ it('dispatches a release notification for a subscribed movie digitally released 
     Event::assertDispatched(SubscriptionTriggered::class);
 });
 
+it('still notifies notification-only subscriptions', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'Quiet Release',
+        'year' => 2024,
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+
+    Subscription::factory()->forSubscribable($movie)->notifyOnly()->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-subscriptions')->assertSuccessful();
+
+    Event::assertDispatched(SubscriptionTriggered::class);
+});
+
 it('does not dispatch for a movie with only theatrical release today', function () {
     Event::fake([SubscriptionTriggered::class]);
 

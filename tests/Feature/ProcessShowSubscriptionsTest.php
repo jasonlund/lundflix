@@ -37,6 +37,27 @@ it('dispatches a release notification for episodes airing within the 15-minute w
     Event::assertDispatched(SubscriptionTriggered::class);
 });
 
+it('still notifies notification-only subscriptions', function () {
+    Event::fake([SubscriptionTriggered::class]);
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Severance']);
+
+    Subscription::factory()->forSubscribable($show)->notifyOnly()->create(['user_id' => $user->id]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subMinutes(5)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-subscriptions')->assertSuccessful();
+
+    Event::assertDispatched(SubscriptionTriggered::class);
+});
+
 it('does not dispatch for episodes outside the 15-minute window', function () {
     Event::fake([SubscriptionTriggered::class]);
 

@@ -47,6 +47,7 @@ class ProcessShowAvailability extends Command
 
         $subscriptions = Subscription::query()
             ->active()
+            ->downloads()
             ->forShows()
             ->with(['user', 'processedEpisodes'])
             ->get();

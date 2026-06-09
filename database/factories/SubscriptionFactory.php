@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\SubscriptionMode;
 use App\Models\Movie;
 use App\Models\Subscription;
 use App\Models\User;
@@ -25,6 +26,7 @@ class SubscriptionFactory extends Factory
             'user_id' => User::factory(),
             'subscribable_type' => Movie::class,
             'subscribable_id' => Movie::factory(),
+            'mode' => SubscriptionMode::Download,
         ];
     }
 
@@ -36,6 +38,16 @@ class SubscriptionFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'subscribable_type' => $subscribable::class,
             'subscribable_id' => $subscribable->id,
+        ]);
+    }
+
+    /**
+     * Create a notification-only subscription that never auto-downloads.
+     */
+    public function notifyOnly(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'mode' => SubscriptionMode::Notify,
         ]);
     }
 }

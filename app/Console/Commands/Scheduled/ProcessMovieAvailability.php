@@ -41,6 +41,7 @@ class ProcessMovieAvailability extends Command
 
         $subscriptions = Subscription::query()
             ->active()
+            ->downloads()
             ->forMovies()
             ->with(['subscribable', 'user'])
             ->get()

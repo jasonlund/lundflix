@@ -1,10 +1,40 @@
 <?php
 
+use App\Enums\SubscriptionMode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+
+it('casts mode to the SubscriptionMode enum', function () {
+    $subscription = Subscription::factory()->notifyOnly()->create();
+
+    expect($subscription->fresh()->mode)->toBe(SubscriptionMode::Notify);
+});
+
+it('defaults mode to download at the database level', function () {
+    $movie = Movie::factory()->create();
+    $user = User::factory()->create();
+
+    DB::table('subscriptions')->insert([
+        'user_id' => $user->id,
+        'subscribable_type' => Movie::class,
+        'subscribable_id' => $movie->id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    expect(Subscription::first()->mode)->toBe(SubscriptionMode::Download);
+});
+
+it('only returns download subscriptions from the downloads scope', function () {
+    Subscription::factory()->count(2)->create();
+    Subscription::factory()->notifyOnly()->create();
+
+    expect(Subscription::query()->downloads()->count())->toBe(2);
+});
 
 it('belongs to a user', function () {
     $user = User::factory()->create();

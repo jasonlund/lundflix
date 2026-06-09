@@ -195,6 +195,30 @@ it('skips subscriptions already fulfilled', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
+it('skips notification-only subscriptions', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchMovieByName');
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'Silent Movie',
+        'year' => 2024,
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    $sub = Subscription::factory()->forSubscribable($movie)->notifyOnly()->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(0);
+    expect($sub->fresh()->fulfilled_at)->toBeNull();
+
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
 it('dedupes API calls when multiple users subscribe to the same movie', function () {
     Event::fake([MediaAvailable::class]);
 
