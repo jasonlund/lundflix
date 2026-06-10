@@ -54,14 +54,19 @@ it('falls back to per-episode search when the season pack misses', function () {
 
     $ipt = $this->mock(IptorrentsService::class);
     $ipt->shouldReceive('searchSeasonPack')->once()->andReturnNull();
-    $ipt->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->andReturn(fulfillmentResult('Some.Show.S01E01.1080p.x265', 800));
+    foreach (range(1, 3) as $num) {
+        $ipt->shouldReceive('searchEpisodeByName')
+            ->once()
+            ->withArgs(fn (Episode $e): bool => $e->number === $num)
+            ->andReturn(fulfillmentResult("Some.Show.S01E0{$num}.1080p.x265", 800 + $num));
+    }
 
     $result = (new TorrentFulfillmentService($ipt))->fulfill($episodes);
 
     expect($result->downloads)->toBe([
-        ['torrent_id' => 800, 'filename' => 'Some.Show.S01E01.1080p.x265.torrent'],
+        ['torrent_id' => 801, 'filename' => 'Some.Show.S01E01.1080p.x265.torrent'],
+        ['torrent_id' => 802, 'filename' => 'Some.Show.S01E02.1080p.x265.torrent'],
+        ['torrent_id' => 803, 'filename' => 'Some.Show.S01E03.1080p.x265.torrent'],
     ])->and($result->covered)->toHaveCount(3);
 });
 

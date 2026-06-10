@@ -305,6 +305,7 @@ it('only requests the same-time episodes that actually have a torrent', function
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->times(4)
         ->andReturnUsing(function (Episode $e): ?array {
@@ -368,6 +369,7 @@ it('retries an episode without a torrent on a later run within the lookback wind
     $episode2Searches = 0;
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->times(3)
         ->andReturnUsing(function (Episode $e) use (&$episode1Searches, &$episode2Searches): ?array {

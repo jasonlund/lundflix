@@ -125,26 +125,20 @@ class TorrentFulfillmentService
         /** @var Collection<int, Episode> $covered */
         $covered = collect();
 
-        $airdateGroups = $group->groupBy(
-            fn (Episode $e): string => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
-        );
+        $ordered = $group->sortBy([['season', 'asc'], ['number', 'asc']])->values();
 
-        foreach ($airdateGroups as $subgroup) {
-            $probe = $subgroup->sortBy('number')->first();
-            $result = $this->ipt->searchEpisodeByName($probe);
+        foreach ($ordered as $episode) {
+            $result = $this->ipt->searchEpisodeByName($episode);
 
             if ($result === null) {
-                $this->logMissing($subgroup->values());
+                $this->logMissing(collect([$episode]));
 
                 continue;
             }
 
-            $this->logFound($result, $subgroup->values());
+            $this->logFound($result, collect([$episode]));
             $downloads[] = $this->toDownload($result);
-
-            foreach ($subgroup as $episode) {
-                $covered->push($episode);
-            }
+            $covered->push($episode);
         }
 
         return [$downloads, $covered];
