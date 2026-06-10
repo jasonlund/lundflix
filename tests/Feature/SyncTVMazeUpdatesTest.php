@@ -3,6 +3,7 @@
 use App\Enums\Language;
 use App\Enums\ShowStatus;
 use App\Models\Show;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -115,7 +116,7 @@ it('throws exception when updates endpoint fails', function () {
     ]);
 
     $this->artisan('tvmaze:sync-updates');
-})->throws(\Illuminate\Http\Client\RequestException::class);
+})->throws(RequestException::class);
 
 it('accepts since option for time period', function () {
     Show::factory()->create(['tvmaze_id' => 100]);

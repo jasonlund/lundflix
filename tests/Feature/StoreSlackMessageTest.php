@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -82,7 +83,7 @@ it('ignores non-slack channels', function () {
 });
 
 it('ignores unknown notification types', function () {
-    $notification = new class extends \Illuminate\Notifications\Notification {};
+    $notification = new class extends Notification {};
 
     $event = new NotificationSent(
         new AnonymousNotifiable,

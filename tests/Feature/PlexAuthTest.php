@@ -178,7 +178,7 @@ it('creates pin and redirects to plex via livewire action', function () {
 
 it('shows error when plex pin creation fails', function () {
     $mockPlex = Mockery::mock(PlexService::class);
-    $mockPlex->shouldReceive('createPin')->once()->andThrow(new \RuntimeException('Plex API error'));
+    $mockPlex->shouldReceive('createPin')->once()->andThrow(new RuntimeException('Plex API error'));
 
     app()->instance(PlexService::class, $mockPlex);
 

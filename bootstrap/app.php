@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Nightwatch\Compatibility;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -60,7 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? Compatibility::getTraceIdFromContext()
                 : null;
 
-            if ($traceId && $response instanceof \Symfony\Component\HttpFoundation\Response) {
+            if ($traceId && $response instanceof Response) {
                 $response->headers->set('X-Trace-Id', $traceId);
             }
 

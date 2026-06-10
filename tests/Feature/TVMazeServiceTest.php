@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\ThirdParty\TVMazeService;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -43,7 +44,7 @@ it('throws exception when no more pages exist', function () {
 
     $service = new TVMazeService;
     $service->shows(999);
-})->throws(\Illuminate\Http\Client\RequestException::class);
+})->throws(RequestException::class);
 
 it('fetches episodes for a show including specials', function () {
     Http::fake([
@@ -67,7 +68,7 @@ it('throws exception when show does not exist for episodes', function () {
 
     $service = new TVMazeService;
     $service->episodes(999999);
-})->throws(\Illuminate\Http\Client\RequestException::class);
+})->throws(RequestException::class);
 
 it('retries when rate limited and succeeds', function () {
     Http::fakeSequence('api.tvmaze.com/shows/1')
@@ -90,4 +91,4 @@ it('throws exception after exhausting retries on rate limit', function () {
 
     $service = new TVMazeService;
     $service->show(1);
-})->throws(\Illuminate\Http\Client\RequestException::class);
+})->throws(RequestException::class);

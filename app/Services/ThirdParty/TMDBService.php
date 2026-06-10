@@ -207,7 +207,7 @@ class TMDBService
      * Find TMDB shows for multiple external IDs concurrently.
      *
      * @param  array<int, string>  $ids
-     * @return array<string, array<string, mixed>|null>
+     * @return array<array-key, array<string, mixed>|null>
      */
     public function findManyShowsByExternalId(array $ids, string $source = 'imdb_id'): array
     {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ShowStatus;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
@@ -90,7 +91,7 @@ it('shows Unknown when show has no upcoming episodes', function () {
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'Old Show',
-        'status' => App\Enums\ShowStatus::Running->value,
+        'status' => ShowStatus::Running->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -112,7 +113,7 @@ it('excludes ended shows with no recently aired episode from upcoming view', fun
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -134,7 +135,7 @@ it('shows ended show last episode in recent view within 30 days', function () {
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -162,7 +163,7 @@ it('excludes ended show finale exactly 30 calendar days old even when late-UTC a
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -186,7 +187,7 @@ it('includes ended show finale 29 calendar days old in recent view', function ()
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -211,7 +212,7 @@ it('excludes ended show finale older than 30 days from recent view', function ()
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,
@@ -235,7 +236,7 @@ it('shows ended show finale that aired within the 48h window in upcoming view', 
     $user = User::factory()->create();
     $show = Show::factory()->create([
         'name' => 'The Boys',
-        'status' => App\Enums\ShowStatus::Ended->value,
+        'status' => ShowStatus::Ended->value,
     ]);
     Episode::factory()->create([
         'show_id' => $show->id,

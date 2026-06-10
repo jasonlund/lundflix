@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\PlexMediaServer;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -26,7 +28,7 @@ it('encrypts the access token', function () {
     expect($server->access_token)->toBe('my-secret-token');
 
     // But the raw database value should be encrypted (different from plaintext)
-    $rawValue = \DB::table('plex_media_servers')
+    $rawValue = DB::table('plex_media_servers')
         ->where('id', $server->id)
         ->value('access_token');
 
@@ -53,7 +55,7 @@ it('casts connections as array', function () {
 it('casts last_seen_at as datetime', function () {
     $server = PlexMediaServer::factory()->create();
 
-    expect($server->last_seen_at)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($server->last_seen_at)->toBeInstanceOf(Carbon::class);
 });
 
 it('has offline factory state', function () {
@@ -76,7 +78,7 @@ it('returns the plex web app url', function () {
 it('casts plex_last_seen_at as datetime', function () {
     $server = PlexMediaServer::factory()->create();
 
-    expect($server->plex_last_seen_at)->toBeInstanceOf(\Carbon\Carbon::class);
+    expect($server->plex_last_seen_at)->toBeInstanceOf(Carbon::class);
 });
 
 it('stores plex resource fields', function () {
@@ -128,5 +130,5 @@ it('has unique client identifier', function () {
 
     expect(fn () => PlexMediaServer::factory()->create([
         'client_identifier' => 'unique-id-123',
-    ]))->toThrow(\Illuminate\Database\QueryException::class);
+    ]))->toThrow(QueryException::class);
 });
