@@ -184,6 +184,49 @@ class IptorrentsService
     }
 
     /**
+     * Search for a whole-season pack covering every episode of the given season.
+     *
+     * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
+     */
+    public function searchSeasonPack(Show $show, int $season): ?array
+    {
+        if ($season < 1 || ! $show->imdb_id) {
+            return null;
+        }
+
+        $categories = array_map(
+            IptCategory::from(...),
+            [IptCategory::TvPacks->value, ...IptCategory::defaultTvValues()],
+        );
+
+        $searchName = $show->ipt_search_term
+            ?? $this->sanitizeNameForSearch($show->getRawOriginal('name'));
+
+        if ($searchName === '') {
+            return null;
+        }
+
+        $query = $searchName.' '.sprintf('S%02d', $season);
+        $results = $this->preferH265($this->search($query, $categories));
+
+        $rarFallback = null;
+
+        foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $result) {
+            if ($this->fetchTorrentImdbId($result['torrent_id']) !== $show->imdb_id) {
+                continue;
+            }
+
+            if ($this->isRarFree($result)) {
+                return $result;
+            }
+
+            $rarFallback ??= $result;
+        }
+
+        return $rarFallback;
+    }
+
+    /**
      * Fetch the IMDB ID from a torrent's detail page.
      */
     public function fetchTorrentImdbId(int $torrentId): ?string

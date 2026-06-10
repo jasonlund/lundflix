@@ -13,10 +13,11 @@ use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
 use App\Models\Episode;
+use App\Models\Movie;
 use App\Models\Show;
 use App\Models\Subscription;
-use App\Services\IptorrentsService;
 use App\Services\ThirdParty\PlexService;
+use App\Services\TorrentFulfillmentService;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -34,7 +35,7 @@ class ProcessShowAvailability extends Command
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly IptorrentsService $ipt,
+        private readonly TorrentFulfillmentService $fulfillment,
         private readonly PlexService $plex,
     ) {
         parent::__construct();
@@ -197,49 +198,27 @@ class ProcessShowAvailability extends Command
             $candidates = $entry['candidates'];
 
             if (! array_key_exists($show->id, $showAvailable)) {
+                /** @var Collection<int, Episode|Movie> $allCandidates */
                 $allCandidates = $byShow[$show->id]
                     ->flatMap(fn ($e) => $e['candidates'])
                     ->unique('id')
                     ->values();
 
                 try {
-                    $available = collect();
-
-                    // Search every aired episode individually. Episodes that premiere at the same
-                    // date/time each have their own torrent, so probing only the first would leave
-                    // the rest undownloaded. Episodes without a torrent yet stay unmarked and are
-                    // retried on the next run while still inside the lookback window.
-                    $orderedCandidates = $allCandidates
-                        ->sortBy([['season', 'asc'], ['number', 'asc']])
-                        ->values();
-
-                    foreach ($orderedCandidates as $episode) {
-                        $result = $this->ipt->searchEpisodeByName($episode);
-
-                        if ($result !== null) {
-                            $torrentDownloads[] = [
-                                'torrent_id' => $result['torrent_id'],
-                                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
-                            ];
-
-                            $available->push($episode);
-                        }
-                    }
-
-                    $showAvailable[$show->id] = $available->isEmpty() ? null : $available;
+                    $result = $this->fulfillment->fulfill($allCandidates);
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');
                     break;
                 } catch (IptorrentsAuthException $e) {
                     $this->warn($e->getMessage());
                     break;
-                } catch (\Throwable $e) {
-                    Log::warning('IPTorrents availability check failed', [
-                        'show_id' => $show->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $showAvailable[$show->id] = null;
                 }
+
+                foreach ($result->downloads as $download) {
+                    $torrentDownloads[] = $download;
+                }
+
+                $showAvailable[$show->id] = $result->covered->isEmpty() ? null : $result->covered->values();
             }
 
             $available = $showAvailable[$show->id];

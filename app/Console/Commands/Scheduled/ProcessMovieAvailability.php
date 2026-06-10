@@ -13,11 +13,13 @@ use App\Events\MediaFoundInLibrary;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
+use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Subscription;
-use App\Services\IptorrentsService;
 use App\Services\ThirdParty\PlexService;
+use App\Services\TorrentFulfillmentService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ProcessMovieAvailability extends Command
@@ -31,7 +33,7 @@ class ProcessMovieAvailability extends Command
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly IptorrentsService $ipt,
+        private readonly TorrentFulfillmentService $fulfillment,
         private readonly PlexService $plex,
     ) {
         parent::__construct();
@@ -74,7 +76,7 @@ class ProcessMovieAvailability extends Command
             Log::warning('Plex library check skipped: seed token not configured.');
         }
 
-        /** @var array<int, array{torrent_id: int, name: string, download_url: string}|false> $checked */
+        /** @var array<int, array{torrent_id: int, filename: string}|false> $checked */
         $checked = [];
         /** @var array<int, Movie> $toDispatch */
         $toDispatch = [];
@@ -100,22 +102,20 @@ class ProcessMovieAvailability extends Command
             }
 
             if (! array_key_exists($movieId, $checked)) {
+                /** @var Collection<int, Movie|Episode> $media */
+                $media = collect([$movie]);
+
                 try {
-                    $result = $this->ipt->searchMovieByName($movie);
-                    $checked[$movieId] = $result ?? false;
+                    $result = $this->fulfillment->fulfill($media);
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');
                     break;
                 } catch (IptorrentsAuthException $e) {
                     $this->warn($e->getMessage());
                     break;
-                } catch (\Throwable $e) {
-                    Log::warning('IPTorrents availability check failed', [
-                        'movie_id' => $movie->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $checked[$movieId] = false;
                 }
+
+                $checked[$movieId] = $result->downloads[0] ?? false;
             }
 
             if ($checked[$movieId] === false) {
@@ -133,11 +133,7 @@ class ProcessMovieAvailability extends Command
                 $processed++;
             }
 
-            $result = $checked[$movieId];
-            $torrentDownloads[] = [
-                'torrent_id' => $result['torrent_id'],
-                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
-            ];
+            $torrentDownloads[] = $checked[$movieId];
 
             $toDispatch[$movieId] = $movie;
         }

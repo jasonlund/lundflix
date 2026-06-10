@@ -3,6 +3,7 @@
 use App\Events\MediaAvailable;
 use App\Events\MediaFoundInLibrary;
 use App\Jobs\DownloadTorrents;
+use App\Jobs\ProcessRequest;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -21,7 +22,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
-    Bus::fake([DownloadTorrents::class]);
+    Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
 function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'): array

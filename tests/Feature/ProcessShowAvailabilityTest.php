@@ -3,6 +3,7 @@
 use App\Events\MediaAvailable;
 use App\Events\MediaFoundInLibrary;
 use App\Jobs\DownloadTorrents;
+use App\Jobs\ProcessRequest;
 use App\Models\Episode;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -26,7 +27,7 @@ beforeEach(function () {
 
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
-    Bus::fake([DownloadTorrents::class]);
+    Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
 function fakeEpisodeTorrentResult(string $name, int $torrentId = 1): array
@@ -49,6 +50,7 @@ it('creates a request for episodes with available torrents', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
@@ -170,6 +172,7 @@ it('dedupes API calls across multiple subscriptions on the same show', function 
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP'));
@@ -201,6 +204,7 @@ it('marks newly requested episodes in the pivot table', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('The.Wire.S01E01.1080p.WEB-DL.x264-GROUP'));
@@ -255,6 +259,7 @@ it('searches every batch-premiere episode individually and downloads each torren
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     foreach (range(1, 4) as $num) {
         $mock->shouldReceive('searchEpisodeByName')
             ->once()
@@ -503,6 +508,7 @@ it('still picks up episodes that were already notified by the subscriptions comm
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));

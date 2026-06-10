@@ -1402,3 +1402,90 @@ describe('searchEpisodeByName', function () {
         Http::assertSentCount(4);
     });
 });
+
+describe('searchSeasonPack', function () {
+    it('returns a verified pack when the name search finds a match', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/files')) {
+                return Http::response(fakeIptFileListHtml());
+            }
+
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt7654321'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 600, name: 'Test.Show.S02.1080p.x265', seeders: 80),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchSeasonPack($show, 2);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(600);
+    });
+
+    it('searches the packs category and pads the season number', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt7654321'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 601, name: 'Test.Show.S03.x265', seeders: 50),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $service->searchSeasonPack($show, 3);
+
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), '/torrent.php')
+            && str_contains($request->url(), (string) IptCategory::TvPacks->value.'=')
+            && str_contains($request->url(), 'q=Test+Show+S03'));
+    });
+
+    it('returns null for specials', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        $service = new IptorrentsService;
+        $result = $service->searchSeasonPack($show, 0);
+
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
+    });
+
+    it('returns null when the show has no IMDB ID', function () {
+        $show = Show::factory()->create(['imdb_id' => '', 'name' => 'No IMDB Show']);
+
+        $service = new IptorrentsService;
+        $result = $service->searchSeasonPack($show, 1);
+
+        expect($result)->toBeNull();
+        Http::assertNothingSent();
+    });
+
+    it('returns null when the IMDB ID does not match', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/torrent.php')) {
+                return Http::response(fakeIptTorrentDetailPage('tt9999999'));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 602, name: 'Wrong.Show.S01', seeders: 40),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchSeasonPack($show, 1);
+
+        expect($result)->toBeNull();
+    });
+});
