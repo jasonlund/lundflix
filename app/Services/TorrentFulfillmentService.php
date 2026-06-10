@@ -38,17 +38,24 @@ class TorrentFulfillmentService
             try {
                 $result = $this->ipt->searchMovieByName($movie);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
+                $this->logAborted($e, collect([$movie]));
+
                 throw $e;
             } catch (\Throwable $e) {
-                $this->reportGroupFailure(['movie_id' => $movie->id], $e);
+                $this->logFailed(collect([$movie]), $e);
 
                 continue;
             }
 
-            if ($result !== null) {
-                $downloads[] = $this->toDownload($result);
-                $covered->push($movie);
+            if ($result === null) {
+                $this->logMissing(collect([$movie]));
+
+                continue;
             }
+
+            $this->logFound($result, collect([$movie]));
+            $downloads[] = $this->toDownload($result);
+            $covered->push($movie);
         }
 
         $byShowSeason = $episodes->groupBy(fn (Episode $e): string => $e->show_id.'-'.$e->season);
@@ -57,12 +64,11 @@ class TorrentFulfillmentService
             try {
                 [$groupDownloads, $groupCovered] = $this->fulfillEpisodeGroup($group);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
+                $this->logAborted($e, $group->values());
+
                 throw $e;
             } catch (\Throwable $e) {
-                $this->reportGroupFailure([
-                    'show_id' => $group->first()->show_id,
-                    'season' => $group->first()->season,
-                ], $e);
+                $this->logFailed($group->values(), $e);
 
                 continue;
             }
@@ -102,8 +108,15 @@ class TorrentFulfillmentService
                 $pack = $this->ipt->searchSeasonPack($show, $season);
 
                 if ($pack !== null) {
+                    $this->logFound($pack, $group->values());
+
                     return [[$this->toDownload($pack)], $group->values()];
                 }
+
+                Log::warning('No season pack found, falling back to per-episode', [
+                    'show' => $show->name,
+                    'season' => $season,
+                ]);
             }
         }
 
@@ -121,9 +134,12 @@ class TorrentFulfillmentService
             $result = $this->ipt->searchEpisodeByName($probe);
 
             if ($result === null) {
+                $this->logMissing($subgroup->values());
+
                 continue;
             }
 
+            $this->logFound($result, $subgroup->values());
             $downloads[] = $this->toDownload($result);
 
             foreach ($subgroup as $episode) {
@@ -147,13 +163,85 @@ class TorrentFulfillmentService
     }
 
     /**
-     * @param  array<string, mixed>  $context
+     * Record a found torrent and the media it fulfills, so funky matches are
+     * traceable after the fact.
+     *
+     * @param  array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}  $result
+     * @param  Collection<int, Movie>|Collection<int, Episode>  $media
      */
-    private function reportGroupFailure(array $context, \Throwable $e): void
+    private function logFound(array $result, Collection $media): void
+    {
+        Log::info('Torrent found', [
+            'torrent' => [
+                'id' => $result['torrent_id'],
+                'name' => $result['name'],
+                'size' => $result['size'],
+                'seeders' => $result['seeders'],
+            ],
+            'fulfills' => $media->map(fn (Movie|Episode $item): array => $this->describeMedia($item))->all(),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function describeMedia(Movie|Episode $media): array
+    {
+        if ($media instanceof Movie) {
+            return [
+                'type' => 'movie',
+                'id' => $media->id,
+                'title' => $media->title,
+                'year' => $media->year,
+            ];
+        }
+
+        $media->loadMissing('show');
+
+        return [
+            'type' => 'episode',
+            'id' => $media->id,
+            'show' => $media->show?->name,
+            'code' => strtoupper($media->code),
+        ];
+    }
+
+    /**
+     * A search threw an unexpected error; the group is skipped.
+     *
+     * @param  Collection<int, Movie>|Collection<int, Episode>  $media
+     */
+    private function logFailed(Collection $media, \Throwable $e): void
     {
         Log::warning('Torrent fulfillment failed', [
-            ...$context,
+            'media' => $media->map(fn (Movie|Episode $item): array => $this->describeMedia($item))->all(),
             'error' => $e->getMessage(),
+        ]);
+    }
+
+    /**
+     * A rate-limit or auth failure halted the whole run.
+     *
+     * @param  Collection<int, Movie>|Collection<int, Episode>  $media
+     */
+    private function logAborted(\Throwable $e, Collection $media): void
+    {
+        Log::warning('Torrent fulfillment aborted', [
+            'reason' => class_basename($e),
+            'message' => $e->getMessage(),
+            'media' => $media->map(fn (Movie|Episode $item): array => $this->describeMedia($item))->all(),
+        ]);
+    }
+
+    /**
+     * The search succeeded but no usable torrent was found.
+     *
+     * @param  Collection<int, Movie>|Collection<int, Episode>  $media
+     */
+    private function logMissing(Collection $media): void
+    {
+        Log::warning('No torrent found', [
+            'media' => $media->map(fn (Movie|Episode $item): array => $this->describeMedia($item))->all(),
         ]);
     }
 }

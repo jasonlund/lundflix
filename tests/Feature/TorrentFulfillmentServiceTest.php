@@ -10,6 +10,7 @@ use App\Models\Show;
 use App\Services\IptorrentsService;
 use App\Services\TorrentFulfillmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
 
@@ -103,6 +104,133 @@ it('never searches a season pack for specials', function () {
     $ipt->shouldReceive('searchEpisodeByName')->andReturn(fulfillmentResult('Special', 1));
 
     (new TorrentFulfillmentService($ipt))->fulfill($episodes);
+});
+
+it('logs the found torrent and the media it fulfills', function () {
+    Log::spy();
+
+    $movie = Movie::factory()->create(['title' => 'Dune', 'year' => 2024]);
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->andReturn(fulfillmentResult('Dune.2024.x265', 5));
+
+    (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie]));
+
+    Log::shouldHaveReceived('info')
+        ->withArgs(function (string $message, array $context) use ($movie): bool {
+            return $message === 'Torrent found'
+                && $context['torrent']['id'] === 5
+                && $context['torrent']['name'] === 'Dune.2024.x265'
+                && $context['fulfills'] === [[
+                    'type' => 'movie',
+                    'id' => $movie->id,
+                    'title' => 'Dune',
+                    'year' => 2024,
+                ]];
+        })
+        ->once();
+});
+
+it('logs each episode a season pack fulfills', function () {
+    Log::spy();
+
+    $show = Show::factory()->create(['name' => 'Some Show']);
+    $episodes = Episode::factory()->count(2)->for($show)
+        ->sequence(['number' => 1], ['number' => 2])
+        ->create(['season' => 4]);
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchSeasonPack')->andReturn(fulfillmentResult('Some.Show.S04.x265', 9));
+
+    (new TorrentFulfillmentService($ipt))->fulfill($episodes);
+
+    Log::shouldHaveReceived('info')
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Torrent found'
+                && $context['torrent']['id'] === 9
+                && count($context['fulfills']) === 2
+                && $context['fulfills'][0]['type'] === 'episode'
+                && $context['fulfills'][0]['show'] === 'Some Show'
+                && $context['fulfills'][0]['code'] === 'S04E01';
+        })
+        ->once();
+});
+
+it('logs a warning when no torrent is found', function () {
+    Log::spy();
+
+    $movie = Movie::factory()->create();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->andReturnNull();
+
+    (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie]));
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => $message === 'No torrent found'
+            && $context['media'][0]['id'] === $movie->id)
+        ->once();
+});
+
+it('logs a warning when a season pack misses', function () {
+    Log::spy();
+
+    $show = Show::factory()->create();
+    $episodes = Episode::factory()->count(2)->for($show)
+        ->sequence(['number' => 1], ['number' => 2])
+        ->create(['season' => 1, 'airdate' => '2024-05-01', 'airtime' => '20:00']);
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchSeasonPack')->andReturnNull();
+    $ipt->shouldReceive('searchEpisodeByName')->andReturnNull();
+
+    (new TorrentFulfillmentService($ipt))->fulfill($episodes);
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => $message === 'No season pack found, falling back to per-episode'
+            && $context['season'] === 1)
+        ->once();
+});
+
+it('logs a warning and skips the group on an unexpected error', function () {
+    Log::spy();
+
+    $show = Show::factory()->create();
+    Episode::factory()->count(2)->for($show)
+        ->sequence(['number' => 1], ['number' => 2])
+        ->create(['season' => 1]);
+
+    $requested = $show->episodes()->take(1)->get();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchEpisodeByName')->andThrow(new RuntimeException('boom'));
+
+    (new TorrentFulfillmentService($ipt))->fulfill($requested);
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => $message === 'Torrent fulfillment failed'
+            && $context['error'] === 'boom')
+        ->once();
+});
+
+it('logs a warning when the run is aborted by a rate limit', function () {
+    Log::spy();
+
+    $movie = Movie::factory()->create();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->andThrow(new IptorrentsRateLimitExceededException);
+
+    try {
+        (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie]));
+    } catch (IptorrentsRateLimitExceededException) {
+        // expected
+    }
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => $message === 'Torrent fulfillment aborted'
+            && $context['reason'] === 'IptorrentsRateLimitExceededException')
+        ->once();
 });
 
 it('searches movies by name and marks them covered', function () {
