@@ -27,12 +27,12 @@ beforeEach(function () {
     Bus::fake([DownloadTorrents::class]);
 });
 
-function fakeEpisodeTorrentResult(string $name): array
+function fakeEpisodeTorrentResult(string $name, int $torrentId = 1): array
 {
     $filename = str_replace(' ', '.', $name);
 
     return [
-        'torrent_id' => 1,
+        'torrent_id' => $torrentId,
         'name' => $name,
         'size' => '500 MB',
         'seeders' => 30,
@@ -226,7 +226,7 @@ it('marks newly requested episodes in the pivot table', function () {
 it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 10) as $_) {
+    foreach (range(1, 120) as $_) {
         RateLimiter::hit('iptorrents', 60);
     }
 
@@ -247,16 +247,18 @@ it('bails early when the IPTorrents rate limit is reached', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
-it('groups batch-premiere episodes and only searches the first by number', function () {
+it('searches every batch-premiere episode individually and downloads each torrent', function () {
     Event::fake([MediaAvailable::class]);
 
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchEpisodeByName')
-        ->once()
-        ->withArgs(fn (Episode $e) => $e->season === 1 && $e->number === 1)
-        ->andReturn(fakeEpisodeTorrentResult('Stranger.Things.S01E01.1080p.WEB-DL.x264-GROUP'));
+    foreach (range(1, 4) as $num) {
+        $mock->shouldReceive('searchEpisodeByName')
+            ->once()
+            ->withArgs(fn (Episode $e) => $e->season === 1 && $e->number === $num)
+            ->andReturn(fakeEpisodeTorrentResult("Stranger.Things.S01E0{$num}.1080p.WEB-DL.x264-GROUP", $num));
+    }
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Stranger Things']);
@@ -278,6 +280,136 @@ it('groups batch-premiere episodes and only searches the first by number', funct
     expect(RequestItem::count())->toBe(4);
 
     Event::assertDispatched(MediaAvailable::class);
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return count($job->torrents) === 4
+            && collect($job->torrents)->pluck('filename')->all() === [
+                'Stranger.Things.S01E01.1080p.WEB-DL.x264-GROUP.torrent',
+                'Stranger.Things.S01E02.1080p.WEB-DL.x264-GROUP.torrent',
+                'Stranger.Things.S01E03.1080p.WEB-DL.x264-GROUP.torrent',
+                'Stranger.Things.S01E04.1080p.WEB-DL.x264-GROUP.torrent',
+            ];
+    });
+});
+
+it('only requests the same-time episodes that actually have a torrent', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $airtime = now('America/New_York')->subHours(2)->format('H:i');
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisodeByName')
+        ->times(4)
+        ->andReturnUsing(function (Episode $e): ?array {
+            return in_array($e->number, [1, 3], true)
+                ? fakeEpisodeTorrentResult("Widows.Bay.S01E0{$e->number}.1080p.WEB-DL.x264-GROUP", $e->number)
+                : null;
+        });
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Widows Bay']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    foreach (range(1, 4) as $num) {
+        Episode::factory()->create([
+            'show_id' => $show->id,
+            'season' => 1,
+            'number' => $num,
+            'airdate' => today('America/New_York'),
+            'airtime' => $airtime,
+        ]);
+    }
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(2);
+
+    // Episodes without a torrent stay unrequested so they retry next run.
+    expect($sub->fresh()->processedEpisodes()->wherePivotNotNull('requested_at')->count())->toBe(2);
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return count($job->torrents) === 2
+            && collect($job->torrents)->pluck('filename')->sort()->values()->all() === [
+                'Widows.Bay.S01E01.1080p.WEB-DL.x264-GROUP.torrent',
+                'Widows.Bay.S01E03.1080p.WEB-DL.x264-GROUP.torrent',
+            ];
+    });
+});
+
+it('retries an episode without a torrent on a later run within the lookback window', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $airtime = now('America/New_York')->subHours(2)->format('H:i');
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Twin Lakes']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episodes = collect(range(1, 2))->mapWithKeys(fn (int $num): array => [$num => Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => $num,
+        'airdate' => today('America/New_York'),
+        'airtime' => $airtime,
+    ])]);
+
+    // Episode 1 has a torrent immediately; episode 2 only gets one on the second run.
+    // The Artisan command is resolved once and caches its injected service, so a single
+    // stateful mock must serve both runs.
+    $episode1Searches = 0;
+    $episode2Searches = 0;
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisodeByName')
+        ->times(3)
+        ->andReturnUsing(function (Episode $e) use (&$episode1Searches, &$episode2Searches): ?array {
+            if ($e->number === 1) {
+                $episode1Searches++;
+
+                return fakeEpisodeTorrentResult('Twin.Lakes.S01E01.1080p.WEB-DL.x264-GROUP', 1);
+            }
+
+            $episode2Searches++;
+
+            return $episode2Searches >= 2
+                ? fakeEpisodeTorrentResult('Twin.Lakes.S01E02.1080p.WEB-DL.x264-GROUP', 2)
+                : null;
+        });
+
+    // Run 1: only episode 1 has a torrent; episode 2 returns null and stays unmarked.
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(1);
+
+    $episode1Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[1]->id)->first();
+    $episode2Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[2]->id)->first();
+
+    expect($episode1Pivot->pivot->requested_at)->not->toBeNull();
+    expect($episode2Pivot)->toBeNull();
+
+    $episode1RequestedAt = $episode1Pivot->pivot->requested_at;
+
+    // Run 2: episode 2 now has a torrent. Episode 1 is already requested, so it must not be re-searched.
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(2);
+    expect(RequestItem::count())->toBe(2);
+
+    $episode1Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[1]->id)->first();
+    $episode2Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[2]->id)->first();
+
+    expect($episode2Pivot->pivot->requested_at)->not->toBeNull();
+    expect($episode1Pivot->pivot->requested_at)->toEqual($episode1RequestedAt);
+
+    // Episode 1 was searched only on run 1; episode 2 was retried on run 2.
+    expect($episode1Searches)->toBe(1);
+    expect($episode2Searches)->toBe(2);
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return $job->torrents === [['torrent_id' => 2, 'filename' => 'Twin.Lakes.S01E02.1080p.WEB-DL.x264-GROUP.torrent']];
+    });
 });
 
 it('still picks up episodes that were already notified by the subscriptions command', function () {

@@ -142,13 +142,17 @@ class ProcessShowAvailability extends Command
 
                 try {
                     $available = collect();
-                    $groups = $allCandidates->groupBy(
-                        fn (Episode $e): string => $e->airdate?->format('Y-m-d').'|'.$e->airtime, // @phpstan-ignore method.nonObject (casted to Carbon)
-                    );
 
-                    foreach ($groups as $episodes) {
-                        $probe = $episodes->sortBy('number')->first();
-                        $result = $this->ipt->searchEpisodeByName($probe);
+                    // Search every aired episode individually. Episodes that premiere at the same
+                    // date/time each have their own torrent, so probing only the first would leave
+                    // the rest undownloaded. Episodes without a torrent yet stay unmarked and are
+                    // retried on the next run while still inside the lookback window.
+                    $orderedCandidates = $allCandidates
+                        ->sortBy([['season', 'asc'], ['number', 'asc']])
+                        ->values();
+
+                    foreach ($orderedCandidates as $episode) {
+                        $result = $this->ipt->searchEpisodeByName($episode);
 
                         if ($result !== null) {
                             $torrentDownloads[] = [
@@ -156,9 +160,7 @@ class ProcessShowAvailability extends Command
                                 'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
                             ];
 
-                            foreach ($episodes as $episode) {
-                                $available->push($episode);
-                            }
+                            $available->push($episode);
                         }
                     }
 
@@ -222,6 +224,8 @@ class ProcessShowAvailability extends Command
 
             MediaAvailable::dispatch(null, $show, $episodes);
         }
+
+        $torrentDownloads = collect($torrentDownloads)->unique('torrent_id')->values()->all();
 
         if ($torrentDownloads !== []) {
             DownloadTorrents::dispatch($torrentDownloads);
