@@ -337,6 +337,81 @@ it('only requests the same-time episodes that actually have a torrent', function
     });
 });
 
+it('retries an episode without a torrent on a later run within the lookback window', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $airtime = now('America/New_York')->subHours(2)->format('H:i');
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Twin Lakes']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episodes = collect(range(1, 2))->mapWithKeys(fn (int $num): array => [$num => Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => $num,
+        'airdate' => today('America/New_York'),
+        'airtime' => $airtime,
+    ])]);
+
+    // Episode 1 has a torrent immediately; episode 2 only gets one on the second run.
+    // The Artisan command is resolved once and caches its injected service, so a single
+    // stateful mock must serve both runs.
+    $episode1Searches = 0;
+    $episode2Searches = 0;
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldReceive('searchEpisodeByName')
+        ->times(3)
+        ->andReturnUsing(function (Episode $e) use (&$episode1Searches, &$episode2Searches): ?array {
+            if ($e->number === 1) {
+                $episode1Searches++;
+
+                return fakeEpisodeTorrentResult('Twin.Lakes.S01E01.1080p.WEB-DL.x264-GROUP', 1);
+            }
+
+            $episode2Searches++;
+
+            return $episode2Searches >= 2
+                ? fakeEpisodeTorrentResult('Twin.Lakes.S01E02.1080p.WEB-DL.x264-GROUP', 2)
+                : null;
+        });
+
+    // Run 1: only episode 1 has a torrent; episode 2 returns null and stays unmarked.
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(1);
+
+    $episode1Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[1]->id)->first();
+    $episode2Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[2]->id)->first();
+
+    expect($episode1Pivot->pivot->requested_at)->not->toBeNull();
+    expect($episode2Pivot)->toBeNull();
+
+    $episode1RequestedAt = $episode1Pivot->pivot->requested_at;
+
+    // Run 2: episode 2 now has a torrent. Episode 1 is already requested, so it must not be re-searched.
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(2);
+    expect(RequestItem::count())->toBe(2);
+
+    $episode1Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[1]->id)->first();
+    $episode2Pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episodes[2]->id)->first();
+
+    expect($episode2Pivot->pivot->requested_at)->not->toBeNull();
+    expect($episode1Pivot->pivot->requested_at)->toEqual($episode1RequestedAt);
+
+    // Episode 1 was searched only on run 1; episode 2 was retried on run 2.
+    expect($episode1Searches)->toBe(1);
+    expect($episode2Searches)->toBe(2);
+
+    Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
+        return $job->torrents === [['torrent_id' => 2, 'filename' => 'Twin.Lakes.S01E02.1080p.WEB-DL.x264-GROUP.torrent']];
+    });
+});
+
 it('still picks up episodes that were already notified by the subscriptions command', function () {
     Event::fake([MediaAvailable::class]);
 
