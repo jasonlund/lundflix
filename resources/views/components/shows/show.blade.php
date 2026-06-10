@@ -61,7 +61,11 @@ new class extends Component {
             return;
         }
 
-        $next = SubscriptionMode::from($mode);
+        $next = SubscriptionMode::tryFrom($mode);
+
+        if ($next === null) {
+            return;
+        }
 
         $this->show
             ->subscriptions()

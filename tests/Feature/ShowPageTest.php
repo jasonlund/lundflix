@@ -446,6 +446,24 @@ describe('subscription', function () {
             ->value('mode'))->toBe(SubscriptionMode::Download);
     });
 
+    it('ignores setMode with an invalid mode value', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('mode', SubscriptionMode::Download)
+            ->call('setMode', 'garbage')
+            ->assertStatus(200)
+            ->assertSet('mode', SubscriptionMode::Download);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_id', $show->id)
+            ->value('mode'))->toBe(SubscriptionMode::Download);
+    });
+
     it('can unsubscribe from a show', function () {
         $user = User::factory()->create();
         $show = Show::factory()->create(['status' => ShowStatus::Running->value]);

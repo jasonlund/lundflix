@@ -401,15 +401,22 @@ it('does not display original title when it matches the display title', function
         ->assertSee('Amélie');
 });
 
-it('decorates subscribed shows with a bell icon in search results', function () {
+it('differentiates subscription modes with distinct icons in search results', function () {
     $user = User::factory()->create();
-    $subscribed = Show::factory()->create(['name' => 'Bellish Show Subscribed', 'language' => 'English']);
+    $downloadShow = Show::factory()->create(['name' => 'Bellish Show Download', 'language' => 'English']);
+    $notifyShow = Show::factory()->create(['name' => 'Bellish Show Notify', 'language' => 'English']);
     $unsubscribed = Show::factory()->create(['name' => 'Bellish Show Plain', 'language' => 'English']);
 
     Subscription::factory()->create([
         'user_id' => $user->id,
         'subscribable_type' => Show::class,
-        'subscribable_id' => $subscribed->id,
+        'subscribable_id' => $downloadShow->id,
+    ]);
+
+    Subscription::factory()->notifyOnly()->create([
+        'user_id' => $user->id,
+        'subscribable_type' => Show::class,
+        'subscribable_id' => $notifyShow->id,
     ]);
 
     $this->actingAs($user);
@@ -425,7 +432,17 @@ it('decorates subscribed shows with a bell icon in search results', function () 
         return substr($html, $start, $end - $start);
     };
 
-    expect($extractRow($html, $subscribed->id))->toContain('text-lundflix');
+    $downloadRow = $extractRow($html, $downloadShow->id);
+    $notifyRow = $extractRow($html, $notifyShow->id);
+
+    expect($downloadRow)->toContain('text-lundflix');
+    expect($downloadRow)->toContain('fill-current');
+    expect($downloadRow)->toContain('(Subscribed)');
+
+    expect($notifyRow)->toContain('text-lundflix');
+    expect($notifyRow)->not->toContain('fill-current');
+    expect($notifyRow)->toContain('(Notify)');
+
     expect($extractRow($html, $unsubscribed->id))->not->toContain('text-lundflix');
 });
 

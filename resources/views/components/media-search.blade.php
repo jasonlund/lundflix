@@ -28,29 +28,29 @@ new class extends Component {
         }
 
         $userId = auth()->id();
-        $subscribedShowIds = [];
-        $subscribedMovieIds = [];
+        $showModes = [];
+        $movieModes = [];
 
         if ($userId) {
             $subs = Subscription::query()
                 ->active()
                 ->where('user_id', $userId)
                 ->whereIn('subscribable_type', [Show::class, Movie::class])
-                ->get(['subscribable_type', 'subscribable_id']);
+                ->get(['subscribable_type', 'subscribable_id', 'mode']);
 
-            $subscribedShowIds = $subs
+            $showModes = $subs
                 ->where('subscribable_type', Show::class)
-                ->pluck('subscribable_id')
+                ->pluck('mode', 'subscribable_id')
                 ->all();
-            $subscribedMovieIds = $subs
+            $movieModes = $subs
                 ->where('subscribable_type', Movie::class)
-                ->pluck('subscribable_id')
+                ->pluck('mode', 'subscribable_id')
                 ->all();
         }
 
         return $this->search($this->query, 'all', $this->language ?: null)
             ->take(8)
-            ->map(function (Movie|Show $item) use ($subscribedShowIds, $subscribedMovieIds): array {
+            ->map(function (Movie|Show $item) use ($showModes, $movieModes): array {
                 $isShow = $item instanceof Show;
 
                 $title = $isShow ? $item->name : $item->title;
@@ -87,9 +87,7 @@ new class extends Component {
                             : null),
                     'genres' => $item->genres ?? [],
                     'networkInfo' => $isShow ? $this->networkInfoFor($item) : [],
-                    'isSubscribed' => $isShow
-                        ? in_array($item->id, $subscribedShowIds, true)
-                        : in_array($item->id, $subscribedMovieIds, true),
+                    'subscriptionMode' => $isShow ? $showModes[$item->id] ?? null : $movieModes[$item->id] ?? null,
                     'model' => $item,
                 ];
             });
@@ -374,13 +372,13 @@ new class extends Component {
                                 variant="mini"
                                 class="text-zinc-400"
                             />
-                            @if ($result['isSubscribed'])
-                                <flux:icon.bell
-                                    variant="solid"
-                                    class="text-lundflix absolute -right-1 -bottom-1 size-3"
+                            @if ($result['subscriptionMode'])
+                                <flux:icon
+                                    :name="$result['subscriptionMode']->icon()"
+                                    @class(['text-lundflix absolute -right-1 -bottom-1 size-3', 'fill-current' => $result['subscriptionMode']->isFilled()])
                                     aria-hidden="true"
                                 />
-                                <span class="sr-only">(subscribed)</span>
+                                <span class="sr-only">({{ $result['subscriptionMode']->label() }})</span>
                             @endif
                         </div>
 

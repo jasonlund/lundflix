@@ -346,7 +346,9 @@ describe('H.265 preference', function () {
             ->and($method->invoke($service, 'Show S01E01 1080p AMZN WEB-DL H 264-NTb'))->toBeFalse()
             ->and($method->invoke($service, 'Show S01E01 1080p HEVC x265-MeGusta'))->toBeTrue()
             ->and($method->invoke($service, 'Show S01E01 720p WEBRip 2CH x265 HEVC-PSA'))->toBeTrue()
-            ->and($method->invoke($service, 'Show S01E01 2160p WEB-DL H 265-SCOPE'))->toBeTrue();
+            ->and($method->invoke($service, 'Show S01E01 2160p WEB-DL H 265-SCOPE'))->toBeTrue()
+            ->and($method->invoke($service, 'Show S01E01 1080p Xbox265 H 264-NTb'))->toBeFalse()
+            ->and($method->invoke($service, 'Show S01E01 1080p H 264 Phx265 release'))->toBeFalse();
     });
 });
 
@@ -359,6 +361,17 @@ describe('RAR detection', function () {
             'blade.runner.2049.1080p.bluray.x264-sparks.nfo',
             'blade.runner.2049.1080p.bluray.x264-sparks.r00',
             'blade.runner.2049.1080p.bluray.x264-sparks.r01',
+        ]))->toBeTrue();
+    });
+
+    it('treats multipart volumes beyond .r99 as rar-packed', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'huge.multidisc.rip.1080p.bluray.x264-grp.r099',
+            'huge.multidisc.rip.1080p.bluray.x264-grp.r100',
+            'huge.multidisc.rip.1080p.bluray.x264-grp.r123',
         ]))->toBeTrue();
     });
 
@@ -386,6 +399,26 @@ describe('RAR detection', function () {
         expect($method->invoke($service, [
             'Sample/movie-sample.rar',
             'Movie.2024.1080p.BluRay.x264-GRP.mkv',
+        ]))->toBeFalse();
+    });
+
+    it('flags a root-level rar whose name merely starts with "sample"', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'Sample.Collection.2024.rar',
+            'Sample.Collection.2024.mkv',
+        ]))->toBeTrue();
+    });
+
+    it('does not flag a subtitle rar inside a "Subtitles" directory', function () {
+        $service = new IptorrentsService;
+        $method = new ReflectionMethod($service, 'isRarPacked');
+
+        expect($method->invoke($service, [
+            'Subtitles/the.martian.2015.1080p.bluray.x264-sparks.rar',
+            'The.Martian.2015.1080p.BluRay.x264-SPARKS.mkv',
         ]))->toBeFalse();
     });
 
@@ -997,6 +1030,49 @@ describe('searchEpisodeByName', function () {
 
         // 1 search + 2 IMDB lookups + 1 file-list check (id901) + 1 verification search + 1 verification IMDB
         Http::assertSentCount(6);
+    });
+
+    it('learns ipt_search_term when the only IMDB match at index > 0 is rar-packed', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt2222222', 'name' => 'Taskmaster']);
+        $episode = Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/t/901/files')) {
+                return Http::response(fakeIptFileListHtml(['taskmaster.au.s01e01.1080p.web.h265-grp.r00']));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=900')) {
+                return Http::response(fakeIptTorrentDetailPage('tt1111111'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=901')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), '/torrent.php?id=950')) {
+                return Http::response(fakeIptTorrentDetailPage('tt2222222'));
+            }
+
+            if (str_contains($request->url(), 'q=Taskmaster+AU+s01e01')) {
+                return Http::response(fakeIptSearchHtml([
+                    fakeIptTorrentRow(torrentId: 950, name: 'Taskmaster AU S01E01 1080p', seeders: 100),
+                ]));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 900, name: 'Taskmaster S01E01 1080p HEVC x265-MeGusta', seeders: 200),
+                fakeIptTorrentRow(torrentId: 901, name: 'Taskmaster AU S01E01 1080p HEVC x265-MeGusta', seeders: 100),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $result = $service->searchEpisodeByName($episode);
+
+        expect($result)
+            ->not->toBeNull()
+            ->and($result['torrent_id'])->toBe(901);
+
+        expect($show->fresh()->ipt_search_term)->toBe('Taskmaster AU');
     });
 
     it('uses ipt_search_term when set on show', function () {

@@ -386,6 +386,24 @@ describe('subscription', function () {
         expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
     });
 
+    it('ignores setMode with an invalid mode value', function () {
+        $user = User::factory()->create();
+        $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Planned->value]);
+        Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('movies.show', ['movie' => $movie])
+            ->assertSet('mode', SubscriptionMode::Download)
+            ->call('setMode', 'garbage')
+            ->assertStatus(200)
+            ->assertSet('mode', SubscriptionMode::Download);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_id', $movie->id)
+            ->value('mode'))->toBe(SubscriptionMode::Download);
+    });
+
     it('can unsubscribe from a movie', function () {
         $user = User::factory()->create();
         $movie = Movie::factory()->withTmdbData()->create(['status' => MovieStatus::Planned->value]);

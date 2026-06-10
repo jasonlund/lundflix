@@ -157,6 +157,7 @@ class IptorrentsService
         $results = $this->preferH265($this->search($query, $categories));
 
         $rarFallback = null;
+        $rarFallbackIndex = null;
 
         foreach ($results->take(self::MAX_IMDB_LOOKUPS) as $index => $result) {
             if ($this->fetchTorrentImdbId($result['torrent_id']) !== $episode->show->imdb_id) {
@@ -169,7 +170,14 @@ class IptorrentsService
                 return $result;
             }
 
-            $rarFallback ??= $result;
+            if ($rarFallback === null) {
+                $rarFallback = $result;
+                $rarFallbackIndex = $index;
+            }
+        }
+
+        if ($rarFallback !== null) {
+            $this->learnSearchTerm($episode, $rarFallback['name'], $rarFallbackIndex);
         }
 
         return $rarFallback;
@@ -338,7 +346,7 @@ class IptorrentsService
 
     private function isH265(string $name): bool
     {
-        return (bool) preg_match('/x\.?\s?265|h\.?\s?265|hevc/i', $name);
+        return (bool) preg_match('/(?<![a-z0-9])x\.?\s?265|(?<![a-z0-9])h\.?\s?265|hevc/i', $name);
     }
 
     /**
@@ -409,14 +417,14 @@ class IptorrentsService
         foreach ($files as $path) {
             $basename = basename($path);
 
-            if (preg_match('/\.r\d{2}$/i', $basename)) {
+            if (preg_match('/\.r\d+$/i', $basename)) {
                 return true;
             }
 
             if (preg_match('/\.rar$/i', $basename)) {
                 $lowerPath = mb_strtolower($path);
 
-                if (str_contains($lowerPath, 'subs/') || str_contains($lowerPath, 'sample')) {
+                if (preg_match('#(^|/)(sample[^/]*|subs|subtitles)/#', $lowerPath)) {
                     continue;
                 }
 
