@@ -226,7 +226,7 @@ it('marks newly requested episodes in the pivot table', function () {
 it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 10) as $_) {
+    foreach (range(1, 120) as $_) {
         RateLimiter::hit('iptorrents', 60);
     }
 
@@ -329,7 +329,11 @@ it('only requests the same-time episodes that actually have a torrent', function
     expect($sub->fresh()->processedEpisodes()->wherePivotNotNull('requested_at')->count())->toBe(2);
 
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
-        return count($job->torrents) === 2;
+        return count($job->torrents) === 2
+            && collect($job->torrents)->pluck('filename')->sort()->values()->all() === [
+                'Widows.Bay.S01E01.1080p.WEB-DL.x264-GROUP.torrent',
+                'Widows.Bay.S01E03.1080p.WEB-DL.x264-GROUP.torrent',
+            ];
     });
 });
 
