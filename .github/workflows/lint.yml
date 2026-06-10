@@ -51,11 +51,8 @@ jobs:
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --memory-limit=512M
 
-      # Temporarily disabled: composer.lock reverted to v12.56.0 to test whether
-      # the framework bump is causing queue jobs to stop processing after deploy.
-      # Re-enable (and re-bump laravel/framework >=12.60.0 for CVE-2026-48019) once confirmed.
-      # - name: Security Audit (Composer)
-      #   run: composer audit
+      - name: Security Audit (Composer)
+        run: composer audit
 
       - name: Security Audit (npm)
         run: npm audit --audit-level=high
