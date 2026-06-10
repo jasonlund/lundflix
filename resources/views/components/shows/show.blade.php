@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ShowStatus;
+use App\Enums\SubscriptionMode;
 use App\Models\Show;
 use App\Support\AirDateTime;
 use App\Support\Formatters;
@@ -16,17 +17,16 @@ new class extends Component {
 
     public int $totalEpisodeCount = 0;
 
-    public bool $isSubscribed = false;
+    public ?SubscriptionMode $mode = null;
 
     public function mount(): void
     {
         $this->totalEpisodeCount = $this->show->episodes->count();
-        $this->isSubscribed =
-            auth()->check() &&
-            $this->show
-                ->subscriptions()
-                ->where('user_id', auth()->id())
-                ->exists();
+
+        $this->mode = $this->show
+            ->subscriptions()
+            ->where('user_id', auth()->id())
+            ->value('mode');
     }
 
     #[Computed]
@@ -41,30 +41,59 @@ new class extends Component {
         return $status->isSubscribable();
     }
 
-    public function toggleSubscription(): void
+    public function subscribe(): void
     {
-        if (! auth()->check() || ! $this->isSubscribable) {
+        if (! $this->isSubscribable || $this->mode !== null) {
             return;
         }
 
-        $userId = auth()->id();
+        $this->show
+            ->subscriptions()
+            ->firstOrCreate(['user_id' => auth()->id()], ['mode' => SubscriptionMode::Download]);
+        $this->mode = SubscriptionMode::Download;
 
-        if ($this->isSubscribed) {
-            $this->show
-                ->subscriptions()
-                ->where('user_id', $userId)
-                ->delete();
-            $this->isSubscribed = false;
-        } else {
-            $this->show->subscriptions()->firstOrCreate(['user_id' => $userId]);
-            $this->isSubscribed = true;
+        Flux::toast(text: __('lundbergh.toast.subscribed', ['title' => $this->show->name]));
+    }
+
+    public function setMode(string $mode): void
+    {
+        if ($this->mode === null) {
+            return;
         }
 
+        $next = SubscriptionMode::tryFrom($mode);
+
+        if ($next === null) {
+            return;
+        }
+
+        $this->show
+            ->subscriptions()
+            ->where('user_id', auth()->id())
+            ->update(['mode' => $next->value]);
+        $this->mode = $next;
+
         Flux::toast(
-            text: __($this->isSubscribed ? 'lundbergh.toast.subscribed' : 'lundbergh.toast.unsubscribed', [
-                'title' => $this->show->name,
-            ]),
+            text: __(
+                $next === SubscriptionMode::Download ? 'lundbergh.toast.mode_download' : 'lundbergh.toast.mode_notify',
+                ['title' => $this->show->name],
+            ),
         );
+    }
+
+    public function unsubscribe(): void
+    {
+        if ($this->mode === null) {
+            return;
+        }
+
+        $this->show
+            ->subscriptions()
+            ->where('user_id', auth()->id())
+            ->delete();
+        $this->mode = null;
+
+        Flux::toast(text: __('lundbergh.toast.unsubscribed', ['title' => $this->show->name]));
     }
 
     #[Computed]
@@ -258,40 +287,7 @@ new class extends Component {
     <x-media-hero :model="$show" :title="$show->name" :logo-url="$this->logoUrl">
         <x-slot:actions>
             @if ($this->isSubscribable)
-                <div x-data="{ syncing: false }" wire:key="subscribe-{{ $isSubscribed ? 'yes' : 'no' }}">
-                    <button
-                        x-on:click="
-                            syncing = true
-                            $wire.toggleSubscription().then(() => {
-                                syncing = false
-                            })
-                        "
-                        aria-pressed="{{ $isSubscribed ? 'true' : 'false' }}"
-                        aria-label="{{ $isSubscribed ? 'Unsubscribe from ' . $show->name : 'Subscribe to ' . $show->name }}"
-                        class="{{ $isSubscribed ? 'bg-lundflix/20 border-lundflix hover:bg-lundflix/30 text-white' : 'border-zinc-600 bg-white/10 text-white hover:bg-white/20' }} focus-visible:ring-lundflix flex cursor-pointer items-center gap-2 rounded-full border-1 px-5 py-3 text-sm font-medium backdrop-blur-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
-                    >
-                        <div class="relative flex items-center justify-center">
-                            @if ($isSubscribed)
-                                <flux:icon.bell
-                                    variant="solid"
-                                    x-bind:class="syncing && 'opacity-0'"
-                                    class="size-5 text-white sm:size-4"
-                                />
-                            @else
-                                <flux:icon.bell x-bind:class="syncing && 'opacity-0'" class="size-5 sm:size-4" />
-                            @endif
-                            <flux:icon.loading x-show="syncing" x-cloak class="absolute size-5 sm:size-4" />
-                        </div>
-                        <span
-                            class="before:invisible before:block before:h-0 before:overflow-hidden before:content-['Subscribed']"
-                            x-bind:class="syncing && 'opacity-0'"
-                            aria-live="polite"
-                            x-bind:aria-busy="syncing"
-                        >
-                            {{ $isSubscribed ? 'Subscribed' : 'Subscribe' }}
-                        </span>
-                    </button>
-                </div>
+                <x-subscribe-control :title="$show->name" :mode="$this->mode" />
             @endif
 
             <div

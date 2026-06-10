@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\SubscriptionMode;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property Carbon|null $fulfilled_at
  * @property Carbon|null $notified_at
+ * @property SubscriptionMode $mode
  */
 class Subscription extends Model
 {
@@ -28,6 +30,7 @@ class Subscription extends Model
         return [
             'fulfilled_at' => 'datetime',
             'notified_at' => 'datetime',
+            'mode' => SubscriptionMode::class,
         ];
     }
 
@@ -61,6 +64,12 @@ class Subscription extends Model
     protected function active(Builder $query): Builder
     {
         return $query->whereNull('fulfilled_at');
+    }
+
+    #[Scope]
+    protected function downloads(Builder $query): Builder
+    {
+        return $query->where('mode', SubscriptionMode::Download);
     }
 
     #[Scope]

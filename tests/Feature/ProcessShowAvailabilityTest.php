@@ -115,6 +115,32 @@ it('does not request an episode already in subscription_episode', function () {
     Event::assertNotDispatched(MediaAvailable::class);
 });
 
+it('skips notification-only subscriptions', function () {
+    Event::fake([MediaAvailable::class]);
+
+    $mock = $this->mock(IptorrentsService::class);
+    $mock->shouldNotReceive('searchEpisodeByName');
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Severance']);
+    Subscription::factory()->forSubscribable($show)->notifyOnly()->create(['user_id' => $user->id]);
+
+    Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(0);
+
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
 it('skips episodes that aired more than 24 hours ago', function () {
     Event::fake([MediaAvailable::class]);
 

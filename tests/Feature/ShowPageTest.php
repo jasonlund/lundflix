@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ShowStatus;
+use App\Enums\SubscriptionMode;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
@@ -409,21 +410,58 @@ it('renders the cart pill', function () {
 });
 
 describe('subscription', function () {
-    it('can subscribe to a running show', function () {
+    it('can subscribe to a running show and defaults to download mode', function () {
         $user = User::factory()->create();
         $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
 
         Livewire::actingAs($user)
             ->test('shows.show', ['show' => $show])
-            ->assertSet('isSubscribed', false)
-            ->call('toggleSubscription')
-            ->assertSet('isSubscribed', true);
+            ->assertSet('mode', null)
+            ->call('subscribe')
+            ->assertSet('mode', SubscriptionMode::Download);
 
         expect(Subscription::query()
             ->where('user_id', $user->id)
             ->where('subscribable_type', Show::class)
             ->where('subscribable_id', $show->id)
-            ->exists())->toBeTrue();
+            ->value('mode'))->toBe(SubscriptionMode::Download);
+    });
+
+    it('can switch a show subscription to notification only and back', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('mode', SubscriptionMode::Download)
+            ->call('setMode', 'notify')
+            ->assertSet('mode', SubscriptionMode::Notify)
+            ->call('setMode', 'download')
+            ->assertSet('mode', SubscriptionMode::Download);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_id', $show->id)
+            ->value('mode'))->toBe(SubscriptionMode::Download);
+    });
+
+    it('ignores setMode with an invalid mode value', function () {
+        $user = User::factory()->create();
+        $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
+        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test('shows.show', ['show' => $show])
+            ->assertSet('mode', SubscriptionMode::Download)
+            ->call('setMode', 'garbage')
+            ->assertStatus(200)
+            ->assertSet('mode', SubscriptionMode::Download);
+
+        expect(Subscription::query()
+            ->where('user_id', $user->id)
+            ->where('subscribable_id', $show->id)
+            ->value('mode'))->toBe(SubscriptionMode::Download);
     });
 
     it('can unsubscribe from a show', function () {
@@ -433,9 +471,9 @@ describe('subscription', function () {
 
         Livewire::actingAs($user)
             ->test('shows.show', ['show' => $show])
-            ->assertSet('isSubscribed', true)
-            ->call('toggleSubscription')
-            ->assertSet('isSubscribed', false);
+            ->assertSet('mode', SubscriptionMode::Download)
+            ->call('unsubscribe')
+            ->assertSet('mode', null);
 
         expect(Subscription::query()
             ->where('user_id', $user->id)
@@ -475,25 +513,25 @@ describe('subscription', function () {
             ->assertSet('isSubscribable', false);
     });
 
-    it('prevents toggling subscription for ended shows', function () {
+    it('prevents subscribing to ended shows', function () {
         $user = User::factory()->create();
         $show = Show::factory()->create(['status' => ShowStatus::Ended->value]);
 
         Livewire::actingAs($user)
             ->test('shows.show', ['show' => $show])
-            ->call('toggleSubscription')
-            ->assertSet('isSubscribed', false);
+            ->call('subscribe')
+            ->assertSet('mode', null);
 
         expect(Subscription::query()->where('user_id', $user->id)->count())->toBe(0);
     });
 
-    it('initializes subscription state from database on mount', function () {
+    it('initializes subscription mode from database on mount', function () {
         $user = User::factory()->create();
         $show = Show::factory()->create(['status' => ShowStatus::Running->value]);
-        Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+        Subscription::factory()->forSubscribable($show)->notifyOnly()->create(['user_id' => $user->id]);
 
         Livewire::actingAs($user)
             ->test('shows.show', ['show' => $show])
-            ->assertSet('isSubscribed', true);
+            ->assertSet('mode', SubscriptionMode::Notify);
     });
 });

@@ -49,6 +49,8 @@ return [
         'request_submitted' => '{1} Yeah… so, :count item has been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.|[2,*] Yeah… so, :count items have been requested. Oh, and I\'m gonna need you to come in on Sunday too. That\'d be great.',
         'subscribed' => "Yeah… so, you're now subscribed to :title. We'll keep you in the loop. That'd be great.",
         'unsubscribed' => "Mmm yeah… you've been unsubscribed from :title. So… yeah.",
+        'mode_download' => "Yeah… so, we'll go ahead and grab :title for you automatically. That'd be great.",
+        'mode_notify' => "Mmkay… we'll just notify you about :title, no downloading. So… yeah.",
         'profile_updated' => "Mmkay… your profile has been updated. That'd be great.",
     ],
     'tooltip' => [
