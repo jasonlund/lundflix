@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Request;
 
 use App\Enums\MediaType;
+use App\Jobs\ProcessRequest;
 use App\Models\Request;
 use App\Models\RequestItem;
 
@@ -23,6 +24,10 @@ class CreateRequestItems
             'updated_at' => now(),
         ], $items);
 
-        return RequestItem::insert($data);
+        $inserted = RequestItem::insert($data);
+
+        ProcessRequest::dispatch($request)->afterCommit();
+
+        return $inserted;
     }
 }
