@@ -8,6 +8,7 @@ use App\Actions\Request\CreateRequest;
 use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Events\MediaAvailable;
+use App\Events\MediaFoundInLibrary;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
@@ -15,6 +16,7 @@ use App\Models\Episode;
 use App\Models\Show;
 use App\Models\Subscription;
 use App\Services\IptorrentsService;
+use App\Services\ThirdParty\PlexService;
 use App\Support\AirDateTime;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -33,6 +35,7 @@ class ProcessShowAvailability extends Command
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
         private readonly IptorrentsService $ipt,
+        private readonly PlexService $plex,
     ) {
         parent::__construct();
     }
@@ -116,6 +119,66 @@ class ProcessShowAvailability extends Command
             ];
         }
 
+        $processed = 0;
+
+        /** @var array<int, array<int, Episode>> $foundInLibrary keyed by show id, episode id */
+        $foundInLibrary = [];
+
+        $libraryToken = config('services.plex.seed_token');
+
+        if (! $libraryToken) {
+            Log::warning('Plex library check skipped: seed token not configured.');
+        } else {
+            /** @var array<int, array<string, true>> $libraryEpisodes keyed by show id, then "season-number" */
+            $libraryEpisodes = [];
+            $remainingSubs = [];
+
+            foreach ($bySub as $entry) {
+                /** @var Show $show */
+                $show = $entry['show'];
+                /** @var Subscription $subscription */
+                $subscription = $entry['subscription'];
+                /** @var Collection<int, Episode> $candidates */
+                $candidates = $entry['candidates'];
+
+                if (! array_key_exists($show->id, $libraryEpisodes)) {
+                    $libraryEpisodes[$show->id] = $show->imdb_id
+                        ? $this->libraryEpisodeKeys($libraryToken, $show)
+                        : [];
+                }
+
+                $keys = $libraryEpisodes[$show->id];
+
+                if ($keys === []) {
+                    $remainingSubs[] = $entry;
+
+                    continue;
+                }
+
+                [$inLibrary, $remaining] = $candidates
+                    ->partition(fn (Episode $e): bool => isset($keys[$e->season.'-'.$e->number]));
+
+                if ($inLibrary->isNotEmpty()) {
+                    $subscription->processedEpisodes()->syncWithoutDetaching(
+                        $inLibrary->pluck('id')->mapWithKeys(fn ($id): array => [$id => ['requested_at' => now()]])->all(),
+                    );
+
+                    foreach ($inLibrary as $episode) {
+                        $foundInLibrary[$show->id][$episode->id] = $episode;
+                    }
+
+                    $processed++;
+                }
+
+                if ($remaining->isNotEmpty()) {
+                    $entry['candidates'] = $remaining->values();
+                    $remainingSubs[] = $entry;
+                }
+            }
+
+            $bySub = $remainingSubs;
+        }
+
         $byShow = collect($bySub)->groupBy(fn ($e) => $e['show']->id);
 
         /** @var array<int, Collection<int, Episode>|null> $showAvailable keyed by show id */
@@ -124,7 +187,6 @@ class ProcessShowAvailability extends Command
         $newlyRequested = [];
         /** @var list<array{torrent_id: int, filename: string}> $torrentDownloads */
         $torrentDownloads = [];
-        $processed = 0;
 
         foreach ($bySub as $entry) {
             /** @var Show $show */
@@ -214,6 +276,17 @@ class ProcessShowAvailability extends Command
             $processed++;
         }
 
+        foreach ($foundInLibrary as $showId => $episodesById) {
+            /** @var Show $show */
+            $show = $shows->get($showId);
+
+            $episodes = collect(array_values($episodesById))
+                ->sortBy([['season', 'asc'], ['number', 'asc']])
+                ->values();
+
+            MediaFoundInLibrary::dispatch(null, $show, $episodes);
+        }
+
         foreach ($newlyRequested as $showId => $episodesById) {
             /** @var Show $show */
             $show = $shows->get($showId);
@@ -234,5 +307,32 @@ class ProcessShowAvailability extends Command
         $this->info("Processed {$processed} show availability check(s).");
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function libraryEpisodeKeys(string $token, Show $show): array
+    {
+        try {
+            $servers = $this->plex->searchShowWithEpisodes($token, "imdb://{$show->imdb_id}");
+        } catch (\Throwable $e) {
+            Log::warning('Plex library check failed', [
+                'show_id' => $show->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        $keys = [];
+
+        foreach ($servers as $server) {
+            foreach ($server['episodes'] as $episode) {
+                $keys[$episode['season'].'-'.$episode['episode']] = true;
+            }
+        }
+
+        return $keys;
     }
 }
