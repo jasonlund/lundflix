@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
+use Mockery\MockInterface;
 
 uses(RefreshDatabase::class);
 
@@ -25,7 +26,7 @@ beforeEach(function () {
     config(['services.slack.notifications.channel' => '#test-channel']);
 });
 
-function mockIptDownload(Mockery\MockInterface $mock, int $torrentId, string $filename): void
+function mockIptDownload(MockInterface $mock, int $torrentId, string $filename): void
 {
     $mock->shouldReceive('download')
         ->with($torrentId, $filename)
@@ -36,7 +37,7 @@ function mockIptDownload(Mockery\MockInterface $mock, int $torrentId, string $fi
         });
 }
 
-function mockTorrentDisk(array $existsResponses): Mockery\MockInterface
+function mockTorrentDisk(array $existsResponses): MockInterface
 {
     $disk = Mockery::mock(Filesystem::class);
     $disk->shouldReceive('put')->andReturn(true);
@@ -159,7 +160,7 @@ it('continues processing when FTP upload fails for one file', function () {
     $disk = Mockery::mock(Filesystem::class);
     $disk->shouldReceive('put')
         ->with('fail.torrent', 'torrent-content')
-        ->andThrow(new \RuntimeException('FTP write error'));
+        ->andThrow(new RuntimeException('FTP write error'));
     $disk->shouldReceive('put')
         ->with('success.torrent', 'torrent-content')
         ->andReturn(true);

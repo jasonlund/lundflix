@@ -3,6 +3,7 @@
 use App\Enums\EpisodeType;
 use App\Models\Episode;
 use App\Models\Show;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -139,7 +140,7 @@ it('throws exception on API failure', function () {
     ]);
 
     $this->artisan('tvmaze:sync-schedule');
-})->throws(\Illuminate\Http\Client\RequestException::class);
+})->throws(RequestException::class);
 
 it('syncs multiple episodes for the same show', function () {
     $show = Show::factory()->create(['tvmaze_id' => 100]);

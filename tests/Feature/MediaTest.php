@@ -4,6 +4,7 @@ use App\Enums\ArtworkType;
 use App\Models\Media;
 use App\Models\Movie;
 use App\Models\Show;
+use Illuminate\Database\QueryException;
 
 it('can be associated with a movie', function () {
     $movie = Movie::factory()->create();
@@ -108,7 +109,7 @@ it('prevents duplicate file_path for same mediable', function () {
         'type' => ArtworkType::Poster->value,
         'vote_average' => 3.0,
         'vote_count' => 5,
-    ]))->toThrow(Illuminate\Database\QueryException::class);
+    ]))->toThrow(QueryException::class);
 });
 
 it('allows same file_path for different mediables', function () {

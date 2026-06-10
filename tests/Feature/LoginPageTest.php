@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
@@ -37,10 +38,10 @@ it('redirects to the intended url after login', function () {
 });
 
 it('shows plex error in password reset modal when pin creation fails', function () {
-    $mockPlex = Mockery::mock(\App\Services\ThirdParty\PlexService::class);
-    $mockPlex->shouldReceive('createPin')->once()->andThrow(new \RuntimeException('Plex API error'));
+    $mockPlex = Mockery::mock(PlexService::class);
+    $mockPlex->shouldReceive('createPin')->once()->andThrow(new RuntimeException('Plex API error'));
 
-    app()->instance(\App\Services\ThirdParty\PlexService::class, $mockPlex);
+    app()->instance(PlexService::class, $mockPlex);
 
     Livewire::test('auth.login')
         ->call('redirectToPlex', 'password_reset')

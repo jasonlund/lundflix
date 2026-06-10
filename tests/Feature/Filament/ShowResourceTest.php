@@ -9,6 +9,7 @@ use App\Models\Show;
 use App\Models\User;
 use App\Services\ThirdParty\TVMazeService;
 use Filament\Actions\Testing\TestAction;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\Client\RequestException;
 use Livewire\Livewire;
 
@@ -138,7 +139,7 @@ it('shows error when API request fails', function () {
         ->shouldReceive('episodes')
         ->with(789)
         ->twice()
-        ->andThrow(new RequestException(new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(500))));
+        ->andThrow(new RequestException(new Illuminate\Http\Client\Response(new Response(500))));
 
     Livewire::test(EpisodesRelationManager::class, [
         'ownerRecord' => $show,

@@ -16,7 +16,7 @@ it('retries on transient connection errors', function () {
         $attempts++;
 
         if ($attempts < 2) {
-            throw new QueryException('mysql', 'SELECT 1', [], new \PDOException('Connection refused', 2002));
+            throw new QueryException('mysql', 'SELECT 1', [], new PDOException('Connection refused', 2002));
         }
 
         return 'success';
@@ -33,7 +33,7 @@ it('retries on mysql server gone away', function () {
         $attempts++;
 
         if ($attempts < 2) {
-            throw new QueryException('mysql', 'SELECT 1', [], new \PDOException('MySQL server has gone away', 2006));
+            throw new QueryException('mysql', 'SELECT 1', [], new PDOException('MySQL server has gone away', 2006));
         }
 
         return 'success';
@@ -45,18 +45,18 @@ it('retries on mysql server gone away', function () {
 
 it('does not retry non-transient query exceptions', function () {
     DatabaseRetry::run(function () {
-        throw new QueryException('mysql', 'SELECT 1', [], new \PDOException('Syntax error', 1064));
+        throw new QueryException('mysql', 'SELECT 1', [], new PDOException('Syntax error', 1064));
     });
 })->throws(QueryException::class);
 
 it('does not retry non-query exceptions', function () {
     DatabaseRetry::run(function () {
-        throw new \RuntimeException('Something else');
+        throw new RuntimeException('Something else');
     });
-})->throws(\RuntimeException::class);
+})->throws(RuntimeException::class);
 
 it('throws after exhausting retries', function () {
     DatabaseRetry::run(function () {
-        throw new QueryException('mysql', 'SELECT 1', [], new \PDOException('Connection refused', 2002));
+        throw new QueryException('mysql', 'SELECT 1', [], new PDOException('Connection refused', 2002));
     }, times: 2);
 })->throws(QueryException::class);

@@ -34,7 +34,7 @@ it('displays trace ID on real 500 error page', function () {
     $traceId = 'test-trace-id-'.fake()->uuid();
     Compatibility::addTraceIdToContext($traceId);
 
-    Route::get('/test-500', fn () => throw new \RuntimeException('Test error'));
+    Route::get('/test-500', fn () => throw new RuntimeException('Test error'));
 
     $response = $this->get('/test-500');
 
@@ -68,7 +68,7 @@ it('does not display caption when not configured', function () {
 it('displays nightwatch trace ID from context on real error page', function () {
     config(['app.debug' => false]);
 
-    Route::get('/test-error', fn () => throw new \RuntimeException('Test error'));
+    Route::get('/test-error', fn () => throw new RuntimeException('Test error'));
 
     $response = $this->get('/test-error');
 
