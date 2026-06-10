@@ -22,7 +22,7 @@ class IptorrentsService
 {
     private const RATE_LIMIT_KEY = 'iptorrents';
 
-    private const RATE_LIMIT_ATTEMPTS = 120;
+    public const RATE_LIMIT_ATTEMPTS = 120;
 
     private const RATE_LIMIT_DECAY = 60;
 
