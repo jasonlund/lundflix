@@ -51,7 +51,7 @@ new class extends Component {
             ->pending()
             ->count();
 
-        if (! $user->requests()->exists()) {
+        if (! $user->requests()->exists() && ! $user->subscriptions()->exists()) {
             return __('lundbergh.dashboard.greeting_new');
         }
 

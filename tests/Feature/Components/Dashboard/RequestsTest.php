@@ -18,6 +18,8 @@ beforeEach(function () {
 });
 
 it('renders on the dashboard', function () {
+    Request::factory()->for($this->user)->create();
+
     $this->get('/')
         ->assertSuccessful()
         ->assertSeeLivewire('dashboard.requests');

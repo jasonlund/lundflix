@@ -91,7 +91,7 @@ class PlexCallbackController extends Controller
     {
         if (! $user instanceof User) {
             return redirect()->route('login')
-                ->withErrors(['plex' => __('lundbergh.plex.no_account')]);
+                ->withErrors(['plex' => __('lundbergh.plex.password_recovery_no_account')]);
         }
 
         $user->update(['plex_token' => $plexToken]);

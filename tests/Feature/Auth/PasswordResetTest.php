@@ -73,7 +73,7 @@ it('rejects password reset when no account exists for plex user', function () {
     ])->get('/auth/plex/callback');
 
     $response->assertRedirect(route('login'));
-    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.no_account')]);
+    $response->assertSessionHasErrors(['plex' => __('lundbergh.plex.password_recovery_no_account')]);
 });
 
 it('renders the reset password form with a valid token', function () {
