@@ -34,12 +34,11 @@ class ProcessMovieAvailability extends Command
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
         private readonly TorrentFulfillmentService $fulfillment,
-        private readonly PlexService $plex,
     ) {
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(PlexService $plex): int
     {
         $today = today();
         $windowStart = $today->copy()->subDays(self::LOOKBACK_DAYS);
@@ -90,7 +89,7 @@ class ProcessMovieAvailability extends Command
             /** @var Movie $movie */
             $movie = $subs->first()->subscribable;
 
-            if ($libraryToken && $movie->imdb_id && $this->existsInLibrary($libraryToken, $movie)) {
+            if ($libraryToken && $movie->imdb_id && $this->existsInLibrary($libraryToken, $movie, $plex)) {
                 foreach ($subs as $subscription) {
                     $subscription->markFulfilled();
                     $processed++;
@@ -155,10 +154,10 @@ class ProcessMovieAvailability extends Command
         return Command::SUCCESS;
     }
 
-    private function existsInLibrary(string $token, Movie $movie): bool
+    private function existsInLibrary(string $token, Movie $movie, PlexService $plex): bool
     {
         try {
-            return $this->plex
+            return $plex
                 ->searchByExternalId($token, "imdb://{$movie->imdb_id}", 1)
                 ->isNotEmpty();
         } catch (\Throwable $e) {

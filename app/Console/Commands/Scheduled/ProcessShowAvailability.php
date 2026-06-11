@@ -36,12 +36,11 @@ class ProcessShowAvailability extends Command
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
         private readonly TorrentFulfillmentService $fulfillment,
-        private readonly PlexService $plex,
     ) {
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(PlexService $plex): int
     {
         $now = now();
         $windowStart = $now->copy()->subHours(self::LOOKBACK_HOURS);
@@ -144,7 +143,7 @@ class ProcessShowAvailability extends Command
 
                 if (! array_key_exists($show->id, $libraryEpisodes)) {
                     $libraryEpisodes[$show->id] = $show->imdb_id
-                        ? $this->libraryEpisodeKeys($libraryToken, $show)
+                        ? $this->libraryEpisodeKeys($libraryToken, $show, $plex)
                         : [];
                 }
 
@@ -292,10 +291,10 @@ class ProcessShowAvailability extends Command
     /**
      * @return array<string, true>
      */
-    private function libraryEpisodeKeys(string $token, Show $show): array
+    private function libraryEpisodeKeys(string $token, Show $show, PlexService $plex): array
     {
         try {
-            $servers = $this->plex->searchShowWithEpisodes($token, "imdb://{$show->imdb_id}");
+            $servers = $plex->searchShowWithEpisodes($token, "imdb://{$show->imdb_id}");
         } catch (\Throwable $e) {
             Log::warning('Plex library check failed', [
                 'show_id' => $show->id,

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class TorrentFulfillmentService
 {
-    public function __construct(private IptorrentsService $ipt) {}
+    public function __construct(private readonly IptorrentsService $ipt) {}
 
     /**
      * Search IPTorrents for the given media and build the torrent downloads
