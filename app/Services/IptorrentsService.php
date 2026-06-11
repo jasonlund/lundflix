@@ -49,17 +49,23 @@ class IptorrentsService
 
     private const MAX_RAR_CHECKS = 3;
 
+    /** Result rows IPTorrents returns per search page. */
+    private const RESULTS_PER_PAGE = 50;
+
+    /** Safety cap on pages walked when sweeping a season's results. */
+    private const MAX_SEASON_PAGES = 5;
+
     /**
      * Search IPTorrents and return parsed results (max 50 per search).
      *
      * @param  list<IptCategory>  $categories
      * @return Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>
      */
-    public function search(string $query, array $categories = [], string $sort = 'seeders'): Collection
+    public function search(string $query, array $categories = [], string $sort = 'seeders', int $page = 1): Collection
     {
         $this->throttleRequest();
 
-        $url = $this->buildSearchUrl($query, $categories, $sort);
+        $url = $this->buildSearchUrl($query, $categories, $sort, $page);
         $response = $this->client()->get($url);
         $this->guardRateLimitResponse($response);
         $response->throw();
@@ -148,6 +154,75 @@ class IptorrentsService
         $results = $this->preferH265($this->search("{$episode->show->imdb_id} {$episode->code}", $categories));
 
         return $this->firstNonRar($results);
+    }
+
+    /**
+     * Sweep a show's season in one paginated search and resolve the best torrent
+     * for each requested episode number, replacing the per-episode search fan-out.
+     *
+     * Imdb-text scoping returns only this show, so no per-torrent imdb confirm is
+     * needed. Pagination is a safety net for the 50-row page cap: it stops as soon
+     * as every requested episode is covered, the last page is read, or the page
+     * cap is hit. Episodes with no match are simply absent from the returned map.
+     *
+     * @param  list<int>  $episodeNumbers
+     * @return array<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>
+     */
+    public function searchSeason(Show $show, int $season, array $episodeNumbers): array
+    {
+        if (! $show->imdb_id || $episodeNumbers === []) {
+            return [];
+        }
+
+        $categories = array_map(
+            IptCategory::from(...),
+            IptCategory::defaultTvValues(),
+        );
+
+        $wanted = array_values(array_unique($episodeNumbers));
+        $query = sprintf('%s S%02d', $show->imdb_id, $season);
+        $pattern = sprintf('/(?<![a-z0-9])s0*%de0*(\d+)/i', $season);
+
+        /** @var array<int, Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>> $buckets */
+        $buckets = [];
+
+        for ($page = 1; $page <= self::MAX_SEASON_PAGES; $page++) {
+            $results = $this->search($query, $categories, 'seeders', $page);
+
+            foreach ($results as $result) {
+                if (preg_match($pattern, $result['name'], $matches)) {
+                    $number = (int) $matches[1];
+                    $buckets[$number] ??= collect();
+                    $buckets[$number]->push($result);
+                }
+            }
+
+            $allCovered = array_reduce(
+                $wanted,
+                fn (bool $carry, int $number): bool => $carry && isset($buckets[$number]),
+                true,
+            );
+
+            if ($allCovered || $results->count() < self::RESULTS_PER_PAGE) {
+                break;
+            }
+        }
+
+        $matched = [];
+
+        foreach ($wanted as $number) {
+            if (! isset($buckets[$number])) {
+                continue;
+            }
+
+            $choice = $this->firstNonRar($this->preferH265($buckets[$number]->values()));
+
+            if ($choice !== null) {
+                $matched[$number] = $choice;
+            }
+        }
+
+        return $matched;
     }
 
     /**
@@ -465,7 +540,7 @@ class IptorrentsService
         return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
-    private function buildSearchUrl(string $query, array $categories, string $sort): string
+    private function buildSearchUrl(string $query, array $categories, string $sort, int $page = 1): string
     {
         $params = [];
 
@@ -477,6 +552,10 @@ class IptorrentsService
         $params[] = 'qf=';
         $params[] = 'o='.urlencode($sort);
         $params[] = 'qq=desc';
+
+        if ($page > 1) {
+            $params[] = 'p='.$page;
+        }
 
         return $this->baseUrl().'/t?'.implode('&', $params).'#torrents';
     }

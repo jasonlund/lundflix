@@ -81,7 +81,7 @@ it('dispatches DownloadTorrents for an episode item that has a torrent', functio
     ]);
 });
 
-it('dispatches one download per episode when a full season is requested', function () {
+it('sweeps a requested season with a single search and dispatches one download per episode', function () {
     $show = Show::factory()->create();
     $episodes = Episode::factory()->count(4)->for($show)
         ->sequence(['number' => 1], ['number' => 2], ['number' => 3], ['number' => 4])
@@ -94,12 +94,18 @@ it('dispatches one download per episode when a full season is requested', functi
     }
 
     $ipt = $this->mock(IptorrentsService::class);
-    foreach (range(1, 4) as $num) {
-        $ipt->shouldReceive('searchEpisode')
-            ->once()
-            ->withArgs(fn (Episode $e): bool => $e->number === $num)
-            ->andReturn(iptResult("Some.Show.S03E0{$num}.1080p.x265", 40 + $num));
-    }
+    $ipt->shouldNotReceive('searchEpisode');
+    $ipt->shouldReceive('searchSeason')
+        ->once()
+        ->withArgs(fn (Show $s, int $season, array $numbers): bool => $s->is($show)
+            && $season === 3
+            && $numbers === [1, 2, 3, 4])
+        ->andReturn([
+            1 => iptResult('Some.Show.S03E01.1080p.x265', 41),
+            2 => iptResult('Some.Show.S03E02.1080p.x265', 42),
+            3 => iptResult('Some.Show.S03E03.1080p.x265', 43),
+            4 => iptResult('Some.Show.S03E04.1080p.x265', 44),
+        ]);
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
