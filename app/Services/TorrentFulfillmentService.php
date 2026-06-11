@@ -18,7 +18,7 @@ class TorrentFulfillmentService
 
     /**
      * Search IPTorrents for the given media and build the torrent downloads
-     * needed to cover them, preferring season packs over per-episode grabs.
+     * needed to cover them, one search and download per item.
      *
      * @param  Collection<int, Movie|Episode>  $media
      */
@@ -58,77 +58,18 @@ class TorrentFulfillmentService
             $covered->push($movie);
         }
 
-        $byShowSeason = $episodes->groupBy(fn (Episode $e): string => $e->show_id.'-'.$e->season);
-
-        foreach ($byShowSeason as $group) {
+        foreach ($episodes as $episode) {
             try {
-                [$groupDownloads, $groupCovered] = $this->fulfillEpisodeGroup($group);
+                $result = $this->ipt->searchEpisodeByName($episode);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
-                $this->logAborted($e, $group->values());
+                $this->logAborted($e, collect([$episode]));
 
                 throw $e;
             } catch (\Throwable $e) {
-                $this->logFailed($group->values(), $e);
+                $this->logFailed(collect([$episode]), $e);
 
                 continue;
             }
-
-            foreach ($groupDownloads as $download) {
-                $downloads[] = $download;
-            }
-
-            foreach ($groupCovered as $episode) {
-                $covered->push($episode);
-            }
-        }
-
-        return new FulfillmentResult($downloads, $covered->values());
-    }
-
-    /**
-     * @param  Collection<int, Episode>  $group  Episodes of a single show + season.
-     * @return array{0: list<array{torrent_id: int, filename: string}>, 1: Collection<int, Episode>}
-     */
-    private function fulfillEpisodeGroup(Collection $group): array
-    {
-        $first = $group->first();
-        $season = $first->season;
-        $show = $first->loadMissing('show')->show;
-
-        if ($season >= 1) {
-            $fullSet = Episode::query()
-                ->where('show_id', $show->id)
-                ->where('season', $season)
-                ->pluck('id');
-
-            $wholeSeasonRequested = $fullSet->isNotEmpty()
-                && $fullSet->diff($group->pluck('id'))->isEmpty();
-
-            if ($wholeSeasonRequested) {
-                $pack = $this->ipt->searchSeasonPack($show, $season);
-
-                if ($pack !== null) {
-                    $this->logFound($pack, $group->values());
-
-                    return [[$this->toDownload($pack)], $group->values()];
-                }
-
-                Log::warning('No season pack found, falling back to per-episode', [
-                    'show' => $show->name,
-                    'season' => $season,
-                ]);
-            }
-        }
-
-        /** @var list<array{torrent_id: int, filename: string}> $downloads */
-        $downloads = [];
-        /** @var Collection<int, Episode> $covered */
-        $covered = collect();
-
-        $ordered = $group->sortBy([['season', 'asc'], ['number', 'asc']])->values();
-
-        foreach ($ordered as $episode) {
-            $result = $this->ipt->searchEpisodeByName($episode);
 
             if ($result === null) {
                 $this->logMissing(collect([$episode]));
@@ -141,7 +82,7 @@ class TorrentFulfillmentService
             $covered->push($episode);
         }
 
-        return [$downloads, $covered];
+        return new FulfillmentResult($downloads, $covered->values());
     }
 
     /**

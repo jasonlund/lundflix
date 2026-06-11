@@ -242,6 +242,7 @@ class ProcessShowAvailability extends Command
             $this->createRequestItems->create(
                 $request,
                 $subAvailable->map(fn (Episode $e): array => ['type' => MediaType::EPISODE, 'id' => $e->id])->all(),
+                autoDownload: false,
             );
 
             $subscription->processedEpisodes()->syncWithoutDetaching(
@@ -263,7 +264,7 @@ class ProcessShowAvailability extends Command
                 ->sortBy([['season', 'asc'], ['number', 'asc']])
                 ->values();
 
-            MediaFoundInLibrary::dispatch(null, $show, $episodes);
+            MediaFoundInLibrary::dispatch($show, $episodes);
         }
 
         foreach ($newlyRequested as $showId => $episodesById) {

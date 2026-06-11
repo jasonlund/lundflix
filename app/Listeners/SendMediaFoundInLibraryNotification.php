@@ -19,9 +19,7 @@ class SendMediaFoundInLibraryNotification implements ShouldQueue
     public function handle(MediaFoundInLibrary $event): void
     {
         if (! config('services.slack.enabled')) {
-            Log::warning('Slack notification skipped: Slack is not enabled', [
-                'request_id' => $event->request?->id,
-            ]);
+            Log::warning('Slack notification skipped: Slack is not enabled');
 
             return;
         }
@@ -29,9 +27,7 @@ class SendMediaFoundInLibraryNotification implements ShouldQueue
         $channel = SlackNotificationType::MediaInLibrary->channel();
 
         if (! $channel) {
-            Log::warning('Slack notification skipped: channel not configured', [
-                'request_id' => $event->request?->id,
-            ]);
+            Log::warning('Slack notification skipped: channel not configured');
 
             return;
         }

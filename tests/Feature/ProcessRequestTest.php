@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Enums\RequestItemStatus;
+use App\Exceptions\IptorrentsAuthException;
+use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
 use App\Jobs\ProcessRequest;
 use App\Models\Episode;
@@ -12,6 +14,7 @@ use App\Models\RequestItem;
 use App\Models\Show;
 use App\Services\IptorrentsService;
 use App\Services\TorrentFulfillmentService;
+use Illuminate\Contracts\Queue\Job as QueueJob;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 
@@ -77,7 +80,7 @@ it('dispatches DownloadTorrents for an episode item that has a torrent', functio
     ]);
 });
 
-it('dispatches a single season-pack download when a full season is requested', function () {
+it('dispatches one download per episode when a full season is requested', function () {
     $show = Show::factory()->create();
     $episodes = Episode::factory()->count(4)->for($show)
         ->sequence(['number' => 1], ['number' => 2], ['number' => 3], ['number' => 4])
@@ -90,13 +93,20 @@ it('dispatches a single season-pack download when a full season is requested', f
     }
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchSeasonPack')->once()->andReturn(iptResult('Some.Show.S03.1080p.x265', 42));
-    $ipt->shouldNotReceive('searchEpisodeByName');
+    foreach (range(1, 4) as $num) {
+        $ipt->shouldReceive('searchEpisodeByName')
+            ->once()
+            ->withArgs(fn (Episode $e): bool => $e->number === $num)
+            ->andReturn(iptResult("Some.Show.S03E0{$num}.1080p.x265", 40 + $num));
+    }
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
     Bus::assertDispatched(DownloadTorrents::class, fn (DownloadTorrents $job): bool => $job->torrents === [
-        ['torrent_id' => 42, 'filename' => 'Some.Show.S03.1080p.x265.torrent'],
+        ['torrent_id' => 41, 'filename' => 'Some.Show.S03E01.1080p.x265.torrent'],
+        ['torrent_id' => 42, 'filename' => 'Some.Show.S03E02.1080p.x265.torrent'],
+        ['torrent_id' => 43, 'filename' => 'Some.Show.S03E03.1080p.x265.torrent'],
+        ['torrent_id' => 44, 'filename' => 'Some.Show.S03E04.1080p.x265.torrent'],
     ]);
 });
 
@@ -147,6 +157,38 @@ it('ignores items that are not pending', function () {
     $ipt->shouldNotReceive('searchMovieByName');
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
+
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
+it('releases the job when rate limited', function () {
+    $movie = Movie::factory()->create();
+    $request = Request::factory()->create();
+    RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    $fulfillment = $this->mock(TorrentFulfillmentService::class);
+    $fulfillment->shouldReceive('fulfill')->once()->andThrow(new IptorrentsRateLimitExceededException);
+
+    $fakeJob = Mockery::mock(QueueJob::class);
+    $fakeJob->shouldReceive('release')->with(60)->once();
+
+    $job = new ProcessRequest($request);
+    $job->setJob($fakeJob);
+    $job->handle($fulfillment);
+
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
+it('propagates auth exceptions so the job fails', function () {
+    $movie = Movie::factory()->create();
+    $request = Request::factory()->create();
+    RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
+
+    $fulfillment = $this->mock(TorrentFulfillmentService::class);
+    $fulfillment->shouldReceive('fulfill')->once()->andThrow(new IptorrentsAuthException('cookie expired'));
+
+    expect(fn () => (new ProcessRequest($request))->handle($fulfillment))
+        ->toThrow(IptorrentsAuthException::class);
 
     Bus::assertNotDispatched(DownloadTorrents::class);
 });

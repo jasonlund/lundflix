@@ -6,7 +6,6 @@ namespace App\Events;
 
 use App\Models\Episode;
 use App\Models\Movie;
-use App\Models\Request;
 use App\Models\Show;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -21,7 +20,6 @@ class MediaFoundInLibrary implements ShouldDispatchAfterCommit
      * @param  Collection<int, Episode>|null  $episodes
      */
     public function __construct(
-        public ?Request $request,
         public Movie|Show $media,
         public ?Collection $episodes = null,
     ) {}

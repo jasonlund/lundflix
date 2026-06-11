@@ -68,6 +68,8 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
         return $job->torrents === [['torrent_id' => 1, 'filename' => 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP.torrent']];
     });
+
+    Bus::assertNotDispatched(ProcessRequest::class);
 });
 
 it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {

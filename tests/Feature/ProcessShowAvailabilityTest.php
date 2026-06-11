@@ -50,7 +50,6 @@ it('creates a request for episodes with available torrents', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));
@@ -84,6 +83,8 @@ it('creates a request for episodes with available torrents', function () {
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
         return $job->torrents === [['torrent_id' => 1, 'filename' => 'Severance.S02E01.1080p.WEB-DL.x264-GROUP.torrent']];
     });
+
+    Bus::assertNotDispatched(ProcessRequest::class);
 });
 
 it('does not request an episode already in subscription_episode', function () {
@@ -172,7 +173,6 @@ it('dedupes API calls across multiple subscriptions on the same show', function 
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Game.Of.Thrones.S08E01.1080p.WEB-DL.x264-GROUP'));
@@ -204,7 +204,6 @@ it('marks newly requested episodes in the pivot table', function () {
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('The.Wire.S01E01.1080p.WEB-DL.x264-GROUP'));
@@ -259,7 +258,6 @@ it('searches every batch-premiere episode individually and downloads each torren
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     foreach (range(1, 4) as $num) {
         $mock->shouldReceive('searchEpisodeByName')
             ->once()
@@ -305,7 +303,6 @@ it('only requests the same-time episodes that actually have a torrent', function
     $airtime = now('America/New_York')->subHours(2)->format('H:i');
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->times(4)
         ->andReturnUsing(function (Episode $e): ?array {
@@ -369,7 +366,6 @@ it('retries an episode without a torrent on a later run within the lookback wind
     $episode2Searches = 0;
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->times(3)
         ->andReturnUsing(function (Episode $e) use (&$episode1Searches, &$episode2Searches): ?array {
@@ -510,7 +506,6 @@ it('still picks up episodes that were already notified by the subscriptions comm
     Event::fake([MediaAvailable::class]);
 
     $mock = $this->mock(IptorrentsService::class);
-    $mock->shouldReceive('searchSeasonPack')->andReturnNull();
     $mock->shouldReceive('searchEpisodeByName')
         ->once()
         ->andReturn(fakeEpisodeTorrentResult('Severance.S02E01.1080p.WEB-DL.x264-GROUP'));

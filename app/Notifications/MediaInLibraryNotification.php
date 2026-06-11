@@ -67,10 +67,23 @@ class MediaInLibraryNotification extends Notification
         $show = $this->media;
         $episodes = $this->episodes ?? collect();
 
+        if ($episodes->isEmpty()) {
+            return (new SlackMessage)
+                ->text($show->name)
+                ->sectionBlock(function (SectionBlock $block) use ($show): void {
+                    $block->text("*📚 Show in Library*\n\n{$show->name}")->markdown();
+                });
+        }
+
         $episodeCount = $episodes->count();
         $header = $episodeCount === 1 ? '📚 Episode in Library' : '📚 Episodes in Library';
 
-        $grouped = app(CartService::class)->groupItems($episodes); // @phpstan-ignore argument.type
+        $episodes->each(fn (Episode $episode) => $episode->setRelation('show', $show));
+
+        /** @var Collection<int, Movie|Episode> $items */
+        $items = $episodes;
+
+        $grouped = app(CartService::class)->groupItems($items);
         $parts = [];
 
         foreach ($grouped['shows'] as $showGroup) {

@@ -126,7 +126,7 @@ class ProcessMovieAvailability extends Command
                 $request = $this->createRequest->create($subscription->user);
                 $this->createRequestItems->create($request, [
                     ['type' => MediaType::MOVIE, 'id' => $movie->id],
-                ]);
+                ], autoDownload: false);
 
                 $subscription->markFulfilled();
 
@@ -139,7 +139,7 @@ class ProcessMovieAvailability extends Command
         }
 
         foreach ($foundInLibrary as $movie) {
-            MediaFoundInLibrary::dispatch(null, $movie);
+            MediaFoundInLibrary::dispatch($movie);
         }
 
         foreach ($toDispatch as $movie) {

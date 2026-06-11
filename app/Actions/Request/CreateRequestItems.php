@@ -14,7 +14,7 @@ class CreateRequestItems
     /**
      * @param  array<int, array{type: MediaType, id: int}>  $items
      */
-    public function create(Request $request, array $items): bool
+    public function create(Request $request, array $items, bool $autoDownload = true): bool
     {
         $data = array_map(fn (array $item): array => [
             'request_id' => $request->id,
@@ -26,7 +26,9 @@ class CreateRequestItems
 
         $inserted = RequestItem::insert($data);
 
-        ProcessRequest::dispatch($request)->afterCommit();
+        if ($autoDownload) {
+            ProcessRequest::dispatch($request)->afterCommit();
+        }
 
         return $inserted;
     }
