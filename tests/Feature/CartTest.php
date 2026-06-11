@@ -12,6 +12,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
+beforeEach(fn () => Queue::fake());
+
 it('creates request from movies via submit', function () {
     $user = User::factory()->create();
     $movie = Movie::factory()->create(['status' => MovieStatus::Released]);
