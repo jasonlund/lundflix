@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\TorrentSearchStrategy;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
@@ -22,7 +23,7 @@ class TorrentFulfillmentService
      *
      * @param  Collection<int, Movie|Episode>  $media
      */
-    public function fulfill(Collection $media): FulfillmentResult
+    public function fulfill(Collection $media, TorrentSearchStrategy $strategy = TorrentSearchStrategy::Name): FulfillmentResult
     {
         /** @var list<array{torrent_id: int, filename: string}> $downloads */
         $downloads = [];
@@ -36,7 +37,9 @@ class TorrentFulfillmentService
 
         foreach ($movies as $movie) {
             try {
-                $result = $this->ipt->searchMovieByName($movie);
+                $result = $strategy === TorrentSearchStrategy::ImdbId
+                    ? $this->ipt->searchMovie($movie)
+                    : $this->ipt->searchMovieByName($movie);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
                 $this->logAborted($e, collect([$movie]));
 
@@ -60,7 +63,9 @@ class TorrentFulfillmentService
 
         foreach ($episodes as $episode) {
             try {
-                $result = $this->ipt->searchEpisodeByName($episode);
+                $result = $strategy === TorrentSearchStrategy::ImdbId
+                    ? $this->ipt->searchEpisode($episode)
+                    : $this->ipt->searchEpisodeByName($episode);
             } catch (IptorrentsRateLimitExceededException|IptorrentsAuthException $e) {
                 $this->logAborted($e, collect([$episode]));
 

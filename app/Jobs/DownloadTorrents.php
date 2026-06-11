@@ -52,10 +52,10 @@ class DownloadTorrents implements ShouldQueue
         foreach ($this->torrents as $index => $torrent) {
             try {
                 $this->processTorrent($ipt, $torrent, $rejected, $ignored);
-            } catch (IptorrentsRateLimitExceededException) {
+            } catch (IptorrentsRateLimitExceededException $e) {
                 $this->torrents = array_slice($this->torrents, $index);
                 $this->sendNotifications($rejected, $ignored);
-                $this->release(60);
+                $this->release($e->retryAfter);
 
                 return;
             } catch (\Throwable $e) {

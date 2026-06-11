@@ -9,12 +9,13 @@ use App\Models\Show;
 use App\Services\IptorrentsService;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 
 beforeEach(function () {
     Http::preventStrayRequests();
-    RateLimiter::clear('iptorrents');
+    resetIptThrottle();
 
     $settings = app(IptorrentsSettings::class);
     $settings->ipt_uid = '123';
@@ -221,10 +222,8 @@ it('throws IptorrentsAuthException when credentials are not configured', functio
     Http::assertNothingSent();
 });
 
-it('throws IptorrentsRateLimitExceededException when rate limit exceeded', function () {
-    foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+it('throws IptorrentsRateLimitExceededException when in cooldown', function () {
+    seedIptCooldown();
 
     Http::fake(['iptorrents.com/*' => Http::response(fakeIptSearchHtml([]))]);
 
@@ -233,6 +232,38 @@ it('throws IptorrentsRateLimitExceededException when rate limit exceeded', funct
         ->toThrow(IptorrentsRateLimitExceededException::class);
 
     Http::assertNothingSent();
+});
+
+it('spaces consecutive requests by the configured interval', function () {
+    $this->freezeTime();
+
+    Http::fake(['iptorrents.com/*' => Http::response(fakeIptSearchHtml([]))]);
+
+    $service = new IptorrentsService;
+    $service->search('first');
+    $service->search('second');
+
+    Sleep::assertSlept(fn ($duration) => (int) $duration->totalMilliseconds === 6500, times: 1);
+});
+
+it('honors and logs Retry-After on a 429 without retrying', function () {
+    Log::spy();
+
+    Http::fake([
+        'iptorrents.com/*' => Http::response('Rate Limit Reached', 429, ['Retry-After' => '60']),
+    ]);
+
+    $service = new IptorrentsService;
+
+    try {
+        $service->search('test');
+        $this->fail('Expected IptorrentsRateLimitExceededException.');
+    } catch (IptorrentsRateLimitExceededException $e) {
+        expect($e->retryAfter)->toBe(60);
+    }
+
+    Http::assertSentCount(1);
+    Log::shouldHaveReceived('warning')->once();
 });
 
 it('returns empty collection when no results found', function () {
@@ -672,10 +703,8 @@ describe('fetchTorrentImdbId', function () {
         expect($result)->toBeNull();
     });
 
-    it('throws rate limit exception when exhausted', function () {
-        foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-            RateLimiter::hit('iptorrents', 60);
-        }
+    it('throws rate limit exception when in cooldown', function () {
+        seedIptCooldown();
 
         $service = new IptorrentsService;
         expect(fn () => $service->fetchTorrentImdbId(12345))
@@ -1288,9 +1317,7 @@ describe('searchEpisodeByName', function () {
             return Http::response(fakeIptSearchHtml([]));
         });
 
-        foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-            RateLimiter::hit('iptorrents', 60);
-        }
+        seedIptCooldown();
 
         $service = new IptorrentsService;
 

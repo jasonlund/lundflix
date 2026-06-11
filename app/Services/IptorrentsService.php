@@ -11,20 +11,39 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Settings\IptorrentsSettings;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use Symfony\Component\DomCrawler\Crawler;
 
 class IptorrentsService
 {
-    private const RATE_LIMIT_KEY = 'iptorrents';
+    private const THROTTLE_KEY = 'iptorrents:next-slot';
 
-    public const RATE_LIMIT_ATTEMPTS = 120;
+    private const THROTTLE_LOCK = 'iptorrents:throttle-lock';
 
-    private const RATE_LIMIT_DECAY = 60;
+    /**
+     * Minimum spacing between IPTorrents requests. Spreads ~10 requests across
+     * 65 seconds (one every 6.5s), staying safely under the tracker's measured
+     * burst ceiling of ~10 requests before it returns HTTP 429.
+     */
+    private const REQUEST_SPACING_MS = 6500;
+
+    /**
+     * Longest a worker will wait in-process for its slot before releasing the
+     * job back to the queue instead of blocking.
+     */
+    private const MAX_WAIT_SECONDS = 30;
+
+    /** Fallback cooldown when a 429 arrives without a usable Retry-After header. */
+    private const RETRY_AFTER_FALLBACK_SECONDS = 60;
 
     private const MAX_IMDB_LOOKUPS = 3;
 
@@ -38,10 +57,11 @@ class IptorrentsService
      */
     public function search(string $query, array $categories = [], string $sort = 'seeders'): Collection
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->buildSearchUrl($query, $categories, $sort);
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -188,10 +208,11 @@ class IptorrentsService
      */
     public function fetchTorrentImdbId(int $torrentId): ?string
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/torrent.php?id={$torrentId}";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -225,10 +246,11 @@ class IptorrentsService
      */
     public function fetchTorrentFileList(int $torrentId): array
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/t/{$torrentId}/files";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -259,10 +281,11 @@ class IptorrentsService
      */
     public function download(int $torrentId, string $filename): string
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/download.php/{$torrentId}/{$filename}";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         if (str_contains($response->body(), '<title>IPTorrents')) {
@@ -539,13 +562,66 @@ class IptorrentsService
         }
     }
 
-    private function checkRateLimit(): void
+    /**
+     * Pace outbound IPTorrents requests so no more than one fires per
+     * REQUEST_SPACING_MS, coordinated across all queue workers via a shared
+     * cache slot. Short waits are slept off in-process; a wait beyond
+     * MAX_WAIT_SECONDS (e.g. an active Retry-After cooldown) releases the job
+     * back to the queue instead of blocking the worker.
+     */
+    private function throttleRequest(): void
     {
-        if (RateLimiter::tooManyAttempts(self::RATE_LIMIT_KEY, self::RATE_LIMIT_ATTEMPTS)) {
-            throw new IptorrentsRateLimitExceededException;
+        $waitMs = Cache::lock(self::THROTTLE_LOCK, 10)->block(
+            self::MAX_WAIT_SECONDS + 5,
+            function (): int {
+                $now = now()->getTimestampMs();
+                $last = (int) Cache::get(self::THROTTLE_KEY, 0);
+                $slot = max($now, $last + self::REQUEST_SPACING_MS);
+
+                if (($slot - $now) > self::MAX_WAIT_SECONDS * 1000) {
+                    throw new IptorrentsRateLimitExceededException;
+                }
+
+                Cache::put(self::THROTTLE_KEY, $slot, now()->addMinutes(5));
+
+                return $slot - $now;
+            },
+        );
+
+        if ($waitMs > 0) {
+            Sleep::for($waitMs)->milliseconds();
+        }
+    }
+
+    /**
+     * Honor an IPTorrents HTTP 429 by logging the Retry-After value, pushing the
+     * shared throttle slot out so every worker observes the cooldown, and
+     * releasing the job. 429 is deliberately excluded from the client retry
+     * policy so this runs instead of a tight, Retry-After-ignoring retry loop.
+     */
+    private function guardRateLimitResponse(Response $response): void
+    {
+        if ($response->status() !== 429) {
+            return;
         }
 
-        RateLimiter::hit(self::RATE_LIMIT_KEY, self::RATE_LIMIT_DECAY);
+        $retryAfter = (int) $response->header('Retry-After');
+
+        if ($retryAfter <= 0) {
+            $retryAfter = self::RETRY_AFTER_FALLBACK_SECONDS;
+        }
+
+        Log::warning('IPTorrents returned HTTP 429; honoring Retry-After.', [
+            'retry_after_seconds' => $retryAfter,
+        ]);
+
+        Cache::put(
+            self::THROTTLE_KEY,
+            now()->getTimestampMs() + ($retryAfter * 1000),
+            now()->addMinutes(5),
+        );
+
+        throw new IptorrentsRateLimitExceededException($retryAfter);
     }
 
     private function baseUrl(): string
@@ -561,7 +637,8 @@ class IptorrentsService
             throw new IptorrentsAuthException('IPTorrents credentials not configured. Set them in admin Settings → IPTorrents.');
         }
 
-        return Http::resilient()
+        return Http::retry(3, 1000, when: fn (\Throwable $e): bool => $e instanceof ConnectionException
+            || ($e instanceof RequestException && in_array($e->response->status(), [408, 502, 503, 504], true)), throw: false)
             ->withHeaders(['Cookie' => $settings->cookieHeader()])
             ->timeout(30);
     }

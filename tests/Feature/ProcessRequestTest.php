@@ -22,6 +22,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Bus::fake([DownloadTorrents::class]);
+    resetIptThrottle();
 });
 
 function iptResult(string $name, int $torrentId = 1): array
@@ -51,7 +52,7 @@ it('dispatches DownloadTorrents for a movie item that has a torrent', function (
     RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(iptResult('Some.Movie.2024.1080p.x265'));
+    $ipt->shouldReceive('searchMovie')->once()->andReturn(iptResult('Some.Movie.2024.1080p.x265'));
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
@@ -71,7 +72,7 @@ it('dispatches DownloadTorrents for an episode item that has a torrent', functio
     RequestItem::factory()->pending()->forRequestable($episode)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchEpisodeByName')->once()->andReturn(iptResult('Some.Show.S01E01.1080p.x265'));
+    $ipt->shouldReceive('searchEpisode')->once()->andReturn(iptResult('Some.Show.S01E01.1080p.x265'));
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
@@ -94,7 +95,7 @@ it('dispatches one download per episode when a full season is requested', functi
 
     $ipt = $this->mock(IptorrentsService::class);
     foreach (range(1, 4) as $num) {
-        $ipt->shouldReceive('searchEpisodeByName')
+        $ipt->shouldReceive('searchEpisode')
             ->once()
             ->withArgs(fn (Episode $e): bool => $e->number === $num)
             ->andReturn(iptResult("Some.Show.S03E0{$num}.1080p.x265", 40 + $num));
@@ -123,8 +124,8 @@ it('batches mixed items into a single DownloadTorrents dispatch', function () {
     RequestItem::factory()->pending()->forRequestable($episode)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(iptResult('Movie.x265'));
-    $ipt->shouldReceive('searchEpisodeByName')->once()->andReturn(iptResult('Show.S01E01.x265'));
+    $ipt->shouldReceive('searchMovie')->once()->andReturn(iptResult('Movie.x265'));
+    $ipt->shouldReceive('searchEpisode')->once()->andReturn(iptResult('Show.S01E01.x265'));
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
@@ -141,7 +142,7 @@ it('does not dispatch DownloadTorrents when no torrent is found', function () {
     RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchMovieByName')->once()->andReturnNull();
+    $ipt->shouldReceive('searchMovie')->once()->andReturnNull();
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
@@ -154,7 +155,7 @@ it('ignores items that are not pending', function () {
     RequestItem::factory()->fulfilled()->forRequestable($movie)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldNotReceive('searchMovieByName');
+    $ipt->shouldNotReceive('searchMovie');
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 
@@ -199,7 +200,7 @@ it('leaves item status untouched', function () {
     $item = RequestItem::factory()->pending()->forRequestable($movie)->create(['request_id' => $request->id]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(iptResult('Movie.x265'));
+    $ipt->shouldReceive('searchMovie')->once()->andReturn(iptResult('Movie.x265'));
 
     (new ProcessRequest($request))->handle(fulfillment($ipt));
 

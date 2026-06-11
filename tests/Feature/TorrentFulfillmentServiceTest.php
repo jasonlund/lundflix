@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\TorrentSearchStrategy;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
@@ -13,6 +14,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
+
+beforeEach(fn () => resetIptThrottle());
 
 function fulfillmentResult(string $name, int $torrentId = 1): array
 {
@@ -255,4 +258,38 @@ it('skips a failing group and continues with the rest', function () {
     expect($result->downloads)->toBe([
         ['torrent_id' => 50, 'filename' => 'Show.B.S01E01.torrent'],
     ])->and($result->covered)->toHaveCount(1);
+});
+
+it('searches by name for movies and episodes under the default strategy', function () {
+    $movie = Movie::factory()->create();
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    $episode = $show->episodes()->first();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(fulfillmentResult('Movie.x265', 1));
+    $ipt->shouldReceive('searchEpisodeByName')->once()->andReturn(fulfillmentResult('Show.S01E01.x265', 2));
+    $ipt->shouldNotReceive('searchMovie');
+    $ipt->shouldNotReceive('searchEpisode');
+
+    $result = (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie, $episode]));
+
+    expect($result->covered)->toHaveCount(2);
+});
+
+it('searches by imdb id for movies and episodes under the imdb strategy', function () {
+    $movie = Movie::factory()->create();
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    $episode = $show->episodes()->first();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovie')->once()->andReturn(fulfillmentResult('Movie.x265', 1));
+    $ipt->shouldReceive('searchEpisode')->once()->andReturn(fulfillmentResult('Show.S01E01.x265', 2));
+    $ipt->shouldNotReceive('searchMovieByName');
+    $ipt->shouldNotReceive('searchEpisodeByName');
+
+    $result = (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie, $episode]), TorrentSearchStrategy::ImdbId);
+
+    expect($result->covered)->toHaveCount(2);
 });

@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Sleep;
 use Tests\TestCase;
 
 /*
@@ -50,4 +52,28 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Reset the IPTorrents request-spacing throttle for a test: fake Sleep (synced
+ * with Carbon so spacing waits advance time instead of accumulating past the
+ * cap) and clear the shared next-slot cache key so it never leaks between tests.
+ */
+function resetIptThrottle(): void
+{
+    Sleep::fake(syncWithCarbon: true);
+    Cache::forget('iptorrents:next-slot');
+}
+
+/**
+ * Force the IPTorrents throttle into an active cooldown so the next request
+ * exceeds the in-process wait cap and releases instead of sending.
+ */
+function seedIptCooldown(): void
+{
+    Cache::put(
+        'iptorrents:next-slot',
+        now()->addMinutes(5)->getTimestampMs(),
+        now()->addMinutes(10),
+    );
 }

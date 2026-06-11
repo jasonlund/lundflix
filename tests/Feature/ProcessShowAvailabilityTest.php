@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
 
 uses(RefreshDatabase::class);
 
@@ -26,7 +25,7 @@ beforeEach(function () {
     $this->travelTo(now('America/New_York')->startOfDay()->addHours(14));
 
     Http::preventStrayRequests();
-    RateLimiter::clear('iptorrents');
+    resetIptThrottle();
     Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
@@ -231,9 +230,7 @@ it('marks newly requested episodes in the pivot table', function () {
 it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 120) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+    seedIptCooldown();
 
     $user = User::factory()->create();
     $show = Show::factory()->create(['name' => 'Whatever']);
