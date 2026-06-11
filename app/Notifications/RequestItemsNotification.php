@@ -44,7 +44,7 @@ class RequestItemsNotification extends Notification
     {
         /** @var Collection<int, Movie|Episode> $requestables */
         $requestables = $this->request->items
-            ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
+            ->map(fn ($item) => $item->requestable)
             ->filter();
 
         $grouped = app(CartService::class)->groupItems($requestables);

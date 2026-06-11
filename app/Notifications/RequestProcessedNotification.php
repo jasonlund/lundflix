@@ -109,7 +109,7 @@ class RequestProcessedNotification extends Notification
             /** @var Collection<int, Movie|Episode> $requestables */
             $requestables = $this->request->items
                 ->where('status', $status)
-                ->map(fn ($item) => $item->requestable) // @phpstan-ignore property.notFound
+                ->map(fn ($item) => $item->requestable)
                 ->filter();
 
             if ($requestables->isEmpty()) {

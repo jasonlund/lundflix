@@ -18,7 +18,7 @@ it('resolves a broadcast network episode in the network timezone to UTC', functi
 });
 
 it('resolves a non-override web channel episode in the channel timezone to UTC', function () {
-    $webChannel = ['id' => 1, 'name' => 'Netflix', 'country' => ['timezone' => 'Europe/London']];
+    $webChannel = ['id' => 999, 'name' => 'BBC iPlayer', 'country' => ['timezone' => 'Europe/London']];
 
     $result = AirDateTime::resolve('2026-04-03', '20:00', $webChannel);
 
@@ -101,8 +101,28 @@ it('resolves an HBO Max episode to midnight Pacific on the listed date', functio
     expect($result->eq($expected))->toBeTrue();
 });
 
+it('resolves a Netflix episode to midnight Pacific on the listed date', function () {
+    $webChannel = ['id' => 1, 'name' => 'Netflix'];
+
+    $result = AirDateTime::resolve('2026-04-03', null, $webChannel);
+
+    $expected = Carbon::parse('2026-04-03 00:00', 'America/Los_Angeles')->utc();
+
+    expect($result->eq($expected))->toBeTrue();
+});
+
+it('resolves a Dropout episode to 5 PM Pacific on the listed date', function () {
+    $webChannel = ['id' => 311, 'name' => 'Dropout'];
+
+    $result = AirDateTime::resolve('2026-04-03', null, $webChannel);
+
+    $expected = Carbon::parse('2026-04-03 17:00', 'America/Los_Angeles')->utc();
+
+    expect($result->eq($expected))->toBeTrue();
+});
+
 it('does not apply override for non-overridden streaming services', function () {
-    $webChannel = ['id' => 1, 'name' => 'Netflix', 'country' => ['timezone' => 'America/New_York']];
+    $webChannel = ['id' => 999, 'name' => 'BBC iPlayer', 'country' => ['timezone' => 'America/New_York']];
 
     $result = AirDateTime::resolve('2026-04-03', '03:00', $webChannel);
 
@@ -361,7 +381,7 @@ it('does not adjust schedule for non-override shows', function () {
 });
 
 it('does not adjust schedule for other streaming services', function () {
-    $webChannel = ['id' => 1, 'name' => 'Netflix'];
+    $webChannel = ['id' => 999, 'name' => 'BBC iPlayer'];
     $schedule = ['days' => ['Friday'], 'time' => '03:00'];
 
     $adjusted = AirDateTime::adjustSchedule($schedule, $webChannel);

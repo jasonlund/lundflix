@@ -19,6 +19,8 @@ class AirDateTime
         310 => ['timezone' => 'America/Los_Angeles', 'hour' => 18, 'dayOffset' => -1], // Apple TV+
         107 => ['timezone' => 'America/Los_Angeles', 'hour' => 0, 'dayOffset' => 0],   // Paramount+
         329 => ['timezone' => 'America/Los_Angeles', 'hour' => 0, 'dayOffset' => 0],   // HBO Max
+        1 => ['timezone' => 'America/Los_Angeles', 'hour' => 0, 'dayOffset' => 0],     // Netflix
+        311 => ['timezone' => 'America/Los_Angeles', 'hour' => 17, 'dayOffset' => 0],  // Dropout
     ];
 
     /**
