@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Notifications\MediaAvailableNotification;
+use App\Notifications\MediaInLibraryNotification;
 use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
@@ -19,6 +20,7 @@ enum SlackNotificationType: string implements HasColor, HasLabel
     case RequestItems = 'request_items';
     case RequestProcessed = 'request_processed';
     case MediaAvailable = 'media_available';
+    case MediaInLibrary = 'media_in_library';
     case SubscriptionMedia = 'subscription_media';
     case PlexLibrary = 'plex_library';
     case TorrentRejected = 'torrent_rejected';
@@ -30,6 +32,7 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::RequestItems => 'New Request',
             self::RequestProcessed => 'Request Processed',
             self::MediaAvailable => 'Available',
+            self::MediaInLibrary => 'In Library',
             self::SubscriptionMedia => 'New Release',
             self::PlexLibrary => 'Added to Library',
             self::TorrentRejected => 'Torrent Rejected',
@@ -43,6 +46,7 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             self::RequestItems => 'info',
             self::RequestProcessed => 'success',
             self::MediaAvailable => 'success',
+            self::MediaInLibrary => 'gray',
             self::SubscriptionMedia => 'warning',
             self::PlexLibrary => 'gray',
             self::TorrentRejected => 'danger',
@@ -68,6 +72,7 @@ enum SlackNotificationType: string implements HasColor, HasLabel
             RequestItemsNotification::class => self::RequestItems,
             RequestProcessedNotification::class => self::RequestProcessed,
             MediaAvailableNotification::class => self::MediaAvailable,
+            MediaInLibraryNotification::class => self::MediaInLibrary,
             SubscriptionMediaNotification::class => self::SubscriptionMedia,
             PlexLibraryNotification::class => self::PlexLibrary,
             TorrentRejectedNotification::class => self::TorrentRejected,

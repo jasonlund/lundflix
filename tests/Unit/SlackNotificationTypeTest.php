@@ -2,6 +2,7 @@
 
 use App\Enums\SlackNotificationType;
 use App\Notifications\MediaAvailableNotification;
+use App\Notifications\MediaInLibraryNotification;
 use App\Notifications\PlexLibraryNotification;
 use App\Notifications\RequestItemsNotification;
 use App\Notifications\RequestProcessedNotification;
@@ -15,6 +16,7 @@ it('maps notification classes to enum cases', function (string $class, SlackNoti
     [RequestItemsNotification::class, SlackNotificationType::RequestItems],
     [RequestProcessedNotification::class, SlackNotificationType::RequestProcessed],
     [MediaAvailableNotification::class, SlackNotificationType::MediaAvailable],
+    [MediaInLibraryNotification::class, SlackNotificationType::MediaInLibrary],
     [SubscriptionMediaNotification::class, SlackNotificationType::SubscriptionMedia],
     [PlexLibraryNotification::class, SlackNotificationType::PlexLibrary],
     [TorrentRejectedNotification::class, SlackNotificationType::TorrentRejected],
@@ -62,6 +64,7 @@ it('returns the default channel for non-library notification types', function (S
     SlackNotificationType::RequestItems,
     SlackNotificationType::RequestProcessed,
     SlackNotificationType::MediaAvailable,
+    SlackNotificationType::MediaInLibrary,
     SlackNotificationType::SubscriptionMedia,
     SlackNotificationType::TorrentRejected,
     SlackNotificationType::TorrentIgnored,

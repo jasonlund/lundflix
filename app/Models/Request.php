@@ -79,6 +79,7 @@ class Request extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<RequestItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(RequestItem::class);

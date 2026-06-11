@@ -2,13 +2,17 @@
 
 use App\Enums\MovieStatus;
 use App\Enums\RequestStatus;
+use App\Jobs\ProcessRequest;
 use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Show;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
+
+beforeEach(fn () => Queue::fake());
 
 it('creates request from movies via submit', function () {
     $user = User::factory()->create();
@@ -75,6 +79,23 @@ it('creates request from mixed movies and episodes', function () {
 
     expect(Request::count())->toBe(1)
         ->and(RequestItem::count())->toBe(2);
+});
+
+it('queues ProcessRequest for the new request on submit', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create(['status' => MovieStatus::Released]);
+
+    Livewire::actingAs($user)
+        ->test('cart')
+        ->dispatch('open-cart', movies: [$movie->id], episodes: [])
+        ->call('submit')
+        ->assertDispatched('cart-submitted');
+
+    Queue::assertPushed(ProcessRequest::class, function (ProcessRequest $job): bool {
+        return $job->request->is(Request::first());
+    });
 });
 
 it('does not create request when no items in cart', function () {

@@ -1,13 +1,16 @@
 <?php
 
 use App\Events\MediaAvailable;
+use App\Events\MediaFoundInLibrary;
 use App\Jobs\DownloadTorrents;
+use App\Jobs\ProcessRequest;
 use App\Models\Movie;
 use App\Models\Request;
 use App\Models\RequestItem;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\IptorrentsService;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
@@ -19,7 +22,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
-    Bus::fake([DownloadTorrents::class]);
+    Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
 function fakeTorrentResult(string $name = 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'): array
@@ -65,6 +68,8 @@ it('creates a request, dispatches MediaAvailable, and fulfills the subscription 
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
         return $job->torrents === [['torrent_id' => 1, 'filename' => 'Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP.torrent']];
     });
+
+    Bus::assertNotDispatched(ProcessRequest::class);
 });
 
 it('creates a request when IPTorrents finds a codec-only torrent in an allowed category', function () {
@@ -261,4 +266,65 @@ it('bails early when the IPTorrents rate limit is reached', function () {
     $this->artisan('process:movie-availability')->assertSuccessful();
 
     Event::assertNotDispatched(MediaAvailable::class);
+});
+
+it('marks the subscription found and skips the torrent check when the movie is already in the library', function () {
+    Event::fake([MediaAvailable::class, MediaFoundInLibrary::class]);
+    config(['services.plex.seed_token' => 'seed-token']);
+
+    $this->mock(PlexService::class)
+        ->shouldReceive('searchByExternalId')
+        ->once()
+        ->andReturn(collect([['name' => 'Living Room']]));
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldNotReceive('searchMovieByName');
+
+    $user = User::factory()->create();
+    $movie = Movie::factory()->create([
+        'title' => 'Dune Part Two',
+        'year' => 2024,
+        'imdb_id' => 'tt15239678',
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    $sub = Subscription::factory()->forSubscribable($movie)->create(['user_id' => $user->id]);
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(0);
+    expect($sub->fresh()->fulfilled_at)->not->toBeNull();
+
+    Event::assertDispatched(MediaFoundInLibrary::class, fn (MediaFoundInLibrary $event): bool => $event->media->is($movie));
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+});
+
+it('falls through to the torrent path when the movie is not in the library', function () {
+    Event::fake([MediaAvailable::class, MediaFoundInLibrary::class]);
+    config(['services.plex.seed_token' => 'seed-token']);
+
+    $this->mock(PlexService::class)
+        ->shouldReceive('searchByExternalId')
+        ->once()
+        ->andReturn(collect());
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(fakeTorrentResult('Dune.Part.Two.2024.1080p.WEB-DL.x264-GROUP'));
+
+    $movie = Movie::factory()->create([
+        'title' => 'Dune Part Two',
+        'year' => 2024,
+        'imdb_id' => 'tt15239678',
+        'digital_release_date' => today(),
+        'status' => 'Released',
+    ]);
+    Subscription::factory()->forSubscribable($movie)->create();
+
+    $this->artisan('process:movie-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+
+    Event::assertDispatched(MediaAvailable::class);
+    Event::assertNotDispatched(MediaFoundInLibrary::class);
 });

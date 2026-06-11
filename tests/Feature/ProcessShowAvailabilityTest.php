@@ -1,7 +1,9 @@
 <?php
 
 use App\Events\MediaAvailable;
+use App\Events\MediaFoundInLibrary;
 use App\Jobs\DownloadTorrents;
+use App\Jobs\ProcessRequest;
 use App\Models\Episode;
 use App\Models\Request;
 use App\Models\RequestItem;
@@ -9,6 +11,7 @@ use App\Models\Show;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\IptorrentsService;
+use App\Services\ThirdParty\PlexService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +27,7 @@ beforeEach(function () {
 
     Http::preventStrayRequests();
     RateLimiter::clear('iptorrents');
-    Bus::fake([DownloadTorrents::class]);
+    Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
 function fakeEpisodeTorrentResult(string $name, int $torrentId = 1): array
@@ -80,6 +83,8 @@ it('creates a request for episodes with available torrents', function () {
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
         return $job->torrents === [['torrent_id' => 1, 'filename' => 'Severance.S02E01.1080p.WEB-DL.x264-GROUP.torrent']];
     });
+
+    Bus::assertNotDispatched(ProcessRequest::class);
 });
 
 it('does not request an episode already in subscription_episode', function () {
@@ -410,6 +415,91 @@ it('retries an episode without a torrent on a later run within the lookback wind
     Bus::assertDispatched(DownloadTorrents::class, function (DownloadTorrents $job): bool {
         return $job->torrents === [['torrent_id' => 2, 'filename' => 'Twin.Lakes.S01E02.1080p.WEB-DL.x264-GROUP.torrent']];
     });
+});
+
+it('marks episodes found and skips the torrent check when every aired episode is already in the library', function () {
+    Event::fake([MediaAvailable::class, MediaFoundInLibrary::class]);
+    config(['services.plex.seed_token' => 'seed-token']);
+
+    $this->mock(PlexService::class)
+        ->shouldReceive('searchShowWithEpisodes')
+        ->once()
+        ->andReturn(collect([['episodes' => [['season' => 2, 'episode' => 1]]]]));
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldNotReceive('searchEpisodeByName');
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'Severance', 'imdb_id' => 'tt11280740']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $episode = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 2,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => now('America/New_York')->subHours(2)->format('H:i'),
+    ]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(0);
+
+    Event::assertDispatched(MediaFoundInLibrary::class, fn (MediaFoundInLibrary $event): bool => $event->media->is($show));
+    Event::assertNotDispatched(MediaAvailable::class);
+    Bus::assertNotDispatched(DownloadTorrents::class);
+
+    $pivot = $sub->fresh()->processedEpisodes()->where('episodes.id', $episode->id)->first();
+    expect($pivot->pivot->requested_at)->not->toBeNull();
+});
+
+it('only torrent-checks episodes not already in the library', function () {
+    Event::fake([MediaAvailable::class, MediaFoundInLibrary::class]);
+    config(['services.plex.seed_token' => 'seed-token']);
+
+    $this->mock(PlexService::class)
+        ->shouldReceive('searchShowWithEpisodes')
+        ->once()
+        ->andReturn(collect([['episodes' => [['season' => 1, 'episode' => 1]]]]));
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchEpisodeByName')
+        ->once()
+        ->withArgs(fn (Episode $e): bool => $e->season === 1 && $e->number === 2)
+        ->andReturn(fakeEpisodeTorrentResult('The.Wire.S01E02.1080p.WEB-DL.x264-GROUP'));
+
+    $user = User::factory()->create();
+    $show = Show::factory()->create(['name' => 'The Wire', 'imdb_id' => 'tt0306414']);
+    $sub = Subscription::factory()->forSubscribable($show)->create(['user_id' => $user->id]);
+
+    $airtime = now('America/New_York')->subHours(2)->format('H:i');
+
+    $inLibrary = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 1,
+        'airdate' => today('America/New_York'),
+        'airtime' => $airtime,
+    ]);
+    $needsTorrent = Episode::factory()->create([
+        'show_id' => $show->id,
+        'season' => 1,
+        'number' => 2,
+        'airdate' => today('America/New_York'),
+        'airtime' => $airtime,
+    ]);
+
+    $this->artisan('process:show-availability')->assertSuccessful();
+
+    expect(Request::count())->toBe(1);
+    expect(RequestItem::count())->toBe(1);
+
+    Event::assertDispatched(MediaFoundInLibrary::class, fn (MediaFoundInLibrary $event): bool => $event->episodes->pluck('id')->contains($inLibrary->id));
+    Event::assertDispatched(MediaAvailable::class);
+
+    $processed = $sub->fresh()->processedEpisodes()->get()->keyBy('id');
+    expect($processed[$inLibrary->id]->pivot->requested_at)->not->toBeNull();
+    expect($processed[$needsTorrent->id]->pivot->requested_at)->not->toBeNull();
 });
 
 it('still picks up episodes that were already notified by the subscriptions command', function () {

@@ -9,13 +9,17 @@ use App\Actions\Request\CreateRequestItems;
 use App\Enums\MediaType;
 use App\Enums\MovieStatus;
 use App\Events\MediaAvailable;
+use App\Events\MediaFoundInLibrary;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Jobs\DownloadTorrents;
+use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Subscription;
-use App\Services\IptorrentsService;
+use App\Services\ThirdParty\PlexService;
+use App\Services\TorrentFulfillmentService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ProcessMovieAvailability extends Command
@@ -29,12 +33,12 @@ class ProcessMovieAvailability extends Command
     public function __construct(
         private readonly CreateRequest $createRequest,
         private readonly CreateRequestItems $createRequestItems,
-        private readonly IptorrentsService $ipt,
+        private readonly TorrentFulfillmentService $fulfillment,
     ) {
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle(PlexService $plex): int
     {
         $today = today();
         $windowStart = $today->copy()->subDays(self::LOOKBACK_DAYS);
@@ -65,10 +69,18 @@ class ProcessMovieAvailability extends Command
 
         $byMovie = $subscriptions->groupBy('subscribable_id');
 
-        /** @var array<int, array{torrent_id: int, name: string, download_url: string}|false> $checked */
+        $libraryToken = config('services.plex.seed_token');
+
+        if (! $libraryToken) {
+            Log::warning('Plex library check skipped: seed token not configured.');
+        }
+
+        /** @var array<int, array{torrent_id: int, filename: string}|false> $checked */
         $checked = [];
         /** @var array<int, Movie> $toDispatch */
         $toDispatch = [];
+        /** @var array<int, Movie> $foundInLibrary */
+        $foundInLibrary = [];
         /** @var list<array{torrent_id: int, filename: string}> $torrentDownloads */
         $torrentDownloads = [];
         $processed = 0;
@@ -77,23 +89,32 @@ class ProcessMovieAvailability extends Command
             /** @var Movie $movie */
             $movie = $subs->first()->subscribable;
 
+            if ($libraryToken && $movie->imdb_id && $this->existsInLibrary($libraryToken, $movie, $plex)) {
+                foreach ($subs as $subscription) {
+                    $subscription->markFulfilled();
+                    $processed++;
+                }
+
+                $foundInLibrary[$movieId] = $movie;
+
+                continue;
+            }
+
             if (! array_key_exists($movieId, $checked)) {
+                /** @var Collection<int, Movie|Episode> $media */
+                $media = collect([$movie]);
+
                 try {
-                    $result = $this->ipt->searchMovieByName($movie);
-                    $checked[$movieId] = $result ?? false;
+                    $result = $this->fulfillment->fulfill($media);
                 } catch (IptorrentsRateLimitExceededException) {
                     $this->warn('IPTorrents rate limit reached, stopping.');
                     break;
                 } catch (IptorrentsAuthException $e) {
                     $this->warn($e->getMessage());
                     break;
-                } catch (\Throwable $e) {
-                    Log::warning('IPTorrents availability check failed', [
-                        'movie_id' => $movie->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $checked[$movieId] = false;
                 }
+
+                $checked[$movieId] = $result->downloads[0] ?? false;
             }
 
             if ($checked[$movieId] === false) {
@@ -104,20 +125,20 @@ class ProcessMovieAvailability extends Command
                 $request = $this->createRequest->create($subscription->user);
                 $this->createRequestItems->create($request, [
                     ['type' => MediaType::MOVIE, 'id' => $movie->id],
-                ]);
+                ], autoDownload: false);
 
                 $subscription->markFulfilled();
 
                 $processed++;
             }
 
-            $result = $checked[$movieId];
-            $torrentDownloads[] = [
-                'torrent_id' => $result['torrent_id'],
-                'filename' => basename((string) parse_url($result['download_url'], PHP_URL_PATH)),
-            ];
+            $torrentDownloads[] = $checked[$movieId];
 
             $toDispatch[$movieId] = $movie;
+        }
+
+        foreach ($foundInLibrary as $movie) {
+            MediaFoundInLibrary::dispatch($movie);
         }
 
         foreach ($toDispatch as $movie) {
@@ -131,5 +152,21 @@ class ProcessMovieAvailability extends Command
         $this->info("Processed {$processed} movie availability check(s).");
 
         return Command::SUCCESS;
+    }
+
+    private function existsInLibrary(string $token, Movie $movie, PlexService $plex): bool
+    {
+        try {
+            return $plex
+                ->searchByExternalId($token, "imdb://{$movie->imdb_id}", 1)
+                ->isNotEmpty();
+        } catch (\Throwable $e) {
+            Log::warning('Plex library check failed', [
+                'movie_id' => $movie->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 }

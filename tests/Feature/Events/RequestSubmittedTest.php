@@ -5,10 +5,12 @@ use App\Events\RequestSubmitted;
 use App\Models\Movie;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 it('dispatches RequestSubmitted event on successful submit', function () {
     Event::fake([RequestSubmitted::class]);
+    Queue::fake();
 
     $user = User::factory()->create();
     $movie = Movie::factory()->create(['status' => MovieStatus::Released]);
