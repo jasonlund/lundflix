@@ -59,4 +59,8 @@ return [
         'pass' => env('SEARCH_PASS'),
     ],
 
+    'bysh' => [
+        'api_key' => env('BYSH_API_KEY'),
+    ],
+
 ];
