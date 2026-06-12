@@ -58,6 +58,26 @@ it('shows an unavailable state when the api fails', function () {
         ->assertSee('Stats unavailable');
 });
 
+it('retries after a failed api response instead of caching the failure', function () {
+    Http::fake([
+        'bytesized-hosting.com/api/v1/accounts.json*' => Http::sequence()
+            ->push('nope', 500)
+            ->push([[
+                'server_name' => 'ajax',
+                'disk_quota' => 1_500_000_000,
+                'total_storage' => 3000,
+                'bandwidth_quota' => 5_000_000_000_000,
+                'total_bandwidth' => 10,
+            ]]),
+    ]);
+
+    Livewire::test(StorageUsageWidget::class)->assertSee('Stats unavailable');
+
+    Livewire::test(StorageUsageWidget::class)
+        ->assertSee('51%')
+        ->assertSee('ajax');
+});
+
 it('only calls the api once across both widgets via cache', function () {
     fakeBytesizedAccount();
 

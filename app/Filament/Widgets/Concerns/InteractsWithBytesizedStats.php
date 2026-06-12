@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Widgets\Concerns;
 
 use App\Services\ThirdParty\BYSHService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Number;
 use Livewire\Attributes\Computed;
 use Throwable;
@@ -15,21 +16,33 @@ use Throwable;
 trait InteractsWithBytesizedStats
 {
     /**
-     * The primary Bytesized Hosting account. Cached across all widget
-     * instances for 5 minutes via Livewire's computed cache so the read-only
-     * API is hit at most once per window. Returns null when the API is
-     * unreachable or no account exists.
+     * The primary Bytesized Hosting account. Shared across all widget
+     * instances via a 5-minute cache so the read-only API is hit at most
+     * once per window. Successful lookups (including an empty account list)
+     * are cached; API failures are not, so the next render retries instead
+     * of locking in "unavailable" for the full window. Returns null when
+     * the API is unreachable or no account exists.
      *
      * @return array<string, mixed>|null
      */
-    #[Computed(cache: true, key: 'bysh:primary-account', seconds: 300)]
+    #[Computed]
     public function bytesizedPrimaryAccount(): ?array
     {
+        $cached = Cache::get('bysh:primary-account');
+
+        if (is_array($cached) && array_key_exists('account', $cached)) {
+            return $cached['account'];
+        }
+
         try {
-            return app(BYSHService::class)->accounts()->first();
+            $account = app(BYSHService::class)->accounts()->first();
         } catch (Throwable) {
             return null;
         }
+
+        Cache::put('bysh:primary-account', ['account' => $account], 300);
+
+        return $account;
     }
 
     /**
