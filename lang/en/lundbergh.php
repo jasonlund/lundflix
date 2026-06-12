@@ -98,7 +98,7 @@ return [
         'when_today' => 'today',
         'when_yesterday' => 'yesterday',
         'when_days_ago' => '{1} :count day ago|[2,*] :count days ago',
-        'greeting_new' => "Yeah… hi. I'm… I'm Lundbergh. So, you can go ahead and run lundflix right from here, just by searching for a movie or show. Once you've found something, we'll go ahead and check if it's available on lundflix, or any of the servers down below.<br>Mmm yeah… and if it isn't out there yet, you can go ahead and request it, and we'll add it automatically if we can.<br>Mmkay… and for shows that are still on the air or movies still on their way to digital, if you could go ahead and subscribe, we'll add it the moment it shows up.<br>So… yeah. Oh, and I'm gonna need you to come in on Sunday too. That'd be great.",
+        'greeting_new' => "Yeah… hi. I'm… I'm Lundbergh. So, you can go ahead and run lundflix right from here just by searching for a movie or show. Once you've found something… we'll go ahead and check if it's available on lundflix or any of the servers down below.<br>Mmm yeah… and if it isn't out there yet, you can go ahead and request it and we'll add it automatically if we can.<br>Mmkay… and for shows that are still on the air or movies still on their way to digital, if you could go ahead and subscribe… we'll add it the moment it shows up.<br>So… yeah. Oh, and I'm gonna need you to come in on Sunday too. That'd be great.",
         'no_recent_subscriptions' => "Mmkay… nothing's come out recently. So… yeah.",
     ],
     'loading' => [

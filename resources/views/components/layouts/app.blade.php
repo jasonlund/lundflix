@@ -12,9 +12,7 @@
                 class="pointer-events-none absolute top-0 right-0 left-[calc(50%_+_384px)] z-[11] hidden h-[600px] backdrop-blur-sm md:block"
             ></div>
 
-            <div
-                class="relative isolate min-h-dvh bg-zinc-900 md:mx-auto md:max-w-screen-md md:border-t md:border-zinc-800/70"
-            >
+            <div class="relative isolate min-h-dvh bg-zinc-900 md:mx-auto md:max-w-screen-md">
                 <div
                     class="min-w-screen-md pointer-events-none absolute top-0 left-1/2 z-10 -mt-px aspect-video min-h-[10rem] w-full origin-top -translate-x-1/2 scale-135 overflow-hidden rounded-b-xl mask-x-from-70% mask-x-to-95% mask-b-from-65% mask-b-to-97%"
                 >
@@ -34,6 +32,9 @@
                     <x-crt-effects />
                 </div>
 
+                <div
+                    class="pointer-events-none absolute inset-x-0 top-0 z-[15] hidden h-px bg-zinc-800/70 md:block"
+                ></div>
                 <div
                     class="pointer-events-none absolute inset-y-0 left-0 z-[15] hidden w-px bg-zinc-800/70 md:block"
                 ></div>

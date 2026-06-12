@@ -15,7 +15,10 @@ it('shows the new user greeting when the user has no requests', function () {
     $this->actingAs($user)
         ->get('/')
         ->assertSuccessful()
-        ->assertSee(__('lundbergh.dashboard.greeting_new'), false);
+        ->assertSee("I'm… I'm Lundbergh", false)
+        ->assertSee('go ahead and request it', false)
+        ->assertSee('go ahead and subscribe', false)
+        ->assertSee('come in on Sunday', false);
 });
 
 it('shows the review line for a returning user', function () {
@@ -43,7 +46,7 @@ it('shows the review line when all request items were rejected', function () {
     $this->actingAs($user)
         ->get('/')
         ->assertSuccessful()
-        ->assertDontSee(__('lundbergh.dashboard.greeting_new'), false)
+        ->assertDontSee("I'm… I'm Lundbergh", false)
         ->assertSee(__('lundbergh.dashboard.review_requests'), false);
 });
 

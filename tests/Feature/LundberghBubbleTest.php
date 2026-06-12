@@ -35,6 +35,28 @@ it('renders with error variant', function () {
         ->toContain('border-red-500/30');
 });
 
+it('renders the small head by default', function () {
+    $html = Blade::render('<x-lundbergh-bubble>Test</x-lundbergh-bubble>');
+
+    expect($html)
+        ->toContain('size-8')
+        ->not->toContain('size-10');
+});
+
+it('renders a larger head for the large size', function () {
+    $html = Blade::render('<x-lundbergh-bubble size="large">Test</x-lundbergh-bubble>');
+
+    expect($html)
+        ->toContain('size-10')
+        ->toContain('top-5');
+});
+
+it('omits the head when showAvatar is false', function () {
+    $html = Blade::render('<x-lundbergh-bubble :show-avatar="false">Test</x-lundbergh-bubble>');
+
+    expect($html)->not->toContain('alt="Lundbergh"');
+});
+
 it('renders with paragraph tag by default', function () {
     $html = Blade::render('<x-lundbergh-bubble>Test</x-lundbergh-bubble>');
 

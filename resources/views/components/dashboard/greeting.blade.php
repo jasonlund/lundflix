@@ -13,6 +13,23 @@ new class extends Component {
     }
 
     #[Computed]
+    public function isNewUser(): bool
+    {
+        $user = auth()->user();
+
+        return ! $user->requests()->exists() && ! $user->subscriptions()->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Computed]
+    public function greetingBeats(): array
+    {
+        return array_values(array_filter(array_map('trim', explode('<br>', $this->greeting))));
+    }
+
+    #[Computed]
     public function greeting(): string
     {
         $user = auth()->user();
@@ -51,7 +68,7 @@ new class extends Component {
             ->pending()
             ->count();
 
-        if (! $user->requests()->exists() && ! $user->subscriptions()->exists()) {
+        if ($this->isNewUser) {
             return __('lundbergh.dashboard.greeting_new');
         }
 
@@ -85,7 +102,5 @@ new class extends Component {
 ?>
 
 <div>
-    <x-lundbergh-bubble contentTag="div">
-        {!! $this->greeting !!}
-    </x-lundbergh-bubble>
+    <x-lundbergh-thread :beats="$this->greetingBeats" size="large" />
 </div>

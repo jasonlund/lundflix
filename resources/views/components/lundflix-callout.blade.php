@@ -6,6 +6,7 @@
 
 <x-lundbergh-bubble
     :variant="$bubbleVariant"
+    size="large"
     :with-margin="false"
     bubbleClass="flex-1"
     contentTag="div"
