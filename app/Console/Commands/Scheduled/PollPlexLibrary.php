@@ -508,7 +508,7 @@ class PollPlexLibrary extends Command
             if (($item['media_type'] ?? null) === 'movie') {
                 $movie = $this->resolveMovie($server, $item, $plex);
 
-                if ($movie) {
+                if ($movie instanceof Movie) {
                     $item['title'] = $movie->title;
                 }
             }
@@ -516,7 +516,7 @@ class PollPlexLibrary extends Command
             if (($item['media_type'] ?? null) === 'episode') {
                 $show = $this->resolveShowForEpisode($server, $item, $plex);
 
-                if ($show) {
+                if ($show instanceof Show) {
                     $item['show_title'] = $show->name;
                 }
             }
