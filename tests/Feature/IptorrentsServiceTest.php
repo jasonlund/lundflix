@@ -9,12 +9,13 @@ use App\Models\Show;
 use App\Services\IptorrentsService;
 use App\Settings\IptorrentsSettings;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 
 beforeEach(function () {
     Http::preventStrayRequests();
-    RateLimiter::clear('iptorrents');
+    resetIptThrottle();
 
     $settings = app(IptorrentsSettings::class);
     $settings->ipt_uid = '123';
@@ -221,10 +222,8 @@ it('throws IptorrentsAuthException when credentials are not configured', functio
     Http::assertNothingSent();
 });
 
-it('throws IptorrentsRateLimitExceededException when rate limit exceeded', function () {
-    foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+it('throws IptorrentsRateLimitExceededException when in cooldown', function () {
+    seedIptCooldown();
 
     Http::fake(['iptorrents.com/*' => Http::response(fakeIptSearchHtml([]))]);
 
@@ -233,6 +232,38 @@ it('throws IptorrentsRateLimitExceededException when rate limit exceeded', funct
         ->toThrow(IptorrentsRateLimitExceededException::class);
 
     Http::assertNothingSent();
+});
+
+it('spaces consecutive requests by the configured interval', function () {
+    $this->freezeTime();
+
+    Http::fake(['iptorrents.com/*' => Http::response(fakeIptSearchHtml([]))]);
+
+    $service = new IptorrentsService;
+    $service->search('first');
+    $service->search('second');
+
+    Sleep::assertSlept(fn ($duration) => (int) $duration->totalMilliseconds === 6500, times: 1);
+});
+
+it('honors and logs Retry-After on a 429 without retrying', function () {
+    Log::spy();
+
+    Http::fake([
+        'iptorrents.com/*' => Http::response('Rate Limit Reached', 429, ['Retry-After' => '60']),
+    ]);
+
+    $service = new IptorrentsService;
+
+    try {
+        $service->search('test');
+        $this->fail('Expected IptorrentsRateLimitExceededException.');
+    } catch (IptorrentsRateLimitExceededException $e) {
+        expect($e->retryAfter)->toBe(60);
+    }
+
+    Http::assertSentCount(1);
+    Log::shouldHaveReceived('warning')->once();
 });
 
 it('returns empty collection when no results found', function () {
@@ -649,6 +680,141 @@ describe('searchEpisode', function () {
     });
 });
 
+describe('searchSeason', function () {
+    it('maps every requested episode from a single search and prefers H.265', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 1, name: 'Test Show S05E04 1080p WEB-DL H 264-NTb', seeders: 100),
+                fakeIptTorrentRow(torrentId: 2, name: 'Test Show S05E04 1080p HEVC x265-MeGusta[NORAR]', seeders: 50),
+                fakeIptTorrentRow(torrentId: 3, name: 'Test Show S05E05 1080p HEVC x265-MeGusta[NORAR]', seeders: 40),
+            ])),
+        ]);
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 5, [4, 5]);
+
+        expect($results)->toHaveKeys([4, 5])
+            ->and($results[4]['torrent_id'])->toBe(2)
+            ->and($results[5]['torrent_id'])->toBe(3);
+
+        // One search, no pagination, no file-list checks (NORAR tags trusted).
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'q=tt7654321+S05')
+            && ! str_contains($request->url(), 'p='));
+    });
+
+    it('stops after the first page once every requested episode is covered', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        $rows = collect(range(4, 54))
+            ->map(fn (int $n): string => fakeIptTorrentRow(
+                torrentId: 1000 + $n,
+                name: sprintf('Test Show S05E%02d 1080p HEVC x265-MeGusta[NORAR]', $n),
+            ))
+            ->all();
+
+        Http::fake(['iptorrents.com/*' => Http::response(fakeIptSearchHtml($rows))]);
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 5, [4, 5]);
+
+        expect($results)->toHaveKeys([4, 5]);
+
+        // Page 1 already covers both wanted episodes, so page 2 is never fetched.
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'p=2'));
+    });
+
+    it('paginates when a wanted episode is missing from a full first page', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        // 50 rows covering E04 and E06..E54 but not E05, forcing a second page.
+        $page1 = collect(range(4, 54))
+            ->reject(fn (int $n): bool => $n === 5)
+            ->map(fn (int $n): string => fakeIptTorrentRow(
+                torrentId: 1000 + $n,
+                name: sprintf('Test Show S05E%02d 1080p HEVC x265-MeGusta[NORAR]', $n),
+            ))
+            ->all();
+
+        Http::fake(function ($request) use ($page1) {
+            if (str_contains($request->url(), 'p=2')) {
+                return Http::response(fakeIptSearchHtml([
+                    fakeIptTorrentRow(torrentId: 5005, name: 'Test Show S05E05 1080p HEVC x265-MeGusta[NORAR]', seeders: 30),
+                ]));
+            }
+
+            return Http::response(fakeIptSearchHtml($page1));
+        });
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 5, [4, 5]);
+
+        expect($results)->toHaveKeys([4, 5])
+            ->and($results[5]['torrent_id'])->toBe(5005);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'p=2'));
+    });
+
+    it('omits episodes that have no match (e.g. not yet aired) without extra requests', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake([
+            'iptorrents.com/*' => Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 1, name: 'Test Show S06E04 1080p HEVC x265-MeGusta[NORAR]', seeders: 50),
+                fakeIptTorrentRow(torrentId: 2, name: 'Test Show S06E05 1080p HEVC x265-MeGusta[NORAR]', seeders: 40),
+            ])),
+        ]);
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 6, [4, 5, 6, 7]);
+
+        expect($results)->toHaveKeys([4, 5])
+            ->and($results)->not->toHaveKey(6)
+            ->and($results)->not->toHaveKey(7);
+
+        // Short page (< 50 rows) is the last page; no fallback per-episode hits.
+        Http::assertSentCount(1);
+    });
+
+    it('skips a rar-packed candidate in favour of the next non-rar release for an episode', function () {
+        $show = Show::factory()->create(['imdb_id' => 'tt7654321', 'name' => 'Test Show']);
+
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/t/2/files')) {
+                return Http::response(fakeIptFileListHtml(['test.show.s05e04.1080p.web.x265-grp.r00']));
+            }
+
+            if (str_contains($request->url(), '/t/3/files')) {
+                return Http::response(fakeIptFileListHtml(['Test.Show.S05E04.1080p.WEB.x265-GRP.mkv']));
+            }
+
+            return Http::response(fakeIptSearchHtml([
+                fakeIptTorrentRow(torrentId: 2, name: 'Test Show S05E04 1080p HEVC x265-MeGusta', seeders: 80),
+                fakeIptTorrentRow(torrentId: 3, name: 'Test Show S05E04 1080p HEVC x265-GRP', seeders: 60),
+            ]));
+        });
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 5, [4]);
+
+        expect($results)->toHaveKey(4)
+            ->and($results[4]['torrent_id'])->toBe(3);
+    });
+
+    it('returns nothing when the show has no IMDB ID', function () {
+        $show = Show::factory()->create(['imdb_id' => '', 'name' => 'No IMDB Show']);
+
+        $service = new IptorrentsService;
+        $results = $service->searchSeason($show, 1, [1, 2]);
+
+        expect($results)->toBe([]);
+        Http::assertNothingSent();
+    });
+});
+
 describe('fetchTorrentImdbId', function () {
     it('extracts IMDB ID from torrent detail page', function () {
         Http::fake([
@@ -672,10 +838,8 @@ describe('fetchTorrentImdbId', function () {
         expect($result)->toBeNull();
     });
 
-    it('throws rate limit exception when exhausted', function () {
-        foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-            RateLimiter::hit('iptorrents', 60);
-        }
+    it('throws rate limit exception when in cooldown', function () {
+        seedIptCooldown();
 
         $service = new IptorrentsService;
         expect(fn () => $service->fetchTorrentImdbId(12345))
@@ -1288,9 +1452,7 @@ describe('searchEpisodeByName', function () {
             return Http::response(fakeIptSearchHtml([]));
         });
 
-        foreach (range(1, IptorrentsService::RATE_LIMIT_ATTEMPTS) as $_) {
-            RateLimiter::hit('iptorrents', 60);
-        }
+        seedIptCooldown();
 
         $service = new IptorrentsService;
 

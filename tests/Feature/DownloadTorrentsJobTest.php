@@ -19,7 +19,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Storage::fake('local');
     Notification::fake();
-    Sleep::fake();
+    resetIptThrottle();
     Log::spy();
 
     config(['services.slack.enabled' => true]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Enums\RequestItemStatus;
+use App\Enums\TorrentSearchStrategy;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
 use App\Models\Movie;
@@ -43,9 +44,9 @@ class ProcessRequest implements ShouldQueue
         $media = $items->map(fn ($item) => $item->requestable)->filter()->values();
 
         try {
-            $result = $fulfillment->fulfill($media);
-        } catch (IptorrentsRateLimitExceededException) {
-            $this->release($this->backoff);
+            $result = $fulfillment->fulfill($media, TorrentSearchStrategy::ImdbId);
+        } catch (IptorrentsRateLimitExceededException $e) {
+            $this->release($e->retryAfter);
 
             return;
         }

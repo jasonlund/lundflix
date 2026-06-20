@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\TorrentSearchStrategy;
 use App\Exceptions\IptorrentsAuthException;
 use App\Exceptions\IptorrentsRateLimitExceededException;
 use App\Models\Episode;
@@ -13,6 +14,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
+
+beforeEach(fn () => resetIptThrottle());
 
 function fulfillmentResult(string $name, int $torrentId = 1): array
 {
@@ -37,7 +40,7 @@ it('searches every requested episode individually and downloads each match', fun
         ->create(['season' => 3]);
 
     $ipt = $this->mock(IptorrentsService::class);
-    $ipt->shouldNotReceive('searchSeasonPack');
+    $ipt->shouldNotReceive('searchSeason');
     foreach (range(1, 4) as $num) {
         $ipt->shouldReceive('searchEpisodeByName')
             ->once()
@@ -255,4 +258,170 @@ it('skips a failing group and continues with the rest', function () {
     expect($result->downloads)->toBe([
         ['torrent_id' => 50, 'filename' => 'Show.B.S01E01.torrent'],
     ])->and($result->covered)->toHaveCount(1);
+});
+
+it('searches by name for movies and episodes under the default strategy', function () {
+    $movie = Movie::factory()->create();
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    $episode = $show->episodes()->first();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovieByName')->once()->andReturn(fulfillmentResult('Movie.x265', 1));
+    $ipt->shouldReceive('searchEpisodeByName')->once()->andReturn(fulfillmentResult('Show.S01E01.x265', 2));
+    $ipt->shouldNotReceive('searchMovie');
+    $ipt->shouldNotReceive('searchEpisode');
+
+    $result = (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie, $episode]));
+
+    expect($result->covered)->toHaveCount(2);
+});
+
+it('searches by imdb id for movies and episodes under the imdb strategy', function () {
+    $movie = Movie::factory()->create();
+    $show = Show::factory()->create();
+    Episode::factory()->for($show)->create(['season' => 1, 'number' => 1]);
+    $episode = $show->episodes()->first();
+
+    $ipt = $this->mock(IptorrentsService::class);
+    $ipt->shouldReceive('searchMovie')->once()->andReturn(fulfillmentResult('Movie.x265', 1));
+    $ipt->shouldReceive('searchEpisode')->once()->andReturn(fulfillmentResult('Show.S01E01.x265', 2));
+    $ipt->shouldNotReceive('searchMovieByName');
+    $ipt->shouldNotReceive('searchEpisodeByName');
+
+    $result = (new TorrentFulfillmentService($ipt))->fulfill(collect([$movie, $episode]), TorrentSearchStrategy::ImdbId);
+
+    expect($result->covered)->toHaveCount(2);
+});
+
+describe('season batching', function () {
+    it('sweeps a multi-episode same-season group with one season search under the imdb strategy', function () {
+        $show = Show::factory()->create();
+        $episodes = Episode::factory()->count(4)->for($show)
+            ->sequence(['number' => 4], ['number' => 5], ['number' => 6], ['number' => 7])
+            ->create(['season' => 5]);
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldNotReceive('searchEpisode');
+        $ipt->shouldReceive('searchSeason')
+            ->once()
+            ->withArgs(fn (Show $s, int $season, array $numbers): bool => $s->is($show)
+                && $season === 5
+                && $numbers === [4, 5, 6, 7])
+            ->andReturn([
+                4 => fulfillmentResult('Some.Show.S05E04.1080p.x265', 504),
+                5 => fulfillmentResult('Some.Show.S05E05.1080p.x265', 505),
+                6 => fulfillmentResult('Some.Show.S05E06.1080p.x265', 506),
+                7 => fulfillmentResult('Some.Show.S05E07.1080p.x265', 507),
+            ]);
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill($episodes, TorrentSearchStrategy::ImdbId);
+
+        expect($result->downloads)->toBe([
+            ['torrent_id' => 504, 'filename' => 'Some.Show.S05E04.1080p.x265.torrent'],
+            ['torrent_id' => 505, 'filename' => 'Some.Show.S05E05.1080p.x265.torrent'],
+            ['torrent_id' => 506, 'filename' => 'Some.Show.S05E06.1080p.x265.torrent'],
+            ['torrent_id' => 507, 'filename' => 'Some.Show.S05E07.1080p.x265.torrent'],
+        ])->and($result->covered)->toHaveCount(4);
+    });
+
+    it('only covers episodes the season search returns a match for', function () {
+        $show = Show::factory()->create();
+        $episodes = Episode::factory()->count(3)->for($show)
+            ->sequence(['number' => 9], ['number' => 10], ['number' => 11])
+            ->create(['season' => 6]);
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldReceive('searchSeason')
+            ->once()
+            ->andReturn([
+                9 => fulfillmentResult('Some.Show.S06E09.1080p.x265', 609),
+                10 => fulfillmentResult('Some.Show.S06E10.1080p.x265', 610),
+            ]);
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill($episodes, TorrentSearchStrategy::ImdbId);
+
+        expect($result->downloads)->toBe([
+            ['torrent_id' => 609, 'filename' => 'Some.Show.S06E09.1080p.x265.torrent'],
+            ['torrent_id' => 610, 'filename' => 'Some.Show.S06E10.1080p.x265.torrent'],
+        ])->and($result->covered)->toHaveCount(2);
+    });
+
+    it('splits episodes from different seasons into separate season searches', function () {
+        $show = Show::factory()->create();
+        $episodes = Episode::factory()->count(4)->for($show)
+            ->sequence(
+                ['season' => 1, 'number' => 1],
+                ['season' => 1, 'number' => 2],
+                ['season' => 2, 'number' => 1],
+                ['season' => 2, 'number' => 2],
+            )
+            ->create();
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldReceive('searchSeason')
+            ->once()
+            ->withArgs(fn (Show $s, int $season, array $numbers): bool => $season === 1 && $numbers === [1, 2])
+            ->andReturn([1 => fulfillmentResult('Some.Show.S01E01', 101), 2 => fulfillmentResult('Some.Show.S01E02', 102)]);
+        $ipt->shouldReceive('searchSeason')
+            ->once()
+            ->withArgs(fn (Show $s, int $season, array $numbers): bool => $season === 2 && $numbers === [1, 2])
+            ->andReturn([1 => fulfillmentResult('Some.Show.S02E01', 201), 2 => fulfillmentResult('Some.Show.S02E02', 202)]);
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill($episodes, TorrentSearchStrategy::ImdbId);
+
+        expect($result->covered)->toHaveCount(4);
+    });
+
+    it('uses a per-episode search for a lone same-season episode under the imdb strategy', function () {
+        $show = Show::factory()->create();
+        $episode = Episode::factory()->for($show)->create(['season' => 5, 'number' => 4]);
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldNotReceive('searchSeason');
+        $ipt->shouldReceive('searchEpisode')->once()->andReturn(fulfillmentResult('Some.Show.S05E04.x265', 5));
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill(collect([$episode]), TorrentSearchStrategy::ImdbId);
+
+        expect($result->covered)->toHaveCount(1);
+    });
+
+    it('keeps specials on the per-episode path even within a batched season request', function () {
+        $show = Show::factory()->create();
+        $regular = Episode::factory()->count(2)->for($show)
+            ->sequence(['number' => 4], ['number' => 5])
+            ->create(['season' => 5]);
+        $special = Episode::factory()->for($show)->special()->create(['season' => 5, 'number' => 99]);
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldReceive('searchSeason')
+            ->once()
+            ->withArgs(fn (Show $s, int $season, array $numbers): bool => $numbers === [4, 5])
+            ->andReturn([4 => fulfillmentResult('Some.Show.S05E04', 4), 5 => fulfillmentResult('Some.Show.S05E05', 5)]);
+        $ipt->shouldReceive('searchEpisode')
+            ->once()
+            ->withArgs(fn (Episode $e): bool => $e->is($special))
+            ->andReturn(fulfillmentResult('Some.Show.S05S99', 99));
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill($regular->push($special), TorrentSearchStrategy::ImdbId);
+
+        expect($result->covered)->toHaveCount(3);
+    });
+
+    it('never batches under the name strategy', function () {
+        $show = Show::factory()->create();
+        $episodes = Episode::factory()->count(3)->for($show)
+            ->sequence(['number' => 1], ['number' => 2], ['number' => 3])
+            ->create(['season' => 1]);
+
+        $ipt = $this->mock(IptorrentsService::class);
+        $ipt->shouldNotReceive('searchSeason');
+        $ipt->shouldReceive('searchEpisodeByName')
+            ->times(3)
+            ->andReturnUsing(fn (Episode $e): array => fulfillmentResult("Some.Show.S01E0{$e->number}.x265", 10 + $e->number));
+
+        $result = (new TorrentFulfillmentService($ipt))->fulfill($episodes);
+
+        expect($result->covered)->toHaveCount(3);
+    });
 });

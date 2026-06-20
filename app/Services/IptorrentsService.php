@@ -11,24 +11,49 @@ use App\Models\Episode;
 use App\Models\Movie;
 use App\Models\Show;
 use App\Settings\IptorrentsSettings;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use Symfony\Component\DomCrawler\Crawler;
 
 class IptorrentsService
 {
-    private const RATE_LIMIT_KEY = 'iptorrents';
+    private const THROTTLE_KEY = 'iptorrents:next-slot';
 
-    public const RATE_LIMIT_ATTEMPTS = 120;
+    private const THROTTLE_LOCK = 'iptorrents:throttle-lock';
 
-    private const RATE_LIMIT_DECAY = 60;
+    /**
+     * Minimum spacing between IPTorrents requests. Spreads ~10 requests across
+     * 65 seconds (one every 6.5s), staying safely under the tracker's measured
+     * burst ceiling of ~10 requests before it returns HTTP 429.
+     */
+    private const REQUEST_SPACING_MS = 6500;
+
+    /**
+     * Longest a worker will wait in-process for its slot before releasing the
+     * job back to the queue instead of blocking.
+     */
+    private const MAX_WAIT_SECONDS = 30;
+
+    /** Fallback cooldown when a 429 arrives without a usable Retry-After header. */
+    private const RETRY_AFTER_FALLBACK_SECONDS = 60;
 
     private const MAX_IMDB_LOOKUPS = 3;
 
     private const MAX_RAR_CHECKS = 3;
+
+    /** Result rows IPTorrents returns per search page. */
+    private const RESULTS_PER_PAGE = 50;
+
+    /** Safety cap on pages walked when sweeping a season's results. */
+    private const MAX_SEASON_PAGES = 5;
 
     /**
      * Search IPTorrents and return parsed results (max 50 per search).
@@ -36,12 +61,13 @@ class IptorrentsService
      * @param  list<IptCategory>  $categories
      * @return Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>
      */
-    public function search(string $query, array $categories = [], string $sort = 'seeders'): Collection
+    public function search(string $query, array $categories = [], string $sort = 'seeders', int $page = 1): Collection
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
-        $url = $this->buildSearchUrl($query, $categories, $sort);
+        $url = $this->buildSearchUrl($query, $categories, $sort, $page);
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -131,6 +157,75 @@ class IptorrentsService
     }
 
     /**
+     * Sweep a show's season in one paginated search and resolve the best torrent
+     * for each requested episode number, replacing the per-episode search fan-out.
+     *
+     * Imdb-text scoping returns only this show, so no per-torrent imdb confirm is
+     * needed. Pagination is a safety net for the 50-row page cap: it stops as soon
+     * as every requested episode is covered, the last page is read, or the page
+     * cap is hit. Episodes with no match are simply absent from the returned map.
+     *
+     * @param  list<int>  $episodeNumbers
+     * @return array<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>
+     */
+    public function searchSeason(Show $show, int $season, array $episodeNumbers): array
+    {
+        if (! $show->imdb_id || $episodeNumbers === []) {
+            return [];
+        }
+
+        $categories = array_map(
+            IptCategory::from(...),
+            IptCategory::defaultTvValues(),
+        );
+
+        $wanted = array_values(array_unique($episodeNumbers));
+        $query = sprintf('%s S%02d', $show->imdb_id, $season);
+        $pattern = sprintf('/(?<![a-z0-9])s0*%de0*(\d+)/i', $season);
+
+        /** @var array<int, Collection<int, array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}>> $buckets */
+        $buckets = [];
+
+        for ($page = 1; $page <= self::MAX_SEASON_PAGES; $page++) {
+            $results = $this->search($query, $categories, 'seeders', $page);
+
+            foreach ($results as $result) {
+                if (preg_match($pattern, $result['name'], $matches)) {
+                    $number = (int) $matches[1];
+                    $buckets[$number] ??= collect();
+                    $buckets[$number]->push($result);
+                }
+            }
+
+            $allCovered = array_reduce(
+                $wanted,
+                fn (bool $carry, int $number): bool => $carry && isset($buckets[$number]),
+                true,
+            );
+
+            if ($allCovered || $results->count() < self::RESULTS_PER_PAGE) {
+                break;
+            }
+        }
+
+        $matched = [];
+
+        foreach ($wanted as $number) {
+            if (! isset($buckets[$number])) {
+                continue;
+            }
+
+            $choice = $this->firstNonRar($this->preferH265($buckets[$number]->values()));
+
+            if ($choice !== null) {
+                $matched[$number] = $choice;
+            }
+        }
+
+        return $matched;
+    }
+
+    /**
      * @return array{torrent_id: int, name: string, size: string, seeders: int, leechers: int, snatches: int, uploaded: string, download_url: string}|null
      */
     public function searchEpisodeByName(Episode $episode): ?array
@@ -188,10 +283,11 @@ class IptorrentsService
      */
     public function fetchTorrentImdbId(int $torrentId): ?string
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/torrent.php?id={$torrentId}";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -225,10 +321,11 @@ class IptorrentsService
      */
     public function fetchTorrentFileList(int $torrentId): array
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/t/{$torrentId}/files";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         $html = $response->body();
@@ -259,10 +356,11 @@ class IptorrentsService
      */
     public function download(int $torrentId, string $filename): string
     {
-        $this->checkRateLimit();
+        $this->throttleRequest();
 
         $url = $this->baseUrl()."/download.php/{$torrentId}/{$filename}";
         $response = $this->client()->get($url);
+        $this->guardRateLimitResponse($response);
         $response->throw();
 
         if (str_contains($response->body(), '<title>IPTorrents')) {
@@ -442,7 +540,7 @@ class IptorrentsService
         return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^\p{L}\p{N}\s]/u', '', $name)));
     }
 
-    private function buildSearchUrl(string $query, array $categories, string $sort): string
+    private function buildSearchUrl(string $query, array $categories, string $sort, int $page = 1): string
     {
         $params = [];
 
@@ -454,6 +552,10 @@ class IptorrentsService
         $params[] = 'qf=';
         $params[] = 'o='.urlencode($sort);
         $params[] = 'qq=desc';
+
+        if ($page > 1) {
+            $params[] = 'p='.$page;
+        }
 
         return $this->baseUrl().'/t?'.implode('&', $params).'#torrents';
     }
@@ -539,13 +641,66 @@ class IptorrentsService
         }
     }
 
-    private function checkRateLimit(): void
+    /**
+     * Pace outbound IPTorrents requests so no more than one fires per
+     * REQUEST_SPACING_MS, coordinated across all queue workers via a shared
+     * cache slot. Short waits are slept off in-process; a wait beyond
+     * MAX_WAIT_SECONDS (e.g. an active Retry-After cooldown) releases the job
+     * back to the queue instead of blocking the worker.
+     */
+    private function throttleRequest(): void
     {
-        if (RateLimiter::tooManyAttempts(self::RATE_LIMIT_KEY, self::RATE_LIMIT_ATTEMPTS)) {
-            throw new IptorrentsRateLimitExceededException;
+        $waitMs = Cache::lock(self::THROTTLE_LOCK, 10)->block(
+            self::MAX_WAIT_SECONDS + 5,
+            function (): int {
+                $now = now()->getTimestampMs();
+                $last = (int) Cache::get(self::THROTTLE_KEY, 0);
+                $slot = max($now, $last + self::REQUEST_SPACING_MS);
+
+                if (($slot - $now) > self::MAX_WAIT_SECONDS * 1000) {
+                    throw new IptorrentsRateLimitExceededException;
+                }
+
+                Cache::put(self::THROTTLE_KEY, $slot, now()->addMinutes(5));
+
+                return $slot - $now;
+            },
+        );
+
+        if ($waitMs > 0) {
+            Sleep::for($waitMs)->milliseconds();
+        }
+    }
+
+    /**
+     * Honor an IPTorrents HTTP 429 by logging the Retry-After value, pushing the
+     * shared throttle slot out so every worker observes the cooldown, and
+     * releasing the job. 429 is deliberately excluded from the client retry
+     * policy so this runs instead of a tight, Retry-After-ignoring retry loop.
+     */
+    private function guardRateLimitResponse(Response $response): void
+    {
+        if ($response->status() !== 429) {
+            return;
         }
 
-        RateLimiter::hit(self::RATE_LIMIT_KEY, self::RATE_LIMIT_DECAY);
+        $retryAfter = (int) $response->header('Retry-After');
+
+        if ($retryAfter <= 0) {
+            $retryAfter = self::RETRY_AFTER_FALLBACK_SECONDS;
+        }
+
+        Log::warning('IPTorrents returned HTTP 429; honoring Retry-After.', [
+            'retry_after_seconds' => $retryAfter,
+        ]);
+
+        Cache::put(
+            self::THROTTLE_KEY,
+            now()->getTimestampMs() + ($retryAfter * 1000),
+            now()->addMinutes(5),
+        );
+
+        throw new IptorrentsRateLimitExceededException($retryAfter);
     }
 
     private function baseUrl(): string
@@ -561,7 +716,8 @@ class IptorrentsService
             throw new IptorrentsAuthException('IPTorrents credentials not configured. Set them in admin Settings → IPTorrents.');
         }
 
-        return Http::resilient()
+        return Http::retry(3, 1000, when: fn (\Throwable $e): bool => $e instanceof ConnectionException
+            || ($e instanceof RequestException && in_array($e->response->status(), [408, 502, 503, 504], true)), throw: false)
             ->withHeaders(['Cookie' => $settings->cookieHeader()])
             ->timeout(30);
     }

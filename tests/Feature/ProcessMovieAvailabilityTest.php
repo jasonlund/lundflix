@@ -15,13 +15,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Http::preventStrayRequests();
-    RateLimiter::clear('iptorrents');
+    resetIptThrottle();
     Bus::fake([DownloadTorrents::class, ProcessRequest::class]);
 });
 
@@ -253,9 +252,7 @@ it('dedupes API calls when multiple users subscribe to the same movie', function
 it('bails early when the IPTorrents rate limit is reached', function () {
     Event::fake([MediaAvailable::class]);
 
-    foreach (range(1, 10) as $_) {
-        RateLimiter::hit('iptorrents', 60);
-    }
+    seedIptCooldown();
 
     $movie = Movie::factory()->create([
         'digital_release_date' => today(),

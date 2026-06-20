@@ -12,7 +12,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
-beforeEach(fn () => Queue::fake());
+beforeEach(function () {
+    Queue::fake();
+    resetIptThrottle();
+});
 
 it('creates request from movies via submit', function () {
     $user = User::factory()->create();
