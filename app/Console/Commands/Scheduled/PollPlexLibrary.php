@@ -118,7 +118,7 @@ class PollPlexLibrary extends Command
 
         if ($readyItems->isNotEmpty()) {
             $this->fulfillMatchingRequests($server, $readyItems, $plex);
-            $this->sendSlackNotification($server, $readyItems);
+            $this->sendSlackNotification($server, $this->applyKnownTitles($server, $readyItems, $plex));
         }
 
         $maxFromNew = $newItems->max(fn (array $item): int => $item['addedAt'] ?? 0) ?? 0;
@@ -493,6 +493,36 @@ class PollPlexLibrary extends Command
         }
 
         return $this->metadataCache[$cacheKey];
+    }
+
+    /**
+     * Override Plex-supplied titles with our known movie/show names when we can
+     * match the item by external identifier. Plex metadata is sometimes wrong.
+     *
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function applyKnownTitles(PlexMediaServer $server, Collection $items, PlexService $plex): Collection
+    {
+        return $items->map(function (array $item) use ($server, $plex): array {
+            if (($item['media_type'] ?? null) === 'movie') {
+                $movie = $this->resolveMovie($server, $item, $plex);
+
+                if ($movie instanceof Movie) {
+                    $item['title'] = $movie->title;
+                }
+            }
+
+            if (($item['media_type'] ?? null) === 'episode') {
+                $show = $this->resolveShowForEpisode($server, $item, $plex);
+
+                if ($show instanceof Show) {
+                    $item['show_title'] = $show->name;
+                }
+            }
+
+            return $item;
+        });
     }
 
     /**

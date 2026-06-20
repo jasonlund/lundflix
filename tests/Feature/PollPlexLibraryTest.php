@@ -701,6 +701,96 @@ it('does not dispatch RequestFulfilled for partial fulfillment', function () {
     Event::assertNotDispatched(RequestFulfilled::class);
 });
 
+it('prefers our known movie title over the Plex title when matched by imdb id', function () {
+    $server = createPollableServer();
+    Movie::factory()->create(['imdb_id' => 'tt5462602', 'title' => 'The Big Sick']);
+
+    $now = now()->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [plexMovie('The Big Sick 2017 1080p GARBLED', 100, $now, 2017)]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['imdb://tt5462602'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    Notification::assertSentOnDemand(
+        PlexLibraryNotification::class,
+        fn (PlexLibraryNotification $notification): bool => $notification->items->firstWhere('media_type', 'movie')['title'] === 'The Big Sick',
+    );
+});
+
+it('keeps the Plex movie title when no known movie matches', function () {
+    $server = createPollableServer();
+
+    $now = now()->timestamp;
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri, movieItems: [plexMovie('Unknown Indie Film', 100, $now, 2024)]),
+        [
+            "{$server->uri}/library/metadata/100" => Http::response(
+                fakePlexMetadata(100, ['imdb://tt0000000'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    Notification::assertSentOnDemand(
+        PlexLibraryNotification::class,
+        fn (PlexLibraryNotification $notification): bool => $notification->items->firstWhere('media_type', 'movie')['title'] === 'Unknown Indie Film',
+    );
+});
+
+it('prefers our known show name over the Plex title when matched by imdb id', function () {
+    $server = createPollableServer();
+    $show = Show::factory()->create(['imdb_id' => 'tt0903747']);
+
+    $cid = $server->client_identifier;
+    $pastTime = now()->subMinutes(10)->timestamp;
+
+    Cache::put("plex:poll:pending-index:{$cid}", ['50'], 1800);
+    Cache::put("plex:poll:pending:{$cid}:50", [
+        'server_name' => $server->name,
+        'show_title' => 'Breaking Bad GARBLED',
+        'first_seen_at' => $pastTime,
+        'last_seen_at' => $pastTime,
+        'items' => [
+            '200' => [
+                'media_type' => 'episode',
+                'title' => 'Pilot',
+                'show_title' => 'Breaking Bad GARBLED',
+                'season' => 1,
+                'episode_number' => 1,
+                'rating_key' => '200',
+                'parent_rating_key' => '55',
+                'grandparent_rating_key' => '50',
+                'added_at' => $pastTime,
+            ],
+        ],
+    ], 1800);
+
+    Http::fake(array_merge(
+        fakeSectionRoutes($server->uri),
+        [
+            "{$server->uri}/library/metadata/200" => Http::response(
+                fakePlexMetadata(200, ['imdb://tt0903747'])
+            ),
+        ],
+    ));
+
+    $this->artisan('plex:poll-library')->assertSuccessful();
+
+    Notification::assertSentOnDemand(
+        PlexLibraryNotification::class,
+        fn (PlexLibraryNotification $notification): bool => $notification->items->firstWhere('media_type', 'episode')['show_title'] === $show->name,
+    );
+});
+
 it('skips episodes with null season or episode number', function () {
     $server = createPollableServer();
     $show = Show::factory()->create(['tmdb_id' => 1396]);
